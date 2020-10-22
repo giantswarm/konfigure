@@ -1,0 +1,20 @@
+# This file defines ownership of specific parts of the project. Owner teams will automatically get added as reviewers
+# for pull requests which are modifying files owned by those teams. See official docs for more information
+# https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners.
+#
+# Files and directories can be owned by multiple teams, for example:
+# /path/to/directory/ @giantswarm/team-x @giantswarm/team-y
+
+# These owners will be the default owners for everything in the repo. Unless a later match takes precedence,
+# @giantswarm/team-x and @giantswarm/team-y will be requested for review when someone opens a pull request.
+# *    @giantswarm/team-x @giantswarm/team-y
+
+# Order is important; the last matching pattern takes the most precedence. When someone opens a pull request that only
+# modifies golang files, only @giantswarm/sig-xyz and not the global owner(s) will be requested for a review.
+# *.go    @giantswarm/sig-xyz
+
+# To own any files in the "some/directory" directory at the root of the repository and any of its subdirectories:
+# /some/directory/ @giantswarm/team-z
+
+# To own any file in a "some-stuff" directory anywhere in your repository:
+# some-stuff/ @octocat
