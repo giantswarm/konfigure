@@ -1,10 +1,10 @@
 package project
 
 var (
-	description = "The template-operator does something."
+	description = "The config-controller does something."
 	gitSHA      = "n/a"
-	name        = "template-operator"
-	source      = "https://github.com/giantswarm/template-operator"
+	name        = "config-controller"
+	source      = "https://github.com/giantswarm/config-controller"
 	version     = "0.1.0-dev"
 )
 
