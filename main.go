@@ -7,8 +7,10 @@ import (
 	"github.com/giantswarm/microkit/command"
 	microserver "github.com/giantswarm/microkit/server"
 	"github.com/giantswarm/micrologger"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/giantswarm/config-controller/cmd/generate"
 	"github.com/giantswarm/config-controller/flag"
 	"github.com/giantswarm/config-controller/pkg/project"
 	"github.com/giantswarm/config-controller/server"
@@ -98,6 +100,21 @@ func mainE(ctx context.Context) error {
 			return microerror.Mask(err)
 		}
 	}
+
+	// Add sub-commands
+	subcommands := []*cobra.Command{}
+	{
+		c := generate.Config{
+			Logger: logger,
+		}
+		cmd, err := generate.New(c)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		subcommands = append(subcommands, cmd)
+	}
+
+	newCommand.CobraCommand().AddCommand(subcommands...)
 
 	daemonCommand := newCommand.DaemonCommand().CobraCommand()
 
