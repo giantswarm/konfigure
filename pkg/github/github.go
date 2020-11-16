@@ -2,6 +2,10 @@ package github
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"sort"
+	"strconv"
 
 	"github.com/giantswarm/microerror"
 
@@ -59,6 +63,21 @@ func New(config Config) (*GitHub, error) {
 	return g, nil
 }
 
+func (g *GitHub) GetLatestTag(ctx context.Context, owner, name, major string) (string, error) {
+	tags, err := g.getTags(ctx, owner, name, major)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	latest := getLatestTag(tags)
+
+	if latest == "" {
+		return "", microerror.Maskf(executionFailedError, "did not find tag for `%s/%s` for major %#q", owner, name, major)
+	}
+
+	return latest, nil
+}
+
 func (g *GitHub) GetFiles(ctx context.Context, owner, name, tag string) (Store, error) {
 	url := "https://github.com/" + owner + "/" + name + ".git"
 	store, err := g.repo.ShallowClone(ctx, url, tag)
@@ -69,9 +88,9 @@ func (g *GitHub) GetFiles(ctx context.Context, owner, name, tag string) (Store, 
 	return store, nil
 }
 
-// GetTags returns a list of tags for the given owner/name. Only tags containing
+// getTags returns a list of tags for the given owner/name. Only tags containing
 // filter string are returned. When filter is empty all tags are returned.
-func (g *GitHub) GetTags(ctx context.Context, owner, name, filter string) ([]string, error) {
+func (g *GitHub) getTags(ctx context.Context, owner, name, filter string) ([]string, error) {
 	const query = `
 		query($owner:String!, $name:String!, $filter:String!, $after:String) {
 		  repository(name: $name, owner: $owner) {
@@ -139,4 +158,60 @@ func (g *GitHub) GetTags(ctx context.Context, owner, name, filter string) ([]str
 	}
 
 	return tags, nil
+}
+
+func getLatestTag(tags []string) string {
+	re := regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)$`)
+
+	type MajorMinorPatch [3]int
+
+	var versions []MajorMinorPatch
+	for _, t := range tags {
+		subs := re.FindStringSubmatch(t)
+		if len(subs) == 4 {
+			major, err := strconv.Atoi(subs[1])
+			if err != nil {
+				panic(microerror.Pretty(microerror.Mask(err), true))
+			}
+			minor, err := strconv.Atoi(subs[2])
+			if err != nil {
+				panic(microerror.Pretty(microerror.Mask(err), true))
+			}
+			patch, err := strconv.Atoi(subs[3])
+			if err != nil {
+				panic(microerror.Pretty(microerror.Mask(err), true))
+			}
+
+			versions = append(versions, MajorMinorPatch{major, minor, patch})
+		}
+	}
+
+	lessFunc := func(i, j int) bool {
+		x := versions[i]
+		y := versions[j]
+		switch {
+		case x[0] < y[0]:
+			return true
+		case x[0] > y[0]:
+			return false
+		case x[1] < y[1]:
+			return true
+		case x[1] > y[1]:
+			return false
+		case x[2] < y[2]:
+			return true
+		case x[2] > y[2]:
+			return false
+		}
+		return false
+	}
+
+	sort.Slice(versions, lessFunc)
+
+	if len(versions) == 0 {
+		return ""
+	}
+
+	v := versions[len(versions)-1]
+	return fmt.Sprintf("v%d.%d.%d", v[0], v[1], v[2])
 }
