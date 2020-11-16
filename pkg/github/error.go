@@ -1,6 +1,10 @@
 package github
 
-import "github.com/giantswarm/microerror"
+import (
+	"github.com/giantswarm/microerror"
+
+	"github.com/giantswarm/config-controller/pkg/github/internal/gitrepo"
+)
 
 // executionFailedError should never be matched against and therefore there is
 // no matcher implement. For further information see:
@@ -18,4 +22,17 @@ var invalidConfigError = &microerror.Error{
 // IsInvalidConfig asserts invalidConfigError.
 func IsInvalidConfig(err error) bool {
 	return microerror.Cause(err) == invalidConfigError
+}
+
+var notFoundError = &microerror.Error{
+	Kind: "notFoundError",
+}
+
+// IsNotFound asserts notFoundError.
+func IsNotFound(err error) bool {
+	if gitrepo.IsNotFound(err) {
+		return true
+	}
+
+	return microerror.Cause(err) == notFoundError
 }

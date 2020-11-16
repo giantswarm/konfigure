@@ -1,7 +1,6 @@
 package gitrepo
 
 import (
-	"context"
 	"io/ioutil"
 	"os"
 
@@ -13,10 +12,29 @@ type Store struct {
 	fs billy.Filesystem
 }
 
-func (s *Store) GetContent(ctx context.Context, path string) ([]byte, error) {
+func (s *Store) ReadDir(dirpath string) ([]os.FileInfo, error) {
+	stat, err := s.fs.Stat(dirpath)
+	if os.IsNotExist(err) {
+		return nil, microerror.Maskf(notFoundError, "file %#q does not exist", dirpath)
+	} else if err != nil {
+		return nil, microerror.Mask(err)
+	}
+	if !stat.IsDir() {
+		return nil, microerror.Maskf(executionFailedError, "file %#q is not a directory", dirpath)
+	}
+
+	fs, err := s.fs.ReadDir(dirpath)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return fs, nil
+}
+
+func (s *Store) ReadFile(path string) ([]byte, error) {
 	stat, err := s.fs.Stat(path)
 	if os.IsNotExist(err) {
-		return nil, microerror.Maskf(executionFailedError, "file %#q does not exist", path)
+		return nil, microerror.Maskf(notFoundError, "file %#q does not exist", path)
 	} else if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -26,10 +44,11 @@ func (s *Store) GetContent(ctx context.Context, path string) ([]byte, error) {
 
 	f, err := s.fs.Open(path)
 	if os.IsNotExist(err) {
-		return nil, microerror.Maskf(executionFailedError, "file %#q does not exist", path)
+		return nil, microerror.Maskf(notFoundError, "file %#q does not exist", path)
 	} else if err != nil {
 		return nil, microerror.Mask(err)
 	}
+	defer f.Close()
 
 	bs, err := ioutil.ReadAll(f)
 	if err != nil {
