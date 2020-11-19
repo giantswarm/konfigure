@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/microkit/command"
@@ -24,7 +26,8 @@ var (
 func main() {
 	err := mainE(context.Background())
 	if err != nil {
-		panic(microerror.JSON(err))
+		fmt.Fprintf(os.Stderr, "Error: %s\n", microerror.Pretty(microerror.Mask(err), true))
+		os.Exit(1)
 	}
 }
 
@@ -124,6 +127,9 @@ func mainE(ctx context.Context) error {
 	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.CAFile, "", "Certificate authority file path to use to authenticate with Kubernetes.")
 	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.CrtFile, "", "Certificate file path to use to authenticate with Kubernetes.")
 	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.KeyFile, "", "Key file path to use to authenticate with Kubernetes.")
+
+	newCommand.CobraCommand().SilenceErrors = true
+	newCommand.CobraCommand().SilenceUsage = true
 
 	err = newCommand.CobraCommand().Execute()
 	if err != nil {
