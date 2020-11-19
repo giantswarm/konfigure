@@ -3,7 +3,11 @@ module github.com/giantswarm/config-controller
 go 1.14
 
 require (
+	github.com/Masterminds/goutils v1.1.0 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/fatih/color v1.9.0 // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/exporterkit v0.2.0
 	github.com/giantswarm/k8sclient/v4 v4.0.0
 	github.com/giantswarm/microendpoint v0.2.0
@@ -11,6 +15,7 @@ require (
 	github.com/giantswarm/microkit v0.2.2
 	github.com/giantswarm/micrologger v0.3.4
 	github.com/giantswarm/operatorkit/v2 v2.0.2
+	github.com/giantswarm/valuemodifier v0.3.0
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-test/deep v1.0.7 // indirect
@@ -18,6 +23,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20201001211907-38d91b749c77
 	github.com/hashicorp/vault/sdk v0.1.14-0.20201109203410-5e6e24692b32 // indirect
+	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/prometheus/client_golang v1.8.0
