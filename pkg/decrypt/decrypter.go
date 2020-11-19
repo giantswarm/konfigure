@@ -1,4 +1,4 @@
-package decrypter
+package decrypt
 
 import (
 	"context"
@@ -12,7 +12,7 @@ const (
 	keyring = "/v1/transit/decrypt/config"
 )
 
-type Config struct {
+type DecrypterConfig struct {
 	VaultClient *vaultapi.Client
 }
 
@@ -20,7 +20,7 @@ type Decrypter struct {
 	vaultClient *vaultapi.Client
 }
 
-func New(config Config) (*Decrypter, error) {
+func New(config DecrypterConfig) (*Decrypter, error) {
 	if config.VaultClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.VaultClient must not be empty", config)
 	}

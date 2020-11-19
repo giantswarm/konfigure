@@ -1,4 +1,4 @@
-package decrypter
+package decrypt
 
 import "github.com/giantswarm/microerror"
 

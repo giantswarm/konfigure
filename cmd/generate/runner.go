@@ -9,7 +9,7 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/config-controller/pkg/decrypter"
+	"github.com/giantswarm/config-controller/pkg/decrypt"
 )
 
 type runner struct {
@@ -43,13 +43,13 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return microerror.Mask(err)
 	}
 
-	var dec *decrypter.Decrypter
+	var decrypter *decrypt.Decrypter
 	{
-		c := decrypter.Config{
+		c := decrypt.DecrypterConfig{
 			VaultClient: vaultClient,
 		}
 
-		dec, err = decrypter.New(c)
+		decrypter, err = decrypt.New(c)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -60,7 +60,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		fmt.Fprintf(r.stderr, "Error: Expected the first argument to encrypted blob")
 	}
 
-	decrypted, err := dec.Decrypt(ctx, []byte(args[0]))
+	decrypted, err := decrypter.Decrypt(ctx, []byte(args[0]))
 	if err != nil {
 		return microerror.Mask(err)
 	}
