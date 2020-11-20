@@ -43,13 +43,13 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return microerror.Mask(err)
 	}
 
-	var decrypter *decrypt.Decrypter
+	var decrypter *decrypt.VaultDecrypter
 	{
-		c := decrypt.DecrypterConfig{
+		c := decrypt.VaultDecrypterConfig{
 			VaultClient: vaultClient,
 		}
 
-		decrypter, err = decrypt.New(c)
+		decrypter, err = decrypt.NewVaultDecrypter(c)
 		if err != nil {
 			return microerror.Mask(err)
 		}

@@ -12,27 +12,29 @@ const (
 	keyring = "/v1/transit/decrypt/config"
 )
 
-type DecrypterConfig struct {
+type VaultDecrypterConfig struct {
 	VaultClient *vaultapi.Client
 }
 
-type Decrypter struct {
+type VaultDecrypter struct {
 	vaultClient *vaultapi.Client
 }
 
-func New(config DecrypterConfig) (*Decrypter, error) {
+var _ Decrypter = &VaultDecrypter{}
+
+func NewVaultDecrypter(config VaultDecrypterConfig) (*VaultDecrypter, error) {
 	if config.VaultClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.VaultClient must not be empty", config)
 	}
 
-	d := &Decrypter{
+	d := &VaultDecrypter{
 		vaultClient: config.VaultClient,
 	}
 
 	return d, nil
 }
 
-func (d *Decrypter) Decrypt(ctx context.Context, ciphertext []byte) ([]byte, error) {
+func (d *VaultDecrypter) Decrypt(ctx context.Context, ciphertext []byte) ([]byte, error) {
 	req := struct {
 		Ciphertext string `json:"ciphertext"`
 	}{
@@ -58,7 +60,7 @@ func (d *Decrypter) Decrypt(ctx context.Context, ciphertext []byte) ([]byte, err
 	return decoded, nil
 }
 
-func (d *Decrypter) vaultRequest(ctx context.Context, endpoint string, req, resp interface{}) error {
+func (d *VaultDecrypter) vaultRequest(ctx context.Context, endpoint string, req, resp interface{}) error {
 	httpReq := d.vaultClient.NewRequest("POST", endpoint)
 	err := httpReq.SetJSONBody(req)
 	if err != nil {

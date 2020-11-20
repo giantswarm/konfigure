@@ -20,6 +20,7 @@ require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-test/deep v1.0.7 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
+	github.com/google/go-cmp v0.5.2
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20201001211907-38d91b749c77
 	github.com/hashicorp/vault/sdk v0.1.14-0.20201109203410-5e6e24692b32 // indirect
