@@ -28,7 +28,15 @@ func New(config Config) (*Repo, error) {
 	return r, nil
 }
 
-func (r *Repo) ShallowClone(ctx context.Context, url, tag string) (*Store, error) {
+func (r *Repo) ShallowCloneTag(ctx context.Context, url, tag string) (*Store, error) {
+	return r.ShallowClone(ctx, url, plumbing.NewTagReferenceName(tag))
+}
+
+func (r *Repo) ShallowCloneBranch(ctx context.Context, url, branch string) (*Store, error) {
+	return r.ShallowClone(ctx, url, plumbing.NewBranchReferenceName(branch))
+}
+
+func (r *Repo) ShallowClone(ctx context.Context, url string, ref plumbing.ReferenceName) (*Store, error) {
 	var auth transport.AuthMethod
 	if r.gitHubToken != "" {
 		auth = &http.BasicAuth{
@@ -41,7 +49,7 @@ func (r *Repo) ShallowClone(ctx context.Context, url, tag string) (*Store, error
 	_, err := git.CloneContext(ctx, memory.NewStorage(), fs, &git.CloneOptions{
 		Auth:          auth,
 		URL:           url,
-		ReferenceName: plumbing.NewBranchReferenceName("master"),
+		ReferenceName: ref,
 		SingleBranch:  true,
 		Depth:         1,
 	})

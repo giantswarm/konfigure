@@ -78,9 +78,19 @@ func (g *GitHub) GetLatestTag(ctx context.Context, owner, name, major string) (s
 	return latest, nil
 }
 
-func (g *GitHub) GetFiles(ctx context.Context, owner, name, tag string) (Store, error) {
+func (g *GitHub) GetFilesByTag(ctx context.Context, owner, name, tag string) (Store, error) {
 	url := "https://github.com/" + owner + "/" + name + ".git"
-	store, err := g.repo.ShallowClone(ctx, url, tag)
+	store, err := g.repo.ShallowCloneTag(ctx, url, tag)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return store, nil
+}
+
+func (g *GitHub) GetFilesByBranch(ctx context.Context, owner, name, branch string) (Store, error) {
+	url := "https://github.com/" + owner + "/" + name + ".git"
+	store, err := g.repo.ShallowCloneBranch(ctx, url, branch)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

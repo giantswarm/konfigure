@@ -23,7 +23,7 @@ path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
 ---
-path: include/instances.yaml
+path: include/instances.yaml.template
 data: |
   - small
   - medium

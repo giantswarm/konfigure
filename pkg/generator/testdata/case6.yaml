@@ -15,7 +15,7 @@ data: |
   availableInstances:
   {{- include "instances" . | nindent 2 }}
 ---
-path: include/instances.yaml
+path: include/instances.yaml.template
 data: |
   - small
   - medium

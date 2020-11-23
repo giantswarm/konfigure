@@ -5,11 +5,19 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ghodss/yaml"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/config-controller/pkg/decrypt"
+	"github.com/giantswarm/config-controller/pkg/generator"
+	"github.com/giantswarm/config-controller/pkg/github"
+)
+
+const (
+	owner = "giantswarm"
+	repo  = "config"
 )
 
 type runner struct {
@@ -36,36 +44,90 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 }
 
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
-	fmt.Fprintf(r.stdout, "Creating vault client using opsctl\n")
-
-	vaultClient, err := createVaultClientUsingOpsctl(ctx, r.flag.GitHubToken, r.flag.Installation)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	var decrypter *decrypt.VaultDecrypter
+	var decryptTraverser *decrypt.YAMLTraverser
 	{
-		c := decrypt.VaultDecrypterConfig{
-			VaultClient: vaultClient,
-		}
-
-		decrypter, err = decrypt.NewVaultDecrypter(c)
+		vaultClient, err := createVaultClientUsingOpsctl(ctx, r.flag.GitHubToken, r.flag.Installation)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
+		c := decrypt.VaultDecrypterConfig{
+			VaultClient: vaultClient,
+		}
+
+		decrypter, err := decrypt.NewVaultDecrypter(c)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		decryptTraverser, err = decrypt.NewYAMLTraverser(
+			decrypt.YAMLTraverserConfig{
+				Decrypter: decrypter,
+			},
+		)
+		if err != nil {
+			return microerror.Mask(err)
+		}
 	}
 
-	if len(args) != 1 {
-		fmt.Fprintf(r.stderr, "Error: Expected the first argument to encrypted blob")
+	var store generator.Filesystem
+	var ref string
+	{
+		gh, err := github.New(github.Config{
+			Token: r.flag.GitHubToken,
+		})
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		if r.flag.ConfigVersion != "" {
+			tag, err := gh.GetLatestTag(ctx, owner, repo, r.flag.ConfigVersion)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			store, err = gh.GetFilesByTag(ctx, owner, repo, tag)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			ref = tag
+		} else if r.flag.Branch != "" {
+			store, err = gh.GetFilesByBranch(ctx, owner, repo, r.flag.Branch)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			ref = r.flag.Branch
+		}
 	}
 
-	decrypted, err := decrypter.Decrypt(ctx, []byte(args[0]))
+	gen, err := generator.New(&generator.Config{
+		Fs:               store,
+		DecryptTraverser: decryptTraverser,
+	})
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	fmt.Fprintf(r.stdout, "Decrypted: %s\n", decrypted)
+	configmap, secrets, err := gen.GenerateConfig(ctx, r.flag.Installation, r.flag.App, ref)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	fmt.Println("---")
+	out, err := yaml.Marshal(configmap)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+	fmt.Printf(string(out) + "\n")
+
+	fmt.Println("---")
+	out, err = yaml.Marshal(secrets)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+	fmt.Printf(string(out) + "\n")
 
 	return nil
 }

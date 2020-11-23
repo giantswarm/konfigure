@@ -10,5 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Create CLI/daemon scaffolding.
+- Generate application configuration using `generate` command.
 
 [Unreleased]: https://github.com/giantswarm/REPOSITORY_NAME/tree/master

@@ -20,19 +20,19 @@ path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
 ---
-path: include/level1.yaml
+path: include/level1.yaml.template
 data: "firstLevel: true"
 ---
-path: include/level2.yaml
+path: include/level2.yaml.template
 data: "secondLevel: true"
 ---
-path: include/level3.yaml
+path: include/level3.yaml.template
 data: "thirdLevel: true"
 ---
-path: include/level2-2.yaml
+path: include/level2-2.yaml.template
 data: "backOnSecond: true"
 ---
-path: include/level1-2.yaml
+path: include/level1-2.yaml.template
 data: "backOnFirst: true"
 ---
 path: configmap-values.yaml.golden
