@@ -2,47 +2,41 @@ path: default/config.yaml
 data: |
   universalValue: 42
 ---
+path: installations/puma/secret.yaml
+data: |
+  key: password
+---
 path: installations/puma/config.yaml.patch
 data: |
   provider:
     kind: aws
     region: us-east-1
 ---
-path: installations/puma/secret.yaml
-data: |
-  key: password
----
 path: default/apps/operator/configmap-values.yaml.template
 data: |
   answer: {{ .universalValue }}
   region: {{ .provider.region }}
-  availableInstances:
-  {{- include "instances" . | nindent 2 }}
+
 ---
 path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
 ---
-path: include/instances.yaml.template
+path: installations/puma/apps/operator/configmap-values.yaml.patch
 data: |
-  - small
-  - medium
-  - large
-  {{ if eq .provider.kind "aws" }}
-  - xlarge
-  {{ end }}
+  addedKey: I'm new here
+  region: eu-west-3
+---
+path: installations/puma/apps/operator/secret-values.yaml.patch
+data: |
+  secretAccessKey: SuperSpecialKeyForOperatorOnPuma123!#
 ---
 path: configmap-values.yaml.golden
 data: |
+  addedKey: I'm new here
   answer: 42
-  availableInstances:
-  - small
-  - medium
-  - large
-  - xlarge
-  region: us-east-1
+  region: eu-west-3
 ---
 path: secret-values.yaml.golden
 data: |
-  secretAccessKey: password
-
+  secretAccessKey: SuperSpecialKeyForOperatorOnPuma123!#

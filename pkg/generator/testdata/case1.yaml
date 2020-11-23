@@ -8,7 +8,7 @@ data: |
     kind: aws
     region: us-east-1
 ---
-path: installations/puma/secrets.yaml
+path: installations/puma/secret.yaml
 data: |
   key: password
 ---

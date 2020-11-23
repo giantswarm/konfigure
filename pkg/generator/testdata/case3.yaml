@@ -12,7 +12,7 @@ data: |
       example: 18.11
       another_example: true
 ---
-path: installations/puma/secrets.yaml
+path: installations/puma/secret.yaml
 data: |
   key: 1234
 ---

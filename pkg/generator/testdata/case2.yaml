@@ -6,7 +6,7 @@ path: installations/puma/config.yaml.patch
 data: |
   registry: azurecr.io
 ---
-path: installations/puma/secrets.yaml
+path: installations/puma/secret.yaml
 data: |
   key: password
 ---

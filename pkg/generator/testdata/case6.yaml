@@ -8,6 +8,10 @@ data: |
     kind: aws
     region: us-east-1
 ---
+path: installations/puma/secret.yaml
+data: |
+  superSecretKey: password
+---
 path: default/apps/operator/configmap-values.yaml.template
 data: |
   answer: {{ .universalValue }}

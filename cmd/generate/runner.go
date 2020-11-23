@@ -110,7 +110,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return microerror.Mask(err)
 	}
 
-	configmap, secrets, err := gen.GenerateConfig(ctx, r.flag.Installation, r.flag.App, ref)
+	configmap, secret, err := gen.GenerateConfig(ctx, r.flag.Installation, r.flag.App, ref)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -123,7 +123,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	fmt.Printf(string(out) + "\n")
 
 	fmt.Println("---")
-	out, err = yaml.Marshal(secrets)
+	out, err = yaml.Marshal(secret)
 	if err != nil {
 		return microerror.Mask(err)
 	}

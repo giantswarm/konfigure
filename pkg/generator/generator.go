@@ -36,10 +36,11 @@ import (
 				...
 			godsmack/
 				config.yaml.patch
-				secrets.yaml
+				secret.yaml
 				apps/
 					azure-operator/
-						configmap-values.yaml.patch.template
+						configmap-values.yaml.patch
+						secret-values.yaml.patch
 */
 
 var (
@@ -61,6 +62,9 @@ func New(config *Config) (*Generator, error) {
 	if config.Fs == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Fs must not be empty", config)
 	}
+	if config.DecryptTraverser == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.DecryptTraverser must not be empty", config)
+	}
 	g := Generator{
 		fs:               config.Fs,
 		decryptTraverser: config.DecryptTraverser,
@@ -75,15 +79,17 @@ func New(config *Config) (*Generator, error) {
 //    overrides (if available)
 // 2. Get global configmap template for the app and render it with template
 //    data (result of 1.)
-// 3. Get installation-specific configmap template for the app patch and render
-//    it with template data (result of 1.)
+// 3. Get installation-specific configmap patch for the app template (if available)
 // 4. Patch global template (result of 2.) with installation-specific (result
-//    of 3.) app overrides (if available)
-// 5. Get global secrets template data
-// 6. Decrypt global secrets if DecryptTraverser has been provided.
-// 7. Get installation-specific secrets template for the app (if available) and
-//    render it with installation secrets template data (result of 5.)
-func (g Generator) GenerateRawConfig(ctx context.Context, installation, app string) (configmap string, secrets string, err error) {
+//    of 3.) app overrides
+// 5. Get installation-specific secret template data and decrypt it
+// 6. Get global secret template for the app (if available) and render it with
+//    installation secret template data (result of 5.)
+// 7. Get installation-specific secret template patch (if available) and
+//    decrypt it
+// 8. Patch secret template (result of 6.) with decrypted patch values (result
+//    of 7.)
+func (g Generator) GenerateRawConfig(ctx context.Context, installation, app string) (configmap string, secret string, err error) {
 	// 1.
 	configmapContext, err := g.getWithPatchIfExists(
 		ctx,
@@ -107,7 +113,7 @@ func (g Generator) GenerateRawConfig(ctx context.Context, installation, app stri
 	// 3.
 	var configmapPatch string
 	{
-		filepath := "installations/" + installation + "/apps/" + app + "/configmap-values.yaml.patch.template"
+		filepath := "installations/" + installation + "/apps/" + app + "/configmap-values.yaml.patch"
 		patch, err := g.getRenderedTemplate(ctx, filepath, configmapContext)
 		if IsNotFound(err) {
 			configmapPatch = ""
@@ -129,26 +135,23 @@ func (g Generator) GenerateRawConfig(ctx context.Context, installation, app stri
 	}
 
 	// 5.
-	secretsContext, err := g.getWithPatchIfExists(
+	secretContext, err := g.getWithPatchIfExists(
 		ctx,
-		"installations/"+installation+"/secrets.yaml",
+		"installations/"+installation+"/secret.yaml",
 		"",
 	)
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
 
-	// 6.
-	if g.decryptTraverser != nil {
-		decryptedBytes, err := g.decryptTraverser.Traverse(ctx, []byte(secretsContext))
-		if err != nil {
-			return "", "", microerror.Mask(err)
-		}
-		secretsContext = string(decryptedBytes)
+	decryptedBytes, err := g.decryptTraverser.Traverse(ctx, []byte(secretContext))
+	if err != nil {
+		return "", "", microerror.Mask(err)
 	}
+	secretContext = string(decryptedBytes)
 
-	// 7.
-	secretsTemplate, err := g.getWithPatchIfExists(
+	// 6.
+	secretTemplate, err := g.getWithPatchIfExists(
 		ctx,
 		"default/apps/"+app+"/secret-values.yaml.template",
 		"",
@@ -159,15 +162,46 @@ func (g Generator) GenerateRawConfig(ctx context.Context, installation, app stri
 		return "", "", microerror.Mask(err)
 	}
 
-	secrets, err = g.renderTemplate(ctx, secretsTemplate, secretsContext)
+	secret, err = g.renderTemplate(ctx, secretTemplate, secretContext)
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
 
-	return configmap, secrets, nil
+	// 7.
+	var secretPatch string
+	{
+		filepath := "installations/" + installation + "/apps/" + app + "/secret-values.yaml.patch"
+		patch, err := g.getRenderedTemplate(ctx, filepath, secretContext)
+		if IsNotFound(err) {
+			secretPatch = ""
+		} else if err != nil {
+			return "", "", microerror.Mask(err)
+		} else {
+			decryptedBytes, err := g.decryptTraverser.Traverse(ctx, []byte(patch))
+			if err != nil {
+				return "", "", microerror.Mask(err)
+			}
+			secretPatch = string(decryptedBytes)
+		}
+	}
+
+	// 8.
+	if secretPatch == "" {
+		return configmap, secret, nil
+	}
+	secret, err = applyPatch(
+		ctx,
+		[]byte(secret),
+		[]byte(secretPatch),
+	)
+	if err != nil {
+		return "", "", microerror.Mask(err)
+	}
+
+	return configmap, secret, nil
 }
 
-func (g Generator) GenerateConfig(ctx context.Context, installation, app, ref string) (configmap *corev1.ConfigMap, secrets *corev1.Secret, err error) {
+func (g Generator) GenerateConfig(ctx context.Context, installation, app, ref string) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
 	cm, s, err := g.GenerateRawConfig(ctx, installation, app)
 	if err != nil {
 		return nil, nil, microerror.Mask(err)
@@ -190,7 +224,7 @@ func (g Generator) GenerateConfig(ctx context.Context, installation, app, ref st
 		},
 	}
 
-	secrets = &corev1.Secret{
+	secret = &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
 			APIVersion: "v1",
@@ -201,7 +235,7 @@ func (g Generator) GenerateConfig(ctx context.Context, installation, app, ref st
 		},
 	}
 
-	return configmap, secrets, nil
+	return configmap, secret, nil
 }
 
 // getWithPatchIfExists provides contents of filepath overwritten by patch at

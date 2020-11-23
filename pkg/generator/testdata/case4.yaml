@@ -1,7 +1,7 @@
 path: default/config.yaml
 data: ""
 ---
-path: installations/puma/secrets.yaml
+path: installations/puma/secret.yaml
 data: |
   key: password
 ---
