@@ -8,18 +8,18 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0
+	github.com/giantswarm/apiextensions/v3 v3.8.0
 	github.com/giantswarm/exporterkit v0.2.0
-	github.com/giantswarm/k8sclient/v4 v4.0.0
+	github.com/giantswarm/k8sclient/v5 v5.0.0
 	github.com/giantswarm/microendpoint v0.2.0
 	github.com/giantswarm/microerror v0.2.1
 	github.com/giantswarm/microkit v0.2.2
 	github.com/giantswarm/micrologger v0.3.4
-	github.com/giantswarm/operatorkit/v2 v2.0.2
+	github.com/giantswarm/operatorkit/v4 v4.0.0
 	github.com/giantswarm/valuemodifier v0.3.0
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-test/deep v1.0.7 // indirect
-	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/go-cmp v0.5.2
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20201001211907-38d91b749c77
@@ -42,3 +42,5 @@ require (
 	k8s.io/apimachinery v0.18.9
 	k8s.io/client-go v0.18.9
 )
+
+replace sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v0.3.10-gs
