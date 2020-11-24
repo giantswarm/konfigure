@@ -6,6 +6,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/k8sclient/v5/pkg/k8sclient"
 	"github.com/giantswarm/k8sclient/v5/pkg/k8srestconfig"
 	"github.com/giantswarm/microendpoint/service/version"
@@ -83,12 +84,11 @@ func New(config Config) (*Service, error) {
 	var k8sClient k8sclient.Interface
 	{
 		c := k8sclient.ClientsConfig{
-			Logger: config.Logger,
-			// TODO: If you are watching a new CRD, include here the AddToScheme function from apiextensions.
-			// SchemeBuilder: k8sclient.SchemeBuilder{
-			//     corev1alpha1.AddToScheme,
-			// },
+			Logger:     config.Logger,
 			RestConfig: restConfig,
+			SchemeBuilder: k8sclient.SchemeBuilder{
+				v1alpha1.AddToScheme,
+			},
 		}
 
 		k8sClient, err = k8sclient.NewClients(c)
