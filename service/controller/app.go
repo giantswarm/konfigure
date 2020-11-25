@@ -15,19 +15,19 @@ import (
 	"github.com/giantswarm/config-controller/service/controller/resource/test"
 )
 
-type TODOConfig struct {
+type AppConfig struct {
 	K8sClient k8sclient.Interface
 	Logger    micrologger.Logger
 }
 
-type TODO struct {
+type App struct {
 	*controller.Controller
 }
 
-func NewTODO(config TODOConfig) (*TODO, error) {
+func NewApp(config AppConfig) (*App, error) {
 	var err error
 
-	resources, err := newTODOResources(config)
+	resources, err := newAppResources(config)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -43,8 +43,8 @@ func NewTODO(config TODOConfig) (*TODO, error) {
 			Resources: resources,
 
 			// Name is used to compute finalizer names. This here results in something
-			// like operatorkit.giantswarm.io/config-controller-todo-controller.
-			Name: project.Name() + "-todo-controller",
+			// like operatorkit.giantswarm.io/config-controller-app-controller.
+			Name: project.Name() + "-app-controller",
 		}
 
 		operatorkitController, err = controller.New(c)
@@ -53,14 +53,14 @@ func NewTODO(config TODOConfig) (*TODO, error) {
 		}
 	}
 
-	c := &TODO{
+	c := &App{
 		Controller: operatorkitController,
 	}
 
 	return c, nil
 }
 
-func newTODOResources(config TODOConfig) ([]resource.Interface, error) {
+func newAppResources(config AppConfig) ([]resource.Interface, error) {
 	var err error
 
 	var testResource resource.Interface

@@ -33,7 +33,7 @@ type Service struct {
 	Version *version.Service
 
 	bootOnce          sync.Once
-	todoController    *controller.TODO
+	appController     *controller.App
 	operatorCollector *collector.Set
 }
 
@@ -97,15 +97,15 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
-	var todoController *controller.TODO
+	var appController *controller.App
 	{
 
-		c := controller.TODOConfig{
+		c := controller.AppConfig{
 			K8sClient: k8sClient,
 			Logger:    config.Logger,
 		}
 
-		todoController, err = controller.NewTODO(c)
+		appController, err = controller.NewApp(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -144,7 +144,7 @@ func New(config Config) (*Service, error) {
 		Version: versionService,
 
 		bootOnce:          sync.Once{},
-		todoController:    todoController,
+		appController:     appController,
 		operatorCollector: operatorCollector,
 	}
 
@@ -155,6 +155,6 @@ func (s *Service) Boot(ctx context.Context) {
 	s.bootOnce.Do(func() {
 		go s.operatorCollector.Boot(ctx) // nolint:errcheck
 
-		go s.todoController.Boot(ctx)
+		go s.appController.Boot(ctx)
 	})
 }
