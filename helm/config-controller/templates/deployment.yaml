@@ -33,8 +33,8 @@ spec:
         configMap:
           name: {{ include "resource.default.name"  . }}
           items:
-          - key: config.yml
-            path: config.yml
+          - key: config.yaml
+            path: config.yaml
       serviceAccountName: {{ include "resource.default.name"  . }}
       securityContext:
         runAsUser: {{ .Values.pod.user.id }}

@@ -22,3 +22,14 @@ room for such suffix.
 {{- define "resource.pullSecret.name" -}}
 {{- include "resource.default.name" . -}}-pull-secret
 {{- end -}}
+
+{{/*
+The unique deployment of app-operator manages control plane app CRs and uses
+a special app version of 0.0.0.
+*/}}
+{{- define "resource.app.unique" -}}
+{{- if hasSuffix "-unique" .Release.Name }}true{{ else }}false{{ end }}
+{{- end -}}
+{{- define "resource.app.version" -}}
+{{- if hasSuffix "-unique" .Release.Name }}0.0.0{{ else }}{{ .Chart.AppVersion }}{{ end }}
+{{- end -}}
