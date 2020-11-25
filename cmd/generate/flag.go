@@ -14,6 +14,7 @@ const (
 	flagConfigVersion = "config-version"
 	flagGithubToken   = "github-token"
 	flagInstallation  = "installation"
+	flagNamespace     = "namespace"
 
 	envConfigControllerGithubToken = "CONFIG_CONTROLLER_GITHUB_TOKEN" //nolint:gosec
 )
@@ -24,6 +25,7 @@ type flag struct {
 	ConfigVersion string
 	GitHubToken   string
 	Installation  string
+	Namespace     string
 }
 
 func (f *flag) Init(cmd *cobra.Command) {
@@ -31,6 +33,7 @@ func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.Branch, flagBranch, "", "Branch of giantswarm/config used to generate configuraton.")
 	cmd.Flags().StringVar(&f.ConfigVersion, flagConfigVersion, "", `Major part of the configuration version to use for generation (e.g. "v2").`)
 	cmd.Flags().StringVar(&f.Installation, flagInstallation, "", `Installation codename (e.g. "gauss").`)
+	cmd.Flags().StringVar(&f.Namespace, flagNamespace, "giantswarm", `Namespace to generate cm/secret for (defaults to "giantswarm").`)
 	cmd.Flags().StringVar(&f.GitHubToken, flagGithubToken, "", fmt.Sprintf(`GitHub token to use for "opsctl create vaultconfig" calls. Defaults to the value of %s env var.`, envConfigControllerGithubToken))
 }
 

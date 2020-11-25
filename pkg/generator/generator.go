@@ -14,6 +14,9 @@ import (
 	pathmodifier "github.com/giantswarm/valuemodifier/path"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/giantswarm/config-controller/pkg/generator/key"
+	"github.com/giantswarm/config-controller/pkg/project"
 )
 
 /*
@@ -201,16 +204,26 @@ func (g Generator) GenerateRawConfig(ctx context.Context, installation, app stri
 	return configmap, secret, nil
 }
 
-func (g Generator) GenerateConfig(ctx context.Context, installation, app, ref string) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
+func (g Generator) GenerateConfig(ctx context.Context, installation, app, namespace, ref string) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
 	cm, s, err := g.GenerateRawConfig(ctx, installation, app)
 	if err != nil {
 		return nil, nil, microerror.Mask(err)
 	}
 
-	name := generateResourceName(app, ref)
+	name := GenerateResourceName(app, ref)
 	meta := metav1.ObjectMeta{
 		Name:      name,
-		Namespace: "giantswarm",
+		Namespace: namespace,
+		Labels: map[string]string{
+			key.KubernetesManagedByLabel: "Helm",
+			key.GiantswarmManagedByLabel: project.Name(),
+			key.ConfigVersion:            ref,
+		},
+		Annotations: map[string]string{
+			key.ReleaseNameAnnotation:      name,
+			key.ReleaseNamespaceAnnotation: namespace,
+			key.ConfigVersion:              ref,
+		},
 	}
 
 	configmap = &corev1.ConfigMap{
@@ -382,7 +395,7 @@ func (g Generator) include(templateName string, templateData interface{}) (strin
 	return out.String(), nil
 }
 
-func generateResourceName(elements ...string) string {
+func GenerateResourceName(elements ...string) string {
 	name := strings.Join(elements, "-")
 	name = string(invalidCharacterPattern.ReplaceAll([]byte(name), []byte("-")))
 	name = string(multipleDashPattern.ReplaceAll([]byte(name), []byte("-")))

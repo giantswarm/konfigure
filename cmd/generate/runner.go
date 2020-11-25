@@ -110,7 +110,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return microerror.Mask(err)
 	}
 
-	configmap, secret, err := gen.GenerateConfig(ctx, r.flag.Installation, r.flag.App, ref)
+	configmap, secret, err := gen.GenerateConfig(ctx, r.flag.Installation, r.flag.App, r.flag.Namespace, ref)
 	if err != nil {
 		return microerror.Mask(err)
 	}

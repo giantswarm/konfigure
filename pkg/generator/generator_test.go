@@ -137,7 +137,7 @@ func TestGenerator_GenerateRawConfig(t *testing.T) {
 	}
 }
 
-func TestGenerator_generateResourceName(t *testing.T) {
+func TestGenerator_GenerateResourceName(t *testing.T) {
 	testCases := []struct {
 		caseName string
 
@@ -180,7 +180,7 @@ func TestGenerator_generateResourceName(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.caseName, func(t *testing.T) {
-			generatedName := generateResourceName(tc.app, tc.ref)
+			generatedName := GenerateResourceName(tc.app, tc.ref)
 			if generatedName != tc.expectedName {
 				t.Fatalf("Wrong test result, expected %q got: %q", tc.expectedName, generatedName)
 			}
