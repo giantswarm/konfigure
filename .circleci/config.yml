@@ -52,3 +52,48 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+
+      - architect/push-to-app-collection:
+          name: push-config-controller-to-aws-app-collection
+          context: architect
+          app_name: "config-controller"
+          app_namespace: "giantswarm"
+          app_collection_repo: "aws-app-collection"
+          unique: "true"
+          requires:
+            - push-config-controller-to-app-catalog
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+
+      - architect/push-to-app-collection:
+          name: push-config-controller-to-azure-app-collection
+          context: architect
+          app_name: "config-controller"
+          app_namespace: "giantswarm"
+          app_collection_repo: "azure-app-collection"
+          unique: "true"
+          requires:
+            - push-config-controller-to-app-catalog
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+
+      - architect/push-to-app-collection:
+          name: push-config-controller-to-kvm-app-collection
+          context: architect
+          app_name: "config-controller"
+          app_namespace: "giantswarm"
+          app_collection_repo: "kvm-app-collection"
+          unique: "true"
+          requires:
+            - push-config-controller-to-app-catalog
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
