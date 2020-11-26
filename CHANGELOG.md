@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2020-11-26
+
 ### Added
 
 - Create CLI/daemon scaffolding.
 - Generate application configuration using `generate` command.
 
-[Unreleased]: https://github.com/giantswarm/REPOSITORY_NAME/tree/master
+[Unreleased]: https://github.com/giantswarm/config-controller/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/giantswarm/config-controller/releases/tag/v0.1.0
