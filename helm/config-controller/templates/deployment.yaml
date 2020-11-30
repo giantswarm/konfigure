@@ -39,6 +39,15 @@ spec:
       securityContext:
         runAsUser: {{ .Values.pod.user.id }}
         runAsGroup: {{ .Values.pod.group.id }}
+      initContainers:
+      - args:
+        - --vault-address={{ .Values.Installation.V1.Auth.Vault.Address }}
+        - --vault-role=config-controller
+        - --vault-token-secret-name={{ include "resource.default.name" . }}-vault-token
+        - --vault-token-secret-namespace={{ include "resource.default.namespace" . }}
+        image: "{{ .Values.Installation.V1.Registry.Domain }}/{{ .Values.k8sJwtToVaultTokenImage.name}}:{{ .Values.k8sJwtToVaultTokenImage.tag }}"
+        imagePullPolicy: Always
+        name: ensure-vault-token
       containers:
       - name: {{ include "name" . }}
         image: "{{ .Values.Installation.V1.Registry.Domain }}/{{ .Values.image.name }}:{{ .Values.image.tag }}"

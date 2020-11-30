@@ -5,6 +5,11 @@ Installation:
   V1:
     Registry:
       Domain: quay.io
+
+k8sJwtToVaultTokenImage:
+  name: giantswarm/k8s-jwt-to-vault-token
+  tag: 0.1.0
+
 pod:
   user:
     id: 1000
