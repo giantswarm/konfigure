@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/config-controller/pkg/decrypt"
 	"github.com/giantswarm/config-controller/pkg/generator"
 	"github.com/giantswarm/config-controller/pkg/github"
+	"github.com/giantswarm/config-controller/pkg/project"
 )
 
 const (
@@ -105,6 +106,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	gen, err := generator.New(&generator.Config{
 		Fs:               store,
 		DecryptTraverser: decryptTraverser,
+		ProjectVersion:   project.AppControlPlaneVersion(),
 	})
 	if err != nil {
 		return microerror.Mask(err)

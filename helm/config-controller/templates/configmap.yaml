@@ -16,6 +16,8 @@ data:
     service:
       app:
         unique: {{ include "resource.app.unique" . }}
+      installation:
+        name: {{ .Values.Installation.V1.Name }}
       kubernetes:
         address: ''
         inCluster: true
@@ -23,3 +25,5 @@ data:
           caFile: ''
           crtFile: ''
           keyFile: ''
+      vault:
+        address: {{ .Values.Installation.V1.Auth.Vault.Address }}

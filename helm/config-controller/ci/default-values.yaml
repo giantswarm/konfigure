@@ -5,3 +5,7 @@ Installation:
     Auth:
       Vault:
         Address: ""
+    Secret:
+      ConfigController:
+        GitHub:
+          Token: ""

@@ -12,6 +12,7 @@ import (
 	"github.com/giantswarm/microendpoint/service/version"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/rest"
 
@@ -97,14 +98,27 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var vaultClient *vaultapi.Client
+	{
+		c := vaultapi.DefaultConfig()
+		c.Address = config.Viper.GetString(config.Flag.Service.Vault.Address)
+		vaultClient, err = vaultapi.NewClient(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+		vaultClient.SetToken(config.Viper.GetString(config.Flag.Service.Vault.Token))
+	}
+
 	var appController *controller.App
 	{
-
 		c := controller.AppConfig{
 			K8sClient: k8sClient,
 			Logger:    config.Logger,
 
-			UniqueApp: config.Viper.GetBool(config.Flag.Service.App.Unique),
+			GitHubToken:  config.Viper.GetString(config.Flag.Service.GitHub.Token),
+			Installation: config.Viper.GetString(config.Flag.Service.Installation.Name),
+			UniqueApp:    config.Viper.GetBool(config.Flag.Service.App.Unique),
+			VaultClient:  vaultClient,
 		}
 
 		appController, err = controller.NewApp(c)

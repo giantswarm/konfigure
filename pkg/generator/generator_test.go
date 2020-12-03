@@ -117,6 +117,7 @@ func TestGenerator_GenerateRawConfig(t *testing.T) {
 			config := Config{
 				Fs:               fs,
 				DecryptTraverser: tc.decryptTraverser,
+				ProjectVersion:   "0.0.0",
 			}
 			g, err := New(&config)
 			if err != nil {

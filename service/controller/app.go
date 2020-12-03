@@ -11,16 +11,21 @@ import (
 	"github.com/giantswarm/operatorkit/v4/pkg/resource/wrapper/retryresource"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	vaultapi "github.com/hashicorp/vault/api"
+
 	"github.com/giantswarm/config-controller/pkg/label"
 	"github.com/giantswarm/config-controller/pkg/project"
-	"github.com/giantswarm/config-controller/service/controller/resource/test"
+	"github.com/giantswarm/config-controller/service/controller/resource/values"
 )
 
 type AppConfig struct {
 	K8sClient k8sclient.Interface
 	Logger    micrologger.Logger
 
-	UniqueApp bool
+	GitHubToken  string
+	Installation string
+	UniqueApp    bool
+	VaultClient  *vaultapi.Client
 }
 
 type App struct {
@@ -67,21 +72,26 @@ func NewApp(config AppConfig) (*App, error) {
 func newAppResources(config AppConfig) ([]resource.Interface, error) {
 	var err error
 
-	var testResource resource.Interface
+	var valuesResource resource.Interface
 	{
-		c := test.Config{
+		c := values.Config{
 			K8sClient: config.K8sClient,
 			Logger:    config.Logger,
+
+			VaultClient:    config.VaultClient,
+			GitHubToken:    config.GitHubToken,
+			Installation:   config.Installation,
+			ProjectVersion: label.GetProjectVersion(config.UniqueApp),
 		}
 
-		testResource, err = test.New(c)
+		valuesResource, err = values.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 	}
 
 	resources := []resource.Interface{
-		testResource,
+		valuesResource,
 	}
 
 	{

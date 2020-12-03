@@ -1,21 +1,18 @@
 package label
 
 import (
+	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/operatorkit/v4/pkg/controller"
 
 	"github.com/giantswarm/config-controller/pkg/project"
 )
 
-const (
-	version = "config-controller.giantswarm.io/version"
-)
-
 func AppVersionSelector(unique bool) controller.Selector {
 	return controller.NewSelector(func(labels controller.Labels) bool {
-		if !labels.Has(version) {
+		if !labels.Has(label.ConfigControllerVersion) {
 			return false
 		}
-		if labels.Get(version) == getProjectVersion(unique) {
+		if labels.Get(label.ConfigControllerVersion) == GetProjectVersion(unique) {
 			return true
 		}
 
@@ -23,7 +20,7 @@ func AppVersionSelector(unique bool) controller.Selector {
 	})
 }
 
-func getProjectVersion(unique bool) string {
+func GetProjectVersion(unique bool) string {
 	if unique {
 		// When config-controller is deployed as a unique app it only
 		// processes control plane app CRs. These CRs always have the

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `values` handler, which generates App ConfigMap and Secret.
+
 ## [0.1.0] - 2020-11-26
 
 ### Added
