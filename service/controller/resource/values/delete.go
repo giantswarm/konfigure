@@ -6,7 +6,6 @@ import (
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/operatorkit/v4/pkg/controller/context/resourcecanceledcontext"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,7 +24,6 @@ func (r *Resource) EnsureDeleted(ctx context.Context, obj interface{}) error {
 	if !ok {
 		r.logger.Debugf(ctx, "App CR %q is missing %q annotation", app.Name, annotation.ConfigVersion)
 		r.logger.Debugf(ctx, "cancelling resource")
-		resourcecanceledcontext.SetCanceled(ctx)
 		return nil
 	}
 
