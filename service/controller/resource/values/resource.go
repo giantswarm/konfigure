@@ -12,8 +12,8 @@ import (
 	"github.com/giantswarm/config-controller/pkg/decrypt"
 	"github.com/giantswarm/config-controller/pkg/generator"
 	"github.com/giantswarm/config-controller/pkg/generator/key"
-	"github.com/giantswarm/config-controller/pkg/github"
 	controllerkey "github.com/giantswarm/config-controller/service/controller/key"
+	"github.com/giantswarm/config-controller/service/internal/github"
 )
 
 const (
@@ -36,7 +36,7 @@ type Resource struct {
 	logger    micrologger.Logger
 
 	decryptTraverser *decrypt.YAMLTraverser
-	gitHubToken      string
+	gitHub           *github.GitHub
 	installation     string
 	projectVersion   string
 }
@@ -79,11 +79,18 @@ func New(config Config) (*Resource, error) {
 		}
 	}
 
+	gh, err := github.New(github.Config{
+		GitHubToken: config.GitHubToken,
+	})
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	r := &Resource{
 		k8sClient:        config.K8sClient,
 		logger:           config.Logger,
 		decryptTraverser: decryptTraverser,
-		gitHubToken:      config.GitHubToken,
+		gitHub:           gh,
 		installation:     config.Installation,
 		projectVersion:   config.ProjectVersion,
 	}
@@ -99,31 +106,24 @@ func (r *Resource) generateConfig(ctx context.Context, installation, namespace, 
 	var store generator.Filesystem
 	var ref string
 	{
-		gh, err := github.New(github.Config{
-			Token: r.gitHubToken,
-		})
-		if err != nil {
-			return nil, nil, microerror.Mask(err)
-		}
-
 		if configVersion == "" {
 			return nil, nil, microerror.Maskf(executionFailedError, "configVersion must be defined")
 		}
 
 		tagReference := controllerkey.TryVersionToTag(configVersion)
 		if tagReference != "" {
-			tag, err := gh.GetLatestTag(ctx, key.Owner, ConfigRepo, tagReference)
+			tag, err := r.gitHub.GetLatestTag(ctx, key.Owner, ConfigRepo, tagReference)
 			if err != nil {
 				return nil, nil, microerror.Mask(err)
 			}
 
-			store, err = gh.GetFilesByTag(ctx, key.Owner, ConfigRepo, tag)
+			store, err = r.gitHub.GetFilesByTag(ctx, key.Owner, ConfigRepo, tag)
 			if err != nil {
 				return nil, nil, microerror.Mask(err)
 			}
 			ref = tag
 		} else {
-			store, err = gh.GetFilesByBranch(ctx, key.Owner, ConfigRepo, configVersion)
+			store, err = r.gitHub.GetFilesByBranch(ctx, key.Owner, ConfigRepo, configVersion)
 			if err != nil {
 				return nil, nil, microerror.Mask(err)
 			}
