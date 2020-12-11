@@ -66,6 +66,7 @@ func (r *Resource) EnsureCreated(ctx context.Context, obj interface{}) error {
 	}
 	if !reflect.DeepEqual(app.Spec.Config.ConfigMap, configmapReference) || !reflect.DeepEqual(app.Spec.Config.Secret, secretReference) {
 		r.logger.Debugf(ctx, "updating App CR %#q with configmap and secret details", app.Name)
+		app.SetAnnotations(removeAnnotation(app.GetAnnotations(), PauseAnnotation))
 		app.Spec.Config.ConfigMap = configmapReference
 		app.Spec.Config.Secret = secretReference
 		err = r.k8sClient.CtrlClient().Update(ctx, &app)
@@ -76,4 +77,20 @@ func (r *Resource) EnsureCreated(ctx context.Context, obj interface{}) error {
 	}
 
 	return nil
+}
+
+func removeAnnotation(annotations map[string]string, key string) map[string]string {
+	if annotations == nil {
+		return nil
+	}
+
+	out := map[string]string{}
+	for k, v := range annotations {
+		if k == key {
+			continue
+		}
+		out[k] = v
+	}
+
+	return out
 }

@@ -19,6 +19,10 @@ import (
 const (
 	Name       = "values"
 	ConfigRepo = "config"
+	// PauseAnnotation stops app-operator from reconciling App CR too soon.
+	// Once config has been generated, this annotation should be removed by
+	// config-controller.
+	PauseAnnotation = "app-operator.giantswarm.io/paused"
 )
 
 type Config struct {
