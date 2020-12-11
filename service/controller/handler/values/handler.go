@@ -35,7 +35,7 @@ type Config struct {
 	VaultClient    *vaultapi.Client
 }
 
-type Resource struct {
+type Handler struct {
 	k8sClient k8sclient.Interface
 	logger    micrologger.Logger
 
@@ -45,7 +45,7 @@ type Resource struct {
 	projectVersion   string
 }
 
-func New(config Config) (*Resource, error) {
+func New(config Config) (*Handler, error) {
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
 	}
@@ -90,7 +90,7 @@ func New(config Config) (*Resource, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	r := &Resource{
+	h := &Handler{
 		k8sClient:        config.K8sClient,
 		logger:           config.Logger,
 		decryptTraverser: decryptTraverser,
@@ -99,14 +99,14 @@ func New(config Config) (*Resource, error) {
 		projectVersion:   config.ProjectVersion,
 	}
 
-	return r, nil
+	return h, nil
 }
 
-func (r *Resource) Name() string {
+func (h *Handler) Name() string {
 	return Name
 }
 
-func (r *Resource) generateConfig(ctx context.Context, installation, namespace, app, configVersion string) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
+func (h *Handler) generateConfig(ctx context.Context, installation, namespace, app, configVersion string) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
 	var store generator.Filesystem
 	var ref string
 	{
@@ -116,18 +116,18 @@ func (r *Resource) generateConfig(ctx context.Context, installation, namespace, 
 
 		tagReference := controllerkey.TryVersionToTag(configVersion)
 		if tagReference != "" {
-			tag, err := r.gitHub.GetLatestTag(ctx, key.Owner, ConfigRepo, tagReference)
+			tag, err := h.gitHub.GetLatestTag(ctx, key.Owner, ConfigRepo, tagReference)
 			if err != nil {
 				return nil, nil, microerror.Mask(err)
 			}
 
-			store, err = r.gitHub.GetFilesByTag(ctx, key.Owner, ConfigRepo, tag)
+			store, err = h.gitHub.GetFilesByTag(ctx, key.Owner, ConfigRepo, tag)
 			if err != nil {
 				return nil, nil, microerror.Mask(err)
 			}
 			ref = tag
 		} else {
-			store, err = r.gitHub.GetFilesByBranch(ctx, key.Owner, ConfigRepo, configVersion)
+			store, err = h.gitHub.GetFilesByBranch(ctx, key.Owner, ConfigRepo, configVersion)
 			if err != nil {
 				return nil, nil, microerror.Mask(err)
 			}
@@ -137,8 +137,8 @@ func (r *Resource) generateConfig(ctx context.Context, installation, namespace, 
 
 	gen, err := generator.New(&generator.Config{
 		Fs:               store,
-		DecryptTraverser: r.decryptTraverser,
-		ProjectVersion:   r.projectVersion,
+		DecryptTraverser: h.decryptTraverser,
+		ProjectVersion:   h.projectVersion,
 	})
 	if err != nil {
 		return nil, nil, microerror.Mask(err)

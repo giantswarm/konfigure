@@ -14,7 +14,7 @@ import (
 	controllerkey "github.com/giantswarm/config-controller/service/controller/key"
 )
 
-func (r *Resource) EnsureDeleted(ctx context.Context, obj interface{}) error {
+func (h *Handler) EnsureDeleted(ctx context.Context, obj interface{}) error {
 	app, err := controllerkey.ToAppCR(obj)
 	if err != nil {
 		return microerror.Mask(err)
@@ -22,8 +22,8 @@ func (r *Resource) EnsureDeleted(ctx context.Context, obj interface{}) error {
 
 	configVersion, ok := app.GetAnnotations()[annotation.ConfigVersion]
 	if !ok {
-		r.logger.Debugf(ctx, "App CR %q is missing %q annotation", app.Name, annotation.ConfigVersion)
-		r.logger.Debugf(ctx, "cancelling resource")
+		h.logger.Debugf(ctx, "App CR %q is missing %q annotation", app.Name, annotation.ConfigVersion)
+		h.logger.Debugf(ctx, "cancelling handler")
 		return nil
 	}
 
@@ -55,31 +55,31 @@ func (r *Resource) EnsureDeleted(ctx context.Context, obj interface{}) error {
 		}
 	}
 
-	r.logger.Debugf(ctx, "deleting App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleting App %#q, config version %#q", app.Spec.Name, configVersion)
 
-	r.logger.Debugf(ctx, "clearing App %#q, config version %#q configmap and secret details", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "clearing App %#q, config version %#q configmap and secret details", app.Spec.Name, configVersion)
 	app.Spec.Config = v1alpha1.AppSpecConfig{}
-	err = r.k8sClient.CtrlClient().Update(ctx, &app)
+	err = h.k8sClient.CtrlClient().Update(ctx, &app)
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	r.logger.Debugf(ctx, "cleared App %#q, config version %#q configmap and secret details", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "cleared App %#q, config version %#q configmap and secret details", app.Spec.Name, configVersion)
 
-	r.logger.Debugf(ctx, "deleting configmap for App %#q, config version %#q", app.Spec.Name, configVersion)
-	err = r.k8sClient.CtrlClient().Delete(ctx, cm)
+	h.logger.Debugf(ctx, "deleting configmap for App %#q, config version %#q", app.Spec.Name, configVersion)
+	err = h.k8sClient.CtrlClient().Delete(ctx, cm)
 	if client.IgnoreNotFound(err) != nil {
 		return microerror.Mask(err)
 	}
-	r.logger.Debugf(ctx, "deleted configmap for App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleted configmap for App %#q, config version %#q", app.Spec.Name, configVersion)
 
-	r.logger.Debugf(ctx, "deleting secret for App %#q, config version %#q", app.Spec.Name, configVersion)
-	err = r.k8sClient.CtrlClient().Delete(ctx, secret)
+	h.logger.Debugf(ctx, "deleting secret for App %#q, config version %#q", app.Spec.Name, configVersion)
+	err = h.k8sClient.CtrlClient().Delete(ctx, secret)
 	if client.IgnoreNotFound(err) != nil {
 		return microerror.Mask(err)
 	}
-	r.logger.Debugf(ctx, "deleted secret for App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleted secret for App %#q, config version %#q", app.Spec.Name, configVersion)
 
-	r.logger.Debugf(ctx, "deleted App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleted App %#q, config version %#q", app.Spec.Name, configVersion)
 
 	return nil
 }

@@ -15,7 +15,7 @@ import (
 
 	"github.com/giantswarm/config-controller/pkg/label"
 	"github.com/giantswarm/config-controller/pkg/project"
-	"github.com/giantswarm/config-controller/service/controller/resource/values"
+	"github.com/giantswarm/config-controller/service/controller/handler/values"
 )
 
 type AppConfig struct {
