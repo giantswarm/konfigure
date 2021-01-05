@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `values` handler, which generates App ConfigMap and Secret.
 - Allow caching tags and pulled repositories.
-- Handle `config-controller.giantswarm.io/pause` flag.
+- Handle `app-operator.giantswarm.io/pause` annotation.
+- Clear `app-operator.giantswarm.io/pause` if App CR does is not annotated with config version.
 
 ## [0.1.0] - 2020-11-26
 

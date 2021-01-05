@@ -23,6 +23,12 @@ func (h *Handler) EnsureDeleted(ctx context.Context, obj interface{}) error {
 	configVersion, ok := app.GetAnnotations()[annotation.ConfigVersion]
 	if !ok {
 		h.logger.Debugf(ctx, "App CR %q is missing %q annotation", app.Name, annotation.ConfigVersion)
+		if _, ok := app.GetAnnotations()[PauseAnnotation]; ok {
+			err = h.removeAnnotation(ctx, &app, PauseAnnotation)
+			if err != nil {
+				return err
+			}
+		}
 		h.logger.Debugf(ctx, "cancelling handler")
 		return nil
 	}
@@ -56,7 +62,6 @@ func (h *Handler) EnsureDeleted(ctx context.Context, obj interface{}) error {
 	}
 
 	h.logger.Debugf(ctx, "deleting App %#q, config version %#q", app.Spec.Name, configVersion)
-
 	h.logger.Debugf(ctx, "clearing App %#q, config version %#q configmap and secret details", app.Spec.Name, configVersion)
 	app.Spec.Config = v1alpha1.AppSpecConfig{}
 	err = h.k8sClient.CtrlClient().Update(ctx, &app)
@@ -79,6 +84,10 @@ func (h *Handler) EnsureDeleted(ctx context.Context, obj interface{}) error {
 	}
 	h.logger.Debugf(ctx, "deleted secret for App %#q, config version %#q", app.Spec.Name, configVersion)
 
+	err = h.removeAnnotation(ctx, &app, PauseAnnotation)
+	if err != nil {
+		return err
+	}
 	h.logger.Debugf(ctx, "deleted App %#q, config version %#q", app.Spec.Name, configVersion)
 
 	return nil
