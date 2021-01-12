@@ -5,7 +5,7 @@ var (
 	gitSHA      = "n/a"
 	name        = "config-controller"
 	source      = "https://github.com/giantswarm/config-controller"
-	version     = "0.2.0"
+	version     = "0.2.1-dev"
 )
 
 // AppControlPlaneVersion is always 0.0.0 for control plane app CRs. These CRs
