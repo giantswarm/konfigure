@@ -11,26 +11,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/config-controller/pkg/generator"
-	controllerkey "github.com/giantswarm/config-controller/service/controller/key"
+	"github.com/giantswarm/config-controller/service/controller/key"
 )
 
 func (h *Handler) EnsureDeleted(ctx context.Context, obj interface{}) error {
-	app, err := controllerkey.ToAppCR(obj)
+	app, err := key.ToAppCR(obj)
 	if err != nil {
 		return microerror.Mask(err)
 	}
+	annotations := app.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
 
-	configVersion, ok := app.GetAnnotations()[annotation.ConfigVersion]
+	configVersion, ok := annotations[annotation.ConfigVersion]
 	if !ok {
-		h.logger.Debugf(ctx, "App CR %q is missing %q annotation", app.Name, annotation.ConfigVersion)
-		if _, ok := app.GetAnnotations()[PauseAnnotation]; ok {
-			err = h.removeAnnotation(ctx, &app, PauseAnnotation)
-			if err != nil {
-				return err
-			}
-		}
+		h.logger.Debugf(ctx, "App CR is missing %q annotation", annotation.ConfigVersion)
 		h.logger.Debugf(ctx, "cancelling handler")
 		return nil
+	}
+
+	if configVersion == key.LegacyConfigVersion {
+		h.logger.Debugf(ctx, "App CR has config version %#q", configVersion)
+		h.logger.Debugf(ctx, "cancelling handler")
 	}
 
 	cm := &corev1.ConfigMap{
@@ -47,7 +50,7 @@ func (h *Handler) EnsureDeleted(ctx context.Context, obj interface{}) error {
 	}
 	if cm.Name == "" || secret.Name == "" {
 		ref := configVersion
-		if tagRef := controllerkey.TryVersionToTag(configVersion); tagRef != "" {
+		if tagRef := key.TryVersionToTag(configVersion); tagRef != "" {
 			ref = tagRef
 		}
 		name := generator.GenerateResourceName(app.Spec.Name, ref)
@@ -61,34 +64,38 @@ func (h *Handler) EnsureDeleted(ctx context.Context, obj interface{}) error {
 		}
 	}
 
-	h.logger.Debugf(ctx, "deleting App %#q, config version %#q", app.Spec.Name, configVersion)
-	h.logger.Debugf(ctx, "clearing App %#q, config version %#q configmap and secret details", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleting App config version %#q", configVersion)
+	h.logger.Debugf(ctx, "clearing App config version %#q configmap and secret details", configVersion)
 	app.Spec.Config = v1alpha1.AppSpecConfig{}
 	err = h.k8sClient.CtrlClient().Update(ctx, &app)
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	h.logger.Debugf(ctx, "cleared App %#q, config version %#q configmap and secret details", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "cleared App config version %#q configmap and secret details", configVersion)
 
-	h.logger.Debugf(ctx, "deleting configmap for App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleting configmap for App, config version %#q", configVersion)
 	err = h.k8sClient.CtrlClient().Delete(ctx, cm)
 	if client.IgnoreNotFound(err) != nil {
 		return microerror.Mask(err)
 	}
-	h.logger.Debugf(ctx, "deleted configmap for App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleted configmap for App, config version %#q", configVersion)
 
-	h.logger.Debugf(ctx, "deleting secret for App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleting secret for App, config version %#q", configVersion)
 	err = h.k8sClient.CtrlClient().Delete(ctx, secret)
 	if client.IgnoreNotFound(err) != nil {
 		return microerror.Mask(err)
 	}
-	h.logger.Debugf(ctx, "deleted secret for App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "deleted secret for App, config version %#q", configVersion)
 
-	err = h.removeAnnotation(ctx, &app, PauseAnnotation)
+	h.logger.Debugf(ctx, "clearing %q annotation from App CR", annotation.AppOperatorPaused)
+	app.SetAnnotations(key.RemoveAnnotation(app.GetAnnotations(), annotation.AppOperatorPaused))
+	err = h.k8sClient.CtrlClient().Update(ctx, &app)
 	if err != nil {
-		return err
+		return microerror.Mask(err)
 	}
-	h.logger.Debugf(ctx, "deleted App %#q, config version %#q", app.Spec.Name, configVersion)
+	h.logger.Debugf(ctx, "cleared %q annotation from App CR", annotation.AppOperatorPaused)
+
+	h.logger.Debugf(ctx, "deleted App config version %#q", configVersion)
 
 	return nil
 }

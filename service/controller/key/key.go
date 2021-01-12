@@ -7,6 +7,12 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
+const (
+	// LegacyConfigVersion should be set when the config for the app should not
+	// be generated.
+	LegacyConfigVersion = "0.0.0"
+)
+
 var (
 	tagConfigVersionPattern = regexp.MustCompile(`^(\d+)\.x\.x$`)
 )
@@ -34,4 +40,17 @@ func TryVersionToTag(version string) string {
 		return "v" + matches[0][1]
 	}
 	return ""
+}
+
+func RemoveAnnotation(annotations map[string]string, key string) map[string]string {
+	if annotations == nil {
+		return nil
+	}
+
+	_, ok := annotations[key]
+	if ok {
+		delete(annotations, key)
+	}
+
+	return annotations
 }

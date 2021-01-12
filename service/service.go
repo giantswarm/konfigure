@@ -33,9 +33,10 @@ type Config struct {
 type Service struct {
 	Version *version.Service
 
-	bootOnce          sync.Once
-	appController     *controller.App
-	operatorCollector *collector.Set
+	bootOnce                  sync.Once
+	appCatalogEntryController *controller.AppCatalogEntry
+	appController             *controller.App
+	operatorCollector         *collector.Set
 }
 
 // New creates a new configured service object.
@@ -109,6 +110,22 @@ func New(config Config) (*Service, error) {
 		vaultClient.SetToken(config.Viper.GetString(config.Flag.Service.Vault.Token))
 	}
 
+	var appCatalogEntryController *controller.AppCatalogEntry
+	{
+		c := controller.AppCatalogEntryConfig{
+			K8sClient: k8sClient,
+			Logger:    config.Logger,
+
+			GitHubToken: config.Viper.GetString(config.Flag.Service.GitHub.Token),
+			UniqueApp:   config.Viper.GetBool(config.Flag.Service.App.Unique),
+		}
+
+		appCatalogEntryController, err = controller.NewAppCatalogEntry(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var appController *controller.App
 	{
 		c := controller.AppConfig{
@@ -159,9 +176,10 @@ func New(config Config) (*Service, error) {
 	s := &Service{
 		Version: versionService,
 
-		bootOnce:          sync.Once{},
-		appController:     appController,
-		operatorCollector: operatorCollector,
+		bootOnce:                  sync.Once{},
+		appController:             appController,
+		appCatalogEntryController: appCatalogEntryController,
+		operatorCollector:         operatorCollector,
 	}
 
 	return s, nil
@@ -171,6 +189,7 @@ func (s *Service) Boot(ctx context.Context) {
 	s.bootOnce.Do(func() {
 		go s.operatorCollector.Boot(ctx) // nolint:errcheck
 
+		go s.appCatalogEntryController.Boot(ctx)
 		go s.appController.Boot(ctx)
 	})
 }

@@ -3,7 +3,6 @@ package values
 import (
 	"context"
 
-	"github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/k8sclient/v5/pkg/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -20,10 +19,6 @@ import (
 const (
 	Name       = "values"
 	ConfigRepo = "config"
-	// PauseAnnotation stops app-operator from reconciling App CR too soon.
-	// Once config has been generated, this annotation should be removed by
-	// config-controller.
-	PauseAnnotation = "app-operator.giantswarm.io/paused"
 )
 
 type Config struct {
@@ -151,15 +146,4 @@ func (h *Handler) generateConfig(ctx context.Context, installation, namespace, a
 	}
 
 	return configmap, secret, nil
-}
-
-func (h *Handler) removeAnnotation(ctx context.Context, app *v1alpha1.App, annotation string) error {
-	h.logger.Debugf(ctx, "clearing %q annotation from App CR %#q", annotation, app.Name)
-	app.SetAnnotations(removeAnnotation(app.GetAnnotations(), annotation))
-	err := h.k8sClient.CtrlClient().Update(ctx, app)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-	h.logger.Debugf(ctx, "cleared %q annotation from App CR %#q", annotation, app.Name)
-	return nil
 }
