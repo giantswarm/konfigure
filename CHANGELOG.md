@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2021-01-12
+
 ### Added
 - Add `values` handler, which generates App ConfigMap and Secret.
 - Allow caching tags and pulled repositories.
@@ -21,5 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create CLI/daemon scaffolding.
 - Generate application configuration using `generate` command.
 
-[Unreleased]: https://github.com/giantswarm/config-controller/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/config-controller/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/giantswarm/config-controller/releases/tag/v0.2.0
 [0.1.0]: https://github.com/giantswarm/config-controller/releases/tag/v0.1.0
