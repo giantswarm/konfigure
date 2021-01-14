@@ -70,15 +70,21 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 
 	var configVersion string
 	for _, entry := range entries {
-		if entry.Version == app.Spec.Version {
-			if entry.ConfigVersion != "" {
-				configVersion = entry.ConfigVersion
+		if entry.Version != app.Spec.Version {
+			continue
+		}
+
+		if entry.Annotations == nil {
+			configVersion = key.LegacyConfigVersion
+		} else {
+			v, ok := entry.Annotations[annotation.ConfigVersion]
+			if ok {
+				configVersion = v
 			} else {
 				configVersion = key.LegacyConfigVersion
-
 			}
-			break
 		}
+		break
 	}
 
 	if configVersion == "" {

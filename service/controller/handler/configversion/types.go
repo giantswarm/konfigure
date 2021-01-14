@@ -5,6 +5,6 @@ type Index struct {
 }
 
 type IndexEntry struct {
-	ConfigVersion string `json:"configVersion,omitempty"`
-	Version       string `json:"version"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Version     string            `json:"version"`
 }
