@@ -7,7 +7,10 @@ import (
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/microerror"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/config-controller/service/controller/key"
 )
@@ -83,17 +86,54 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 		Namespace: secret.Namespace,
 		Name:      secret.Name,
 	}
-	if !reflect.DeepEqual(app.Spec.Config.ConfigMap, configmapReference) || !reflect.DeepEqual(app.Spec.Config.Secret, secretReference) {
-		h.logger.Debugf(ctx, "updating App CR with configmap and secret details")
-		app.SetAnnotations(key.RemoveAnnotation(annotations, annotation.AppOperatorPaused))
-		app.Spec.Config.ConfigMap = configmapReference
-		app.Spec.Config.Secret = secretReference
-		err = h.k8sClient.CtrlClient().Update(ctx, &app)
-		if err != nil {
+	if reflect.DeepEqual(app.Spec.Config.ConfigMap, configmapReference) && reflect.DeepEqual(app.Spec.Config.Secret, secretReference) {
+		h.logger.Debugf(ctx, "configmap and secret are up to date")
+		return nil
+	}
+
+	if app.Spec.Config.ConfigMap.Name != "" {
+		h.logger.Debugf(ctx, "deleting configmap %#q in %#q namespace for older version", configmap.Name, configmap.Namespace)
+		err = h.k8sClient.CtrlClient().Delete(
+			ctx,
+			&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: configmap.Namespace,
+					Name:      configmap.Name,
+				},
+			},
+		)
+		if client.IgnoreNotFound(err) != nil {
 			return microerror.Mask(err)
 		}
-		h.logger.Debugf(ctx, "updated App CR with configmap and secret details")
+		h.logger.Debugf(ctx, "deleted configmap %#q in %#q namespace for older version", configmap.Name, configmap.Namespace)
 	}
+
+	if app.Spec.Config.Secret.Name != "" {
+		h.logger.Debugf(ctx, "deleting secret %#q in %#q namespace for older version", secret.Name, secret.Namespace)
+		err = h.k8sClient.CtrlClient().Delete(
+			ctx,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: secret.Namespace,
+					Name:      secret.Name,
+				},
+			},
+		)
+		if client.IgnoreNotFound(err) != nil {
+			return microerror.Mask(err)
+		}
+		h.logger.Debugf(ctx, "deleted secret %#q in %#q namespace for older version", secret.Name, secret.Namespace)
+	}
+
+	h.logger.Debugf(ctx, "updating App CR with configmap and secret details")
+	app.SetAnnotations(key.RemoveAnnotation(annotations, annotation.AppOperatorPaused))
+	app.Spec.Config.ConfigMap = configmapReference
+	app.Spec.Config.Secret = secretReference
+	err = h.k8sClient.CtrlClient().Update(ctx, &app)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+	h.logger.Debugf(ctx, "updated App CR with configmap and secret details")
 
 	return nil
 }
