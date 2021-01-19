@@ -15,6 +15,12 @@ rules:
     - patch
     - watch
     - update
+- apiGroups:
+    - application.giantswarm.io
+  resources:
+    - appcatalogs
+  verbs:
+    - get
 - apiGroups: [""]
   resources:
     - configmaps

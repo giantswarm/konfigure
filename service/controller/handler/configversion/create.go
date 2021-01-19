@@ -3,13 +3,15 @@ package configversion
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
+	"github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/microerror"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/giantswarm/config-controller/service/controller/key"
 )
@@ -50,7 +52,7 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 	h.logger.Debugf(ctx, "resolving config version from %#q catalog", app.Spec.Catalog)
 	var index Index
 	{
-		indexYamlBytes, err := getCatalogIndex(ctx, app.Spec.Catalog)
+		indexYamlBytes, err := h.getCatalogIndex(ctx, app.Spec.Catalog)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -114,10 +116,18 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 	return nil
 }
 
-func getCatalogIndex(ctx context.Context, catalog string) ([]byte, error) {
+func (h *Handler) getCatalogIndex(ctx context.Context, catalogName string) ([]byte, error) {
 	client := &http.Client{}
 
-	url := fmt.Sprintf("https://giantswarm.github.io/%s/index.yaml", catalog)
+	var catalog v1alpha1.AppCatalog
+	{
+		err := h.k8sClient.CtrlClient().Get(ctx, types.NamespacedName{Name: catalogName}, &catalog)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	url := strings.TrimRight(catalog.Spec.Storage.URL, "/") + "/index.yaml"
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, &bytes.Buffer{}) // nolint: gosec
 	if err != nil {
 		return []byte{}, microerror.Mask(err)

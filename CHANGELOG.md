@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolve catalog URL using storage URL from AppCatalog CR rather than using
+  simple format string.
 - Remove old ConfigMap and Secret when a new config version is set.
 
 ### Fixed
