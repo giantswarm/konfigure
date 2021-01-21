@@ -14,7 +14,7 @@ require (
 	github.com/giantswarm/microendpoint v0.2.0
 	github.com/giantswarm/microerror v0.3.0
 	github.com/giantswarm/microkit v0.2.2
-	github.com/giantswarm/micrologger v0.4.0
+	github.com/giantswarm/micrologger v0.5.0
 	github.com/giantswarm/operatorkit/v4 v4.0.0
 	github.com/giantswarm/valuemodifier v0.3.0
 	github.com/go-git/go-billy/v5 v5.0.0
