@@ -8,7 +8,6 @@ import (
 	"github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -54,29 +53,15 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 	}
 	h.logger.Debugf(ctx, "generated app config version %#q", configVersion)
 
-	h.logger.Debugf(ctx, "ensuring configmap %s/%s", configmap.Namespace, configmap.Name)
-	err = h.k8sClient.CtrlClient().Create(ctx, configmap)
-	if apierrors.IsAlreadyExists(err) {
-		err = h.k8sClient.CtrlClient().Update(ctx, configmap)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	} else if err != nil {
+	err = h.resource.EnsureCreated(ctx, key.ObjectHashAnnotation, configmap)
+	if err != nil {
 		return microerror.Mask(err)
 	}
-	h.logger.Debugf(ctx, "ensured configmap %s/%s", configmap.Namespace, configmap.Name)
 
-	h.logger.Debugf(ctx, "ensuring secret %s/%s", secret.Namespace, secret.Name)
-	err = h.k8sClient.CtrlClient().Create(ctx, secret)
-	if apierrors.IsAlreadyExists(err) {
-		err = h.k8sClient.CtrlClient().Update(ctx, secret)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	} else if err != nil {
+	err = h.resource.EnsureCreated(ctx, key.ObjectHashAnnotation, secret)
+	if err != nil {
 		return microerror.Mask(err)
 	}
-	h.logger.Debugf(ctx, "ensured secret %s/%s", secret.Namespace, secret.Name)
 
 	configmapReference := v1alpha1.AppSpecConfigConfigMap{
 		Namespace: configmap.Namespace,

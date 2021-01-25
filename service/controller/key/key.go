@@ -11,6 +11,8 @@ const (
 	// LegacyConfigVersion should be set when the config for the app should not
 	// be generated.
 	LegacyConfigVersion = "0.0.0"
+
+	ObjectHashAnnotation = "config-controller.giantswarm.io/object-hash"
 )
 
 var (
