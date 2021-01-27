@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/giantswarm/config-controller/pkg/k8sresource"
 	"github.com/giantswarm/config-controller/service/controller/key"
 )
 
@@ -110,15 +111,23 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 		h.logger.Debugf(ctx, "deleted secret %#q in %#q namespace for older version", secret.Name, secret.Namespace)
 	}
 
-	h.logger.Debugf(ctx, "updating App CR with configmap and secret details")
-	app.SetAnnotations(key.RemoveAnnotation(annotations, annotation.AppOperatorPaused))
-	app.Spec.Config.ConfigMap = configmapReference
-	app.Spec.Config.Secret = secretReference
-	err = h.k8sClient.CtrlClient().Update(ctx, &app)
-	if err != nil {
-		return microerror.Mask(err)
+	{
+		h.logger.Debugf(ctx, "unpausing and updating App CR with configmap and secret details")
+
+		current := &v1alpha1.App{}
+		modifyFunc := func() error {
+			k8sresource.DeleteAnnotation(current, annotation.AppOperatorPaused)
+			current.Spec.Config.ConfigMap = configmapReference
+			current.Spec.Config.Secret = secretReference
+			return nil
+		}
+		err := h.resource.Modify(ctx, k8sresource.ObjectKey(&app), current, modifyFunc, nil)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		h.logger.Debugf(ctx, "unpaused and updated App CR with configmap and secret details")
 	}
-	h.logger.Debugf(ctx, "updated App CR with configmap and secret details")
 
 	return nil
 }

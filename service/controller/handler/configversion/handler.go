@@ -5,6 +5,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 
+	"github.com/giantswarm/config-controller/pkg/k8sresource"
 	"github.com/giantswarm/config-controller/service/internal/github"
 )
 
@@ -23,7 +24,8 @@ type Handler struct {
 	k8sClient k8sclient.Interface
 	logger    micrologger.Logger
 
-	gitHub *github.GitHub
+	gitHub   *github.GitHub
+	resource *k8sresource.Service
 }
 
 func New(config Config) (*Handler, error) {
@@ -37,17 +39,40 @@ func New(config Config) (*Handler, error) {
 		return nil, microerror.Maskf(invalidConfigError, "%T.GitHubToken must not be empty", config)
 	}
 
-	gh, err := github.New(github.Config{
-		GitHubToken: config.GitHubToken,
-	})
-	if err != nil {
-		return nil, microerror.Mask(err)
+	var err error
+
+	var gh *github.GitHub
+	{
+		c := github.Config{
+			GitHubToken: config.GitHubToken,
+		}
+
+		gh, err = github.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	var resource *k8sresource.Service
+	{
+		c := k8sresource.Config{
+			Client: config.K8sClient,
+			Logger: config.Logger,
+		}
+
+		resource, err = k8sresource.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
 	}
 
 	h := &Handler{
 		k8sClient: config.K8sClient,
 		logger:    config.Logger,
-		gitHub:    gh,
+
+		gitHub:   gh,
+		resource: resource,
 	}
 
 	return h, nil

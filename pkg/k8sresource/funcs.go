@@ -1,13 +1,41 @@
 package k8sresource
 
-import "k8s.io/apimachinery/pkg/types"
+import (
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
-func Kind(o Object) string {
-	return o.GetObjectKind().GroupVersionKind().Kind
+func DeleteAnnotation(o Object, key string) {
+	a := o.GetAnnotations()
+	if a == nil {
+		return
+	}
+
+	delete(a, key)
+	o.SetAnnotations(a)
 }
 
-func NamespacedName(o Object) types.NamespacedName {
-	return types.NamespacedName{
+func GetAnnotation(o Object, key string) (string, bool) {
+	a := o.GetAnnotations()
+	if a == nil {
+		return "", false
+	}
+
+	s, ok := a[key]
+	return s, ok
+}
+
+func SetAnnotation(o Object, key, val string) {
+	a := o.GetAnnotations()
+	if a == nil {
+		a = map[string]string{}
+	}
+
+	a[key] = val
+	o.SetAnnotations(a)
+}
+
+func ObjectKey(o Object) client.ObjectKey {
+	return client.ObjectKey{
 		Namespace: o.GetNamespace(),
 		Name:      o.GetName(),
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/giantswarm/config-controller/pkg/k8sresource"
 	"github.com/giantswarm/config-controller/service/controller/key"
 )
 
@@ -20,10 +21,6 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 	app, err := key.ToAppCR(obj)
 	if err != nil {
 		return microerror.Mask(err)
-	}
-	annotations := app.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
 	}
 
 	if app.Spec.Catalog == "" {
@@ -33,21 +30,24 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 	}
 
 	if app.Spec.Catalog == "releases" {
-		h.logger.Debugf(ctx, "App CR has a \"releases\" catalog set")
-		if _, ok := annotations[annotation.AppOperatorPaused]; ok {
-			h.logger.Debugf(ctx, "removing %#q annotation", annotation.AppOperatorPaused)
-			app.SetAnnotations(key.RemoveAnnotation(annotations, annotation.AppOperatorPaused))
-			err = h.k8sClient.CtrlClient().Update(ctx, &app)
+		if _, ok := k8sresource.GetAnnotation(&app, annotation.AppOperatorPaused); ok {
+			h.logger.Debugf(ctx, "removing %#q annotation due to App from %#q catalog", annotation.AppOperatorPaused, app.Spec.Catalog)
+
+			current := &v1alpha1.App{}
+			modifyFunc := func() error {
+				k8sresource.DeleteAnnotation(current, annotation.AppOperatorPaused)
+				return nil
+			}
+			err := h.resource.Modify(ctx, k8sresource.ObjectKey(&app), current, modifyFunc, nil)
 			if err != nil {
 				return microerror.Mask(err)
 			}
+
 			h.logger.Debugf(ctx, "removed %#q annotation", annotation.AppOperatorPaused)
 		}
-		h.logger.Debugf(ctx, "cancelling handler")
+		h.logger.Debugf(ctx, "cancelling handler due to App from %#q catalog", app.Spec.Catalog)
 		return nil
 	}
-
-	h.logger.Debugf(ctx, "setting App config version")
 
 	h.logger.Debugf(ctx, "resolving config version from %#q catalog", app.Spec.Catalog)
 	var index Index
@@ -96,22 +96,29 @@ func (h *Handler) EnsureCreated(ctx context.Context, obj interface{}) error {
 	}
 	h.logger.Debugf(ctx, "resolved config version from %#q catalog to %#q", app.Spec.Catalog, configVersion)
 
-	if v, ok := annotations[annotation.ConfigVersion]; ok {
-		_, isPaused := annotations[annotation.AppOperatorPaused]
+	if v, ok := k8sresource.GetAnnotation(&app, annotation.ConfigVersion); ok {
+		_, isPaused := k8sresource.GetAnnotation(&app, annotation.AppOperatorPaused)
 		if v == configVersion && !isPaused {
-			h.logger.Debugf(ctx, "App has correct version annotation already")
-			h.logger.Debugf(ctx, "cancelling handler")
+			h.logger.Debugf(ctx, "cancelling handler due to App having config already set to %#q", v)
 			return nil
 		}
 	}
 
-	annotations[annotation.ConfigVersion] = configVersion
-	app.SetAnnotations(annotations)
-	err = h.k8sClient.CtrlClient().Update(ctx, &app)
-	if err != nil {
-		return microerror.Mask(err)
+	{
+		h.logger.Debugf(ctx, "setting config version to %#q", configVersion)
+
+		current := &v1alpha1.App{}
+		modifyFunc := func() error {
+			k8sresource.SetAnnotation(current, annotation.ConfigVersion, configVersion)
+			return nil
+		}
+		err := h.resource.Modify(ctx, k8sresource.ObjectKey(&app), current, modifyFunc, nil)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		h.logger.Debugf(ctx, "set config version to %#q", configVersion)
 	}
-	h.logger.Debugf(ctx, "set config version to %#q", configVersion)
 
 	return nil
 }

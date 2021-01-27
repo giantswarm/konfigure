@@ -98,7 +98,7 @@ func New(config Config) (*Handler, error) {
 	var resource *k8sresource.Service
 	{
 		c := k8sresource.Config{
-			Client: config.K8sClient.CtrlClient(),
+			Client: config.K8sClient,
 			Logger: config.Logger,
 		}
 
