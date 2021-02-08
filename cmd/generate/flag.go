@@ -10,10 +10,10 @@ import (
 
 const (
 	flagApp           = "app"
-	flagBranch        = "branch"
 	flagConfigVersion = "config-version"
 	flagGithubToken   = "github-token"
 	flagInstallation  = "installation"
+	flagName          = "name"
 	flagNamespace     = "namespace"
 
 	envConfigControllerGithubToken = "CONFIG_CONTROLLER_GITHUB_TOKEN" //nolint:gosec
@@ -21,27 +21,27 @@ const (
 
 type flag struct {
 	App           string
-	Branch        string
 	ConfigVersion string
 	GitHubToken   string
 	Installation  string
+	Name          string
 	Namespace     string
 }
 
 func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.App, flagApp, "", `Name of an application to generate the config for (e.g. "kvm-operator").`)
-	cmd.Flags().StringVar(&f.Branch, flagBranch, "", "Branch of giantswarm/config used to generate configuraton.")
-	cmd.Flags().StringVar(&f.ConfigVersion, flagConfigVersion, "", `Major part of the configuration version to use for generation (e.g. "v2").`)
-	cmd.Flags().StringVar(&f.Installation, flagInstallation, "", `Installation codename (e.g. "gauss").`)
-	cmd.Flags().StringVar(&f.Namespace, flagNamespace, "giantswarm", `Namespace to generate cm/secret for (defaults to "giantswarm").`)
+	cmd.Flags().StringVar(&f.ConfigVersion, flagConfigVersion, "", `Configuration version. Can be a major version range in format "2.x.x" or a branch name.`)
 	cmd.Flags().StringVar(&f.GitHubToken, flagGithubToken, "", fmt.Sprintf(`GitHub token to use for "opsctl create vaultconfig" calls. Defaults to the value of %s env var.`, envConfigControllerGithubToken))
+	cmd.Flags().StringVar(&f.Installation, flagInstallation, "", `Installation codename (e.g. "gauss").`)
+	cmd.Flags().StringVar(&f.Name, flagName, "giantswarm", `Name of the generated ConfigMap/Secret.`)
+	cmd.Flags().StringVar(&f.Namespace, flagNamespace, "giantswarm", `Namespace of the generated ConfigMap/Secret.`)
 }
 
 func (f *flag) Validate() error {
 	if f.App == "" {
 		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagApp)
 	}
-	if f.ConfigVersion == "" && f.Branch == "" {
+	if f.ConfigVersion == "" {
 		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagConfigVersion)
 	}
 	if f.GitHubToken == "" {
@@ -52,6 +52,12 @@ func (f *flag) Validate() error {
 	}
 	if f.Installation == "" {
 		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagInstallation)
+	}
+	if f.Name == "" {
+		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagName)
+	}
+	if f.Namespace == "" {
+		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagNamespace)
 	}
 
 	return nil

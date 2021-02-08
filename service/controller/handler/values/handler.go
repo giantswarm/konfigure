@@ -2,17 +2,22 @@ package values
 
 import (
 	"context"
+	"regexp"
+	"strings"
 
+	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/k8sclient/v5/pkg/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	vaultapi "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/giantswarm/config-controller/pkg/decrypt"
 	"github.com/giantswarm/config-controller/pkg/generator"
 	"github.com/giantswarm/config-controller/pkg/generator/key"
 	"github.com/giantswarm/config-controller/pkg/k8sresource"
+	"github.com/giantswarm/config-controller/pkg/project"
 	controllerkey "github.com/giantswarm/config-controller/service/controller/key"
 	"github.com/giantswarm/config-controller/service/internal/github"
 )
@@ -156,19 +161,51 @@ func (h *Handler) generateConfig(ctx context.Context, installation, namespace, a
 		}
 	}
 
-	gen, err := generator.New(&generator.Config{
+	gen, err := generator.New(generator.Config{
 		Fs:               store,
 		DecryptTraverser: h.decryptTraverser,
-		ProjectVersion:   h.projectVersion,
+		Installation:     h.installation,
 	})
 	if err != nil {
 		return nil, nil, microerror.Mask(err)
 	}
 
-	configmap, secret, err = gen.GenerateConfig(ctx, installation, app, namespace, ref)
+	meta := metav1.ObjectMeta{
+		Name:      generateResourceName(app, ref),
+		Namespace: namespace,
+
+		Annotations: map[string]string{
+			key.ReleaseNameAnnotation:      generateResourceName(app, ref),
+			key.ReleaseNamespaceAnnotation: namespace,
+		},
+		Labels: map[string]string{
+			key.KubernetesManagedByLabel:  "Helm",
+			label.AppKubernetesName:       app,
+			label.ConfigControllerVersion: h.projectVersion,
+			label.ManagedBy:               project.Name(),
+		},
+	}
+
+	configmap, secret, err = gen.GenerateConfig(ctx, app, meta)
 	if err != nil {
 		return nil, nil, microerror.Mask(err)
 	}
 
 	return configmap, secret, nil
+}
+
+var (
+	multipleDashPattern     = regexp.MustCompile("-{2,}")
+	invalidCharacterPattern = regexp.MustCompile("[^a-z0-9]+")
+)
+
+func generateResourceName(elements ...string) string {
+	name := strings.Join(elements, "-")
+	name = string(invalidCharacterPattern.ReplaceAll([]byte(name), []byte("-")))
+	name = string(multipleDashPattern.ReplaceAll([]byte(name), []byte("-")))
+	name = strings.ToLower(strings.Trim(name, "-"))
+	if len(name) > 63 {
+		name = name[:63]
+	}
+	return name
 }

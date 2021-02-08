@@ -5,20 +5,13 @@ import (
 	"context"
 	"html/template"
 	"path"
-	"regexp"
-	"strings"
 
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
-	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
-	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
 	pathmodifier "github.com/giantswarm/valuemodifier/path"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/giantswarm/config-controller/pkg/generator/key"
-	"github.com/giantswarm/config-controller/pkg/project"
 )
 
 /*
@@ -48,43 +41,43 @@ import (
 						secret-values.yaml.patch
 */
 
-var (
-	multipleDashPattern     = regexp.MustCompile("-{2,}")
-	invalidCharacterPattern = regexp.MustCompile("[^a-z0-9]+")
-)
-
 type Config struct {
 	Fs               Filesystem
 	DecryptTraverser DecryptTraverser
-	ProjectVersion   string
+
+	Installation string
 }
 
 type Generator struct {
 	fs               Filesystem
 	decryptTraverser DecryptTraverser
-	projectVersion   string
+
+	installation string
 }
 
-func New(config *Config) (*Generator, error) {
+func New(config Config) (*Generator, error) {
 	if config.Fs == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Fs must not be empty", config)
 	}
 	if config.DecryptTraverser == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.DecryptTraverser must not be empty", config)
 	}
-	if config.ProjectVersion == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.ProjectVersion must not be empty", config)
+
+	if config.Installation == "" {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Installation must not be empty", config)
 	}
+
 	g := Generator{
 		fs:               config.Fs,
 		decryptTraverser: config.DecryptTraverser,
-		projectVersion:   config.ProjectVersion,
+
+		installation: config.Installation,
 	}
 
 	return &g, nil
 }
 
-// GenerateConfig creates final configmap values and secret values for helm to
+// generateRawConfig creates final configmap values and secret values for helm to
 // use by performing the following operations:
 // 1. Get configmap template data and patch it with installation-specific
 //    overrides (if available)
@@ -100,12 +93,12 @@ func New(config *Config) (*Generator, error) {
 //    decrypt it
 // 8. Patch secret template (result of 6.) with decrypted patch values (result
 //    of 7.)
-func (g Generator) GenerateRawConfig(ctx context.Context, installation, app string) (configmap string, secret string, err error) {
+func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap string, secret string, err error) {
 	// 1.
 	configmapContext, err := g.getWithPatchIfExists(
 		ctx,
 		"default/config.yaml",
-		"installations/"+installation+"/config.yaml.patch",
+		"installations/"+g.installation+"/config.yaml.patch",
 	)
 	if err != nil {
 		return "", "", microerror.Mask(err)
@@ -124,7 +117,7 @@ func (g Generator) GenerateRawConfig(ctx context.Context, installation, app stri
 	// 3.
 	var configmapPatch string
 	{
-		filepath := "installations/" + installation + "/apps/" + app + "/configmap-values.yaml.patch"
+		filepath := "installations/" + g.installation + "/apps/" + app + "/configmap-values.yaml.patch"
 		patch, err := g.getRenderedTemplate(ctx, filepath, configmapContext)
 		if IsNotFound(err) {
 			configmapPatch = ""
@@ -148,7 +141,7 @@ func (g Generator) GenerateRawConfig(ctx context.Context, installation, app stri
 	// 5.
 	secretContext, err := g.getWithPatchIfExists(
 		ctx,
-		"installations/"+installation+"/secret.yaml",
+		"installations/"+g.installation+"/secret.yaml",
 		"",
 	)
 	if err != nil {
@@ -181,7 +174,7 @@ func (g Generator) GenerateRawConfig(ctx context.Context, installation, app stri
 	// 7.
 	var secretPatch string
 	{
-		filepath := "installations/" + installation + "/apps/" + app + "/secret-values.yaml.patch"
+		filepath := "installations/" + g.installation + "/apps/" + app + "/secret-values.yaml.patch"
 		patch, err := g.getRenderedTemplate(ctx, filepath, secretContext)
 		if IsNotFound(err) {
 			secretPatch = ""
@@ -212,30 +205,15 @@ func (g Generator) GenerateRawConfig(ctx context.Context, installation, app stri
 	return configmap, secret, nil
 }
 
-func (g Generator) GenerateConfig(ctx context.Context, installation, app, namespace, ref string) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
-	cm, s, err := g.GenerateRawConfig(ctx, installation, app)
+// GenerateConfig generates ConfigMap and Secret for a given App. The generated
+// CM and Secret metadata are configured with the provided value.
+func (g Generator) GenerateConfig(ctx context.Context, app string, meta metav1.ObjectMeta) (*corev1.ConfigMap, *corev1.Secret, error) {
+	cm, s, err := g.generateRawConfig(ctx, app)
 	if err != nil {
 		return nil, nil, microerror.Mask(err)
 	}
 
-	name := GenerateResourceName(app, ref)
-	meta := metav1.ObjectMeta{
-		Name:      name,
-		Namespace: namespace,
-		Labels: map[string]string{
-			key.KubernetesManagedByLabel:  "Helm",
-			label.AppKubernetesName:       app,
-			label.ConfigControllerVersion: g.projectVersion,
-			label.ManagedBy:               project.Name(),
-		},
-		Annotations: map[string]string{
-			annotation.ConfigVersion:       ref,
-			key.ReleaseNameAnnotation:      name,
-			key.ReleaseNamespaceAnnotation: namespace,
-		},
-	}
-
-	configmap = &corev1.ConfigMap{
+	configmap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -246,7 +224,7 @@ func (g Generator) GenerateConfig(ctx context.Context, installation, app, namesp
 		},
 	}
 
-	secret = &corev1.Secret{
+	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
 			APIVersion: "v1",
@@ -402,15 +380,4 @@ func (g Generator) include(templateName string, templateData interface{}) (strin
 	}
 
 	return out.String(), nil
-}
-
-func GenerateResourceName(elements ...string) string {
-	name := strings.Join(elements, "-")
-	name = string(invalidCharacterPattern.ReplaceAll([]byte(name), []byte("-")))
-	name = string(multipleDashPattern.ReplaceAll([]byte(name), []byte("-")))
-	name = strings.ToLower(strings.Trim(name, "-"))
-	if len(name) > 63 {
-		name = name[:63]
-	}
-	return name
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
-func TestGenerator_GenerateRawConfig(t *testing.T) {
+func TestGenerator_generateRawConfig(t *testing.T) {
 	testCases := []struct {
 		name     string
 		caseFile string
@@ -117,14 +117,15 @@ func TestGenerator_GenerateRawConfig(t *testing.T) {
 			config := Config{
 				Fs:               fs,
 				DecryptTraverser: tc.decryptTraverser,
-				ProjectVersion:   "0.0.0",
+
+				Installation: tc.installation,
 			}
-			g, err := New(&config)
+			g, err := New(config)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}
 
-			configmap, secret, err := g.GenerateRawConfig(context.Background(), tc.installation, tc.app)
+			configmap, secret, err := g.generateRawConfig(context.Background(), tc.app)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
 			}
@@ -133,57 +134,6 @@ func TestGenerator_GenerateRawConfig(t *testing.T) {
 			}
 			if secret != fs.ExpectedSecret {
 				t.Fatalf("secret not expected, got: %s", secret)
-			}
-		})
-	}
-}
-
-func TestGenerator_GenerateResourceName(t *testing.T) {
-	testCases := []struct {
-		caseName string
-
-		app string
-		ref string
-
-		expectedName string
-	}{
-		{
-			caseName:     "case 0 - generate regular name",
-			app:          "kvm-operator",
-			ref:          "v1.2.3",
-			expectedName: "kvm-operator-v1-2-3",
-		},
-		{
-			caseName:     "case 1 - replace unsupported weird symbols",
-			app:          "kvm-operator +=*&^%$#!||\\//<>",
-			ref:          "v1.2.3",
-			expectedName: "kvm-operator-v1-2-3",
-		},
-		{
-			caseName:     "case 2 - trim dashes",
-			app:          "-----kvm-operator",
-			ref:          "v1.2.3----",
-			expectedName: "kvm-operator-v1-2-3",
-		},
-		{
-			caseName:     "case 3 - replace multiple dashes in a row",
-			app:          "aws-operator",
-			ref:          "this--is---a---branch----ref",
-			expectedName: "aws-operator-this-is-a-branch-ref",
-		},
-		{
-			caseName:     "case 4 - truncate long names to 63 characters",
-			app:          "aws-operator-abcdefghijklmnopqrstuvwxyz0123456789",
-			ref:          "abcdefghijklmnopqrstuvwxyz0123456789",
-			expectedName: "aws-operator-abcdefghijklmnopqrstuvwxyz0123456789-abcdefghijklm",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.caseName, func(t *testing.T) {
-			generatedName := GenerateResourceName(tc.app, tc.ref)
-			if generatedName != tc.expectedName {
-				t.Fatalf("Wrong test result, expected %q got: %q", tc.expectedName, generatedName)
 			}
 		})
 	}

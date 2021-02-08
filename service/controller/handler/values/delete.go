@@ -10,7 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/config-controller/pkg/generator"
 	"github.com/giantswarm/config-controller/service/controller/key"
 )
 
@@ -53,7 +52,7 @@ func (h *Handler) EnsureDeleted(ctx context.Context, obj interface{}) error {
 		if tagRef := key.TryVersionToTag(configVersion); tagRef != "" {
 			ref = tagRef
 		}
-		name := generator.GenerateResourceName(app.Spec.Name, ref)
+		name := generateResourceName(app.Spec.Name, ref)
 		if cm.Name == "" {
 			cm.Name = name
 			cm.Namespace = app.Namespace
