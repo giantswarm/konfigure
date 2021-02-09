@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/giantswarm/config-controller/internal/meta"
 	"github.com/giantswarm/config-controller/pkg/decrypt"
 	"github.com/giantswarm/config-controller/pkg/generator"
 	"github.com/giantswarm/config-controller/pkg/generator/key"
@@ -28,13 +29,13 @@ const (
 )
 
 type Config struct {
-	K8sClient k8sclient.Interface
-	Logger    micrologger.Logger
+	K8sClient   k8sclient.Interface
+	Logger      micrologger.Logger
+	VaultClient *vaultapi.Client
 
-	GitHubToken    string
-	Installation   string
-	ProjectVersion string
-	VaultClient    *vaultapi.Client
+	GitHubToken  string
+	Installation string
+	UniqueApp    bool
 }
 
 type Handler struct {
@@ -44,8 +45,8 @@ type Handler struct {
 	decryptTraverser *decrypt.YAMLTraverser
 	gitHub           *github.GitHub
 	installation     string
-	projectVersion   string
 	resource         *k8sresource.Service
+	uniqueApp        bool
 }
 
 func New(config Config) (*Handler, error) {
@@ -121,8 +122,8 @@ func New(config Config) (*Handler, error) {
 		decryptTraverser: decryptTraverser,
 		gitHub:           gh,
 		installation:     config.Installation,
-		projectVersion:   config.ProjectVersion,
 		resource:         resource,
+		uniqueApp:        config.UniqueApp,
 	}
 
 	return h, nil
@@ -181,7 +182,7 @@ func (h *Handler) generateConfig(ctx context.Context, installation, namespace, a
 		Labels: map[string]string{
 			key.KubernetesManagedByLabel:  "Helm",
 			label.AppKubernetesName:       app,
-			label.ConfigControllerVersion: h.projectVersion,
+			label.ConfigControllerVersion: meta.Label.Version.Val(h.uniqueApp),
 			label.ManagedBy:               project.Name(),
 		},
 	}

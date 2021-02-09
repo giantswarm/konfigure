@@ -6,7 +6,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
+	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
+	corev1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/k8sclient/v5/pkg/k8sclient"
 	"github.com/giantswarm/k8sclient/v5/pkg/k8srestconfig"
 	"github.com/giantswarm/microendpoint/service/version"
@@ -36,6 +37,7 @@ type Service struct {
 	bootOnce                  sync.Once
 	appCatalogEntryController *controller.AppCatalogEntry
 	appController             *controller.App
+	configController          *controller.Config
 	operatorCollector         *collector.Set
 }
 
@@ -89,7 +91,8 @@ func New(config Config) (*Service, error) {
 			Logger:     config.Logger,
 			RestConfig: restConfig,
 			SchemeBuilder: k8sclient.SchemeBuilder{
-				v1alpha1.AddToScheme,
+				applicationv1alpha1.AddToScheme,
+				corev1alpha1.AddToScheme,
 			},
 		}
 
@@ -144,6 +147,24 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var configController *controller.Config
+	{
+		c := controller.ConfigConfig{
+			K8sClient:   k8sClient,
+			Logger:      config.Logger,
+			VaultClient: vaultClient,
+
+			GitHubToken:  config.Viper.GetString(config.Flag.Service.GitHub.Token),
+			Installation: config.Viper.GetString(config.Flag.Service.Installation.Name),
+			UniqueApp:    config.Viper.GetBool(config.Flag.Service.App.Unique),
+		}
+
+		configController, err = controller.NewConfig(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var operatorCollector *collector.Set
 	{
 		c := collector.SetConfig{
@@ -179,6 +200,7 @@ func New(config Config) (*Service, error) {
 		bootOnce:                  sync.Once{},
 		appController:             appController,
 		appCatalogEntryController: appCatalogEntryController,
+		configController:          configController,
 		operatorCollector:         operatorCollector,
 	}
 
@@ -191,5 +213,6 @@ func (s *Service) Boot(ctx context.Context) {
 
 		go s.appCatalogEntryController.Boot(ctx)
 		go s.appController.Boot(ctx)
+		go s.configController.Boot(ctx)
 	})
 }
