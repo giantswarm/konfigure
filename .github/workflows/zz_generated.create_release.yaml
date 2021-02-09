@@ -1,6 +1,6 @@
 # DO NOT EDIT. Generated with:
 #
-#    devctl@4.2.1
+#    devctl@4.2.2-dev
 #
 name: Create Release
 on:
@@ -232,3 +232,45 @@ jobs:
 
           git branch $release_branch HEAD^
           git push origin $release_branch
+
+  create_and_upload_build_artifacts:
+    name: Create and upload build artifacts
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        platform:
+          - darwin
+          - linux
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GO_VERSION: 1.14.2
+      ARTIFACT_DIR: bin-dist
+      TAG: v${{ needs.gather_facts.outputs.version }}
+    needs:
+      - create_release
+      - gather_facts
+    steps:
+      - name: Install architect
+        uses: giantswarm/install-binary-action@v1.0.0
+        with:
+          binary: "architect"
+          version: "3.0.5"
+      - name: Set up Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v2.1.3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.TAG }}
+      - name: Create ${{ matrix.platform }} package
+        run: make package-${{ matrix.platform }}
+      - name: Add ${{ matrix.platform }} package to release
+        uses: actions/upload-release-asset@v1
+        env:
+          FILE_NAME: ${{ github.event.repository.name }}-${{ env.TAG }}-${{ matrix.platform }}-amd64.tar.gz
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ${{ env.ARTIFACT_DIR }}/${{ env.FILE_NAME }}
+          asset_name: ${{ env.FILE_NAME }}
+          asset_content_type: application/octet-stream

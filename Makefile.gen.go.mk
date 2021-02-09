@@ -1,7 +1,9 @@
 # DO NOT EDIT. Generated with:
 #
-#    devctl@4.2.1
+#    devctl@4.2.2-dev
 #
+
+PACKAGE_DIR    := ./bin-dist
 
 APPLICATION    := $(shell go list -m | cut -d '/' -f 3)
 BUILDTIMESTAMP := $(shell date -u '+%FT%TZ')
@@ -45,6 +47,24 @@ $(APPLICATION)-linux: $(APPLICATION)-v$(VERSION)-linux-amd64
 $(APPLICATION)-v$(VERSION)-%-amd64: $(SOURCES)
 	@echo "====> $@"
 	CGO_ENABLED=0 GOOS=$* GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o $@ .
+
+.PHONY: package-darwin package-linux
+## package-darwin: prepares a packaged darwin/amd64 version
+package-darwin: $(PACKAGE_DIR)/$(APPLICATION)-v$(VERSION)-darwin-amd64.tar.gz
+	@echo "====> $@"
+## package-linux: prepares a packaged linux/amd64 version
+package-linux: $(PACKAGE_DIR)/$(APPLICATION)-v$(VERSION)-linux-amd64.tar.gz
+	@echo "====> $@"
+
+$(PACKAGE_DIR)/$(APPLICATION)-v$(VERSION)-%-amd64.tar.gz: DIR=$(PACKAGE_DIR)/$<
+$(PACKAGE_DIR)/$(APPLICATION)-v$(VERSION)-%-amd64.tar.gz: $(APPLICATION)-v$(VERSION)-%-amd64
+	@echo "====> $@"
+	mkdir -p $(DIR)
+	cp $< $(DIR)/$(APPLICATION)
+	cp README.md LICENSE $(DIR)
+	tar -C $(PACKAGE_DIR) -cvzf $(PACKAGE_DIR)/$<.tar.gz $<
+	rm -rf $(DIR)
+	rm -rf $<
 
 .PHONY: install
 ## install: install the application
