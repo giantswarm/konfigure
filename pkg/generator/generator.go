@@ -347,7 +347,7 @@ func (g Generator) renderTemplate(ctx context.Context, templateText string, temp
 	funcMap := sprig.FuncMap()
 	funcMap["include"] = g.include
 
-	t, err := template.New("main").Funcs(funcMap).Parse(templateText)
+	t, err := template.New("main").Funcs(funcMap).Option("missingkey=error").Parse(templateText)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
@@ -368,7 +368,7 @@ func (g Generator) include(templateName string, templateData interface{}) (strin
 		return "", microerror.Mask(err)
 	}
 
-	t, err := template.New(templateName).Funcs(sprig.FuncMap()).Parse(string(contents))
+	t, err := template.New(templateName).Funcs(sprig.FuncMap()).Option("missingkey=error").Parse(string(contents))
 	if err != nil {
 		return "", microerror.Mask(err)
 	}

@@ -14,8 +14,9 @@ import (
 
 func TestGenerator_generateRawConfig(t *testing.T) {
 	testCases := []struct {
-		name     string
-		caseFile string
+		name                 string
+		caseFile             string
+		expectedErrorMessage string
 
 		app          string
 		installation string
@@ -102,6 +103,16 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			installation:     "puma",
 			decryptTraverser: &mapStringTraverser{},
 		},
+
+		{
+			name:                 "case 9 - throw error when a key is missing",
+			caseFile:             "testdata/case9.yaml",
+			expectedErrorMessage: `<.this.key.is.missing>: map has no entry for key "this"`,
+
+			app:              "operator",
+			installation:     "puma",
+			decryptTraverser: &mapStringTraverser{},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -126,8 +137,19 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			}
 
 			configmap, secret, err := g.generateRawConfig(context.Background(), tc.app)
-			if err != nil {
-				t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
+			if tc.expectedErrorMessage == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
+				}
+			} else {
+				switch {
+				case err == nil:
+					t.Fatalf("expected error %q but got nil", tc.expectedErrorMessage)
+				case !strings.Contains(microerror.Pretty(err, true), tc.expectedErrorMessage):
+					t.Fatalf("expected error %q but got %q", tc.expectedErrorMessage, microerror.Pretty(err, true))
+				default:
+					return
+				}
 			}
 			if configmap != fs.ExpectedConfigmap {
 				t.Fatalf("configmap not expected, got: %s", configmap)
