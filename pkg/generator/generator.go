@@ -3,7 +3,9 @@ package generator
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"html/template"
+	"os"
 	"path"
 
 	"github.com/Masterminds/sprig"
@@ -46,6 +48,7 @@ type Config struct {
 	DecryptTraverser DecryptTraverser
 
 	Installation string
+	Verbose      bool
 }
 
 type Generator struct {
@@ -53,6 +56,7 @@ type Generator struct {
 	decryptTraverser DecryptTraverser
 
 	installation string
+	verbose      bool
 }
 
 func New(config Config) (*Generator, error) {
@@ -62,7 +66,6 @@ func New(config Config) (*Generator, error) {
 	if config.DecryptTraverser == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.DecryptTraverser must not be empty", config)
 	}
-
 	if config.Installation == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Installation must not be empty", config)
 	}
@@ -72,6 +75,7 @@ func New(config Config) (*Generator, error) {
 		decryptTraverser: config.DecryptTraverser,
 
 		installation: config.Installation,
+		verbose:      config.Verbose,
 	}
 
 	return &g, nil
@@ -103,8 +107,10 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+	g.logMessage(ctx, "loaded patched config values")
 
 	// 2.
+	g.logMessage(ctx, "rendering configmap-values")
 	configmapBase, err := g.getRenderedTemplate(
 		ctx,
 		"default/apps/"+app+"/configmap-values.yaml.template",
@@ -113,10 +119,12 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+	g.logMessage(ctx, "rendered configmap-values template")
 
 	// 3.
 	var configmapPatch string
 	{
+		g.logMessage(ctx, "rendering configmap-values patch (if it exists)")
 		filepath := "installations/" + g.installation + "/apps/" + app + "/configmap-values.yaml.patch"
 		patch, err := g.getRenderedTemplate(ctx, filepath, configmapContext)
 		if IsNotFound(err) {
@@ -125,6 +133,7 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 			return "", "", microerror.Mask(err)
 		} else {
 			configmapPatch = patch
+			g.logMessage(ctx, "rendered configmap-values patch")
 		}
 	}
 
@@ -137,6 +146,9 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+	if configmapPatch != "" {
+		g.logMessage(ctx, "patched configmap-values")
+	}
 
 	// 5.
 	secretContext, err := g.getWithPatchIfExists(
@@ -147,12 +159,14 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+	g.logMessage(ctx, "loaded installation secret")
 
 	decryptedBytes, err := g.decryptTraverser.Traverse(ctx, []byte(secretContext))
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
 	secretContext = string(decryptedBytes)
+	g.logMessage(ctx, "decrypted installation secret")
 
 	// 6.
 	secretTemplate, err := g.getWithPatchIfExists(
@@ -161,15 +175,18 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 		"",
 	)
 	if IsNotFound(err) {
+		g.logMessage(ctx, "secret-values template not found, generated configmap")
 		return configmap, "", nil
 	} else if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+	g.logMessage(ctx, "loaded secret-values template")
 
 	secret, err = g.renderTemplate(ctx, secretTemplate, secretContext)
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+	g.logMessage(ctx, "rendered secret-values")
 
 	// 7.
 	var secretPatch string
@@ -181,16 +198,19 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 		} else if err != nil {
 			return "", "", microerror.Mask(err)
 		} else {
+			g.logMessage(ctx, "loaded secret-values patch")
 			decryptedBytes, err := g.decryptTraverser.Traverse(ctx, []byte(patch))
 			if err != nil {
 				return "", "", microerror.Mask(err)
 			}
 			secretPatch = string(decryptedBytes)
+			g.logMessage(ctx, "decrypted secret-values patch")
 		}
 	}
 
 	// 8.
 	if secretPatch == "" {
+		g.logMessage(ctx, "generated configmap and secret")
 		return configmap, secret, nil
 	}
 	secret, err = applyPatch(
@@ -201,6 +221,7 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+	g.logMessage(ctx, "patched secret-values, generated configmap and secret")
 
 	return configmap, secret, nil
 }
@@ -380,4 +401,10 @@ func (g Generator) include(templateName string, templateData interface{}) (strin
 	}
 
 	return out.String(), nil
+}
+
+func (g Generator) logMessage(ctx context.Context, format string, params ...interface{}) {
+	if g.verbose {
+		fmt.Fprintf(os.Stderr, "generator: "+format+"\n", params...)
+	}
 }
