@@ -51,8 +51,7 @@ func New(config Config) (*Service, error) {
 }
 
 func (s *Service) EnsureCreated(ctx context.Context, hashAnnotation string, desired Object) error {
-
-	s.logger.Debugf(ctx, "ensuring %#q %#q", s.kind(desired), ObjectKey(desired))
+	s.logger.Debugf(ctx, "ensuring %#q %#q", s.Kind(desired), ObjectKey(desired))
 
 	err := setHash(hashAnnotation, desired)
 	if err != nil {
@@ -68,7 +67,7 @@ func (s *Service) EnsureCreated(ctx context.Context, hashAnnotation string, desi
 			return microerror.Mask(err)
 		}
 
-		s.logger.Debugf(ctx, "created %#q %#q", s.kind(desired), ObjectKey(desired))
+		s.logger.Debugf(ctx, "created %#q %#q", s.Kind(desired), ObjectKey(desired))
 		return nil
 	} else if err != nil {
 		return microerror.Mask(err)
@@ -78,7 +77,7 @@ func (s *Service) EnsureCreated(ctx context.Context, hashAnnotation string, desi
 	h2, ok2 := GetAnnotation(current, hashAnnotation)
 
 	if ok1 && ok2 && h1 == h2 {
-		s.logger.Debugf(ctx, "object %#q %#q is up to date", s.kind(desired), ObjectKey(desired))
+		s.logger.Debugf(ctx, "object %#q %#q is up to date", s.Kind(desired), ObjectKey(desired))
 		return nil
 	}
 
@@ -87,7 +86,22 @@ func (s *Service) EnsureCreated(ctx context.Context, hashAnnotation string, desi
 		return microerror.Mask(err)
 	}
 
-	s.logger.Debugf(ctx, "updated %#q %#q", s.kind(desired), ObjectKey(desired))
+	s.logger.Debugf(ctx, "updated %#q %#q", s.Kind(desired), ObjectKey(desired))
+	return nil
+}
+
+func (s *Service) EnsureDeleted(ctx context.Context, obj Object) error {
+	s.logger.Debugf(ctx, "ensuring deletion of %#q %#q", s.Kind(obj), ObjectKey(obj))
+
+	err := s.client.Delete(ctx, obj)
+	if apierrors.IsNotFound(err) {
+		s.logger.Debugf(ctx, "%#q %#q already deleted", s.Kind(obj), ObjectKey(obj))
+	} else if err != nil {
+		return microerror.Mask(err)
+	}
+
+	s.logger.Debugf(ctx, "deleted %#q %#q", s.Kind(obj), ObjectKey(obj))
+
 	return nil
 }
 
@@ -122,8 +136,33 @@ func (s *Service) GroupVersionKind(o Object) (schema.GroupVersionKind, error) {
 //	}
 //
 func (s *Service) Modify(ctx context.Context, key client.ObjectKey, obj Object, modifyFunc func() error, backOff backoff.BackOff) error {
+	err := s.modify(ctx, key, obj, modifyFunc, backOff, false)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+// ModifyStatus works exactly like Modify but updates the status subresource.
+func (s *Service) ModifyStatus(ctx context.Context, key client.ObjectKey, obj Object, modifyFunc func() error, backOff backoff.BackOff) error {
+	err := s.modify(ctx, key, obj, modifyFunc, backOff, true)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+func (s *Service) modify(ctx context.Context, key client.ObjectKey, obj Object, modifyFunc func() error, backOff backoff.BackOff, statusUpdate bool) error {
 	if obj == nil {
 		panic("nil obj")
+	}
+
+	if statusUpdate {
+		s.logger.Debugf(ctx, "modifying status %#q %#q", s.Kind(obj), key)
+	} else {
+		s.logger.Debugf(ctx, "modifying %#q %#q", s.Kind(obj), key)
 	}
 
 	v := reflect.ValueOf(obj)
@@ -165,26 +204,44 @@ func (s *Service) Modify(ctx context.Context, key client.ObjectKey, obj Object, 
 			return microerror.Mask(err)
 		}
 
-		err = s.client.Update(ctx, obj)
-		if err != nil {
-			return microerror.Mask(err)
+		if statusUpdate {
+			err = s.client.Status().Update(ctx, obj)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+		} else {
+			err = s.client.Update(ctx, obj)
+			if err != nil {
+				return microerror.Mask(err)
+			}
 		}
 
 		return nil
 	}
 	n := func(err error, d time.Duration) {
-		s.logger.Debugf(ctx, "retrying (%d) %#q %#q modification in %s due to error: %s", attempt, s.kind(obj), ObjectKey(obj), d, err)
+		if statusUpdate {
+			s.logger.Debugf(ctx, "retrying (%d) %#q %#q status modification in %s due to error: %s", attempt, s.Kind(obj), ObjectKey(obj), d, err)
+		} else {
+			s.logger.Debugf(ctx, "retrying (%d) %#q %#q modification in %s due to error: %s", attempt, s.Kind(obj), ObjectKey(obj), d, err)
+		}
 	}
 	err := backoff.RetryNotify(o, backOff, n)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
+	if statusUpdate {
+		s.logger.Debugf(ctx, "modified status %#q %#q", s.Kind(obj), key)
+	} else {
+		s.logger.Debugf(ctx, "modified %#q %#q", s.Kind(obj), key)
+	}
+
 	return nil
 }
 
-// kind is a best effort approach to extract object kind.
-func (s *Service) kind(o Object) string {
+// Kind is a best effort approach to extract object kind. It should serve only
+// logging purposes.
+func (s *Service) Kind(o Object) string {
 	gvk, err := apiutil.GVKForObject(o, s.scheme)
 	if err != nil {
 		t := fmt.Sprintf("%T", o)

@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
-func Test_Service_kind(t *testing.T) {
+func Test_Service_Kind(t *testing.T) {
 	s := &Service{
 		scheme: scheme.Scheme,
 	}
@@ -21,7 +21,7 @@ func Test_Service_kind(t *testing.T) {
 
 		o := Unregistered{}
 
-		kind := s.kind(o)
+		kind := s.Kind(o)
 		if !reflect.DeepEqual(kind, "Unregistered") {
 			t.Fatalf("kind = %v, want %v", kind, "Unregistered")
 		}
@@ -32,7 +32,7 @@ func Test_Service_kind(t *testing.T) {
 		type CMAlias = corev1.ConfigMap
 
 		o := &CMAlias{}
-		kind := s.kind(o)
+		kind := s.Kind(o)
 		if !reflect.DeepEqual(kind, "ConfigMap") {
 			t.Fatalf("kind = %v, want %v", kind, "ConfigMap")
 		}
