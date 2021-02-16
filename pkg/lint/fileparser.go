@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template/parse"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/ghodss/yaml"
 
 	"github.com/giantswarm/microerror"
