@@ -37,6 +37,10 @@ func New(config Config) (*Service, error) {
 	return s, nil
 }
 
+// Get tries to resolve config version for the app version.
+//
+// It returns error matched by IsNotFound if the app version does not have
+// "config.giantswarm.io/version" annotation in the catalog.
 func (s *Service) Get(ctx context.Context, app corev1alpha1.ConfigSpecApp) (string, error) {
 	if app.Catalog == "releases" {
 		return "", microerror.Maskf(executionFailedError, "catalog %#q is not supported", app.Catalog)
@@ -49,13 +53,16 @@ func (s *Service) Get(ctx context.Context, app corev1alpha1.ConfigSpecApp) (stri
 
 	entries, ok := index.Entries[app.Name]
 	if !ok || len(entries) == 0 {
-		return "", microerror.Maskf(notFoundError, "App %#q not found in catalog %#q", app.Name, app.Catalog)
+		return "", microerror.Maskf(executionFailedError, "App %#q not found in catalog %#q", app.Name, app.Catalog)
 	}
 
+	appVersionFound := false
 	for _, entry := range entries {
 		if entry.Version != app.Version {
 			continue
 		}
+
+		appVersionFound = true
 
 		if entry.Annotations == nil {
 			break
@@ -70,7 +77,16 @@ func (s *Service) Get(ctx context.Context, app corev1alpha1.ConfigSpecApp) (stri
 	}
 
 	av := app.Name + "@" + app.Version
-	return "", microerror.Maskf(notFoundError, "App %#q not found in catalog %#q", av, app.Catalog)
+
+	if appVersionFound {
+		return "", microerror.Maskf(
+			notFoundError,
+			"annotation %#q not found for App %#q not found in catalog %#q",
+			meta.Annotation.ConfigVersion.Key(), av, app.Catalog,
+		)
+	}
+
+	return "", microerror.Maskf(executionFailedError, "App %#q not found in catalog %#q", av, app.Catalog)
 }
 
 func (s *Service) getCatalogIndex(ctx context.Context, catalogName string) (catalogIndex, error) {
