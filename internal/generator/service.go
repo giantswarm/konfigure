@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/config-controller/internal/meta"
 	"github.com/giantswarm/config-controller/pkg/decrypt"
 	"github.com/giantswarm/config-controller/pkg/generator"
+	"github.com/giantswarm/config-controller/pkg/xstrings"
 )
 
 type Config struct {
@@ -165,7 +166,7 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 		}
 	}
 
-	annotations := copyMap(in.ExtraAnnotations)
+	annotations := xstrings.CopyMap(in.ExtraAnnotations)
 	annotations[meta.Annotation.ConfigVersion.Key()] = in.ConfigVersion
 
 	meta := metav1.ObjectMeta{
@@ -182,12 +183,4 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 	}
 
 	return configMap, secret, nil
-}
-
-func copyMap(m map[string]string) map[string]string {
-	n := make(map[string]string, len(m))
-	for k, v := range m {
-		n[k] = v
-	}
-	return n
 }

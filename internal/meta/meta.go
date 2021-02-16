@@ -17,6 +17,12 @@ type AnnotationType struct {
 	// XInstallation s set on generated ConfigMap and Secret to show what
 	// installation they were generated for.
 	XInstallation
+	// XObjectHash is set on objects managed by the controllers. It is used
+	// to determine whether the managed object needs update.
+	XObjectHash
+	// XPreviousConfig is set on Config CRs to allow orphaned ConfigMap and
+	// Secret cleanup.
+	XPreviousConfig
 	// XProjectVersion is set on generated ConfigMap and Secret to show what
 	// version of config-controller was used to generate them.
 	XProjectVersion

@@ -9,7 +9,7 @@ import (
 
 var (
 	managedByLabel = label.ManagedBy
-	version        = label.ConfigControllerVersion
+	versionLabel   = label.ConfigControllerVersion
 )
 
 type ManagedBy struct{}
@@ -20,7 +20,7 @@ func (ManagedBy) Default() string { return project.Name() }
 
 type Version struct{}
 
-func (Version) Key() string { return version }
+func (Version) Key() string { return versionLabel }
 
 func (Version) Val(uniqueApp bool) string {
 	if uniqueApp {
@@ -35,10 +35,10 @@ func (Version) Val(uniqueApp bool) string {
 
 func (Version) Selector(uniqueApp bool) controller.Selector {
 	return controller.NewSelector(func(labels controller.Labels) bool {
-		if !labels.Has(version) {
+		if !labels.Has(versionLabel) {
 			return false
 		}
-		if labels.Get(version) == (Version{}).Val(uniqueApp) {
+		if labels.Get(versionLabel) == (Version{}).Val(uniqueApp) {
 			return true
 		}
 

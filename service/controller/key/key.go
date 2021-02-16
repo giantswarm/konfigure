@@ -3,7 +3,8 @@ package key
 import (
 	"regexp"
 
-	"github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
+	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
+	corev1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
 )
 
@@ -19,19 +20,32 @@ var (
 	tagConfigVersionPattern = regexp.MustCompile(`^(\d+)\.x\.x$`)
 )
 
-func ToAppCR(v interface{}) (v1alpha1.App, error) {
+func ToAppCR(v interface{}) (applicationv1alpha1.App, error) {
 	if v == nil {
-		return v1alpha1.App{}, microerror.Maskf(wrongTypeError, "expected non-nil, got %#v", v)
+		return applicationv1alpha1.App{}, microerror.Maskf(wrongTypeError, "expected non-nil, got %#v", v)
 	}
 
-	p, ok := v.(*v1alpha1.App)
+	p, ok := v.(*applicationv1alpha1.App)
 	if !ok {
-		return v1alpha1.App{}, microerror.Maskf(wrongTypeError, "expected %T, got %T", p, v)
+		return applicationv1alpha1.App{}, microerror.Maskf(wrongTypeError, "expected %T, got %T", p, v)
 	}
 
 	c := p.DeepCopy()
 
 	return *c, nil
+}
+
+func ToConfigCR(v interface{}) (*corev1alpha1.Config, error) {
+	if v == nil {
+		return nil, microerror.Maskf(wrongTypeError, "expected non-nil, got %#v", v)
+	}
+
+	p, ok := v.(*corev1alpha1.Config)
+	if !ok {
+		return nil, microerror.Maskf(wrongTypeError, "expected %T, got %T", p, v)
+	}
+
+	return p.DeepCopy(), nil
 }
 
 // TryVersionToTag translates config version: "<major>.x.x" to tagReference:
