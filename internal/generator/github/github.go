@@ -5,12 +5,12 @@ import (
 
 	"github.com/giantswarm/microerror"
 
+	"github.com/giantswarm/config-controller/internal/generator/github/cache"
 	"github.com/giantswarm/config-controller/pkg/github"
-	"github.com/giantswarm/config-controller/service/internal/github/cache"
 )
 
 type Config struct {
-	GitHubToken string
+	Token string
 }
 
 type GitHub struct {
@@ -21,7 +21,7 @@ type GitHub struct {
 
 func New(c Config) (*GitHub, error) {
 	client, err := github.New(github.Config{
-		Token: c.GitHubToken,
+		Token: c.Token,
 	})
 	if err != nil {
 		return nil, microerror.Mask(err)

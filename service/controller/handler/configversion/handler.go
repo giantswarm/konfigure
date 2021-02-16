@@ -5,8 +5,8 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 
+	"github.com/giantswarm/config-controller/internal/generator/github"
 	"github.com/giantswarm/config-controller/pkg/k8sresource"
-	"github.com/giantswarm/config-controller/service/internal/github"
 )
 
 const (
@@ -44,7 +44,7 @@ func New(config Config) (*Handler, error) {
 	var gh *github.GitHub
 	{
 		c := github.Config{
-			GitHubToken: config.GitHubToken,
+			Token: config.GitHubToken,
 		}
 
 		gh, err = github.New(c)

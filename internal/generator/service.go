@@ -9,10 +9,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/giantswarm/config-controller/internal/generator/github"
 	"github.com/giantswarm/config-controller/internal/meta"
 	"github.com/giantswarm/config-controller/pkg/decrypt"
 	"github.com/giantswarm/config-controller/pkg/generator"
-	"github.com/giantswarm/config-controller/pkg/github"
 )
 
 type Config struct {
