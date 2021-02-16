@@ -75,7 +75,7 @@ func TestYAMLTraverser(t *testing.T) {
 
 			if *update {
 				path := filepath.Join("testdata", tc.expectedGoldenFile)
-				err := ioutil.WriteFile(path, []byte(result), 0644)
+				err := ioutil.WriteFile(path, []byte(result), 0644) // nolint:gosec
 				if err != nil {
 					t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
 				}

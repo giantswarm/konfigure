@@ -1,6 +1,8 @@
 package github
 
-import "os"
+import (
+	"os"
+)
 
 type Store interface {
 	// ReadFile is similar to io/ioutil.ReadFile but it returns error

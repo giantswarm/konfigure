@@ -178,7 +178,7 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 		tempDirPath: temporaryDirectory,
 	}
 	for _, p := range []string{"default", "installations", "include"} {
-		if err := os.MkdirAll(path.Join(temporaryDirectory, p), 0777); err != nil {
+		if err := os.MkdirAll(path.Join(temporaryDirectory, p), 0755); err != nil {
 			panic(err)
 		}
 	}
@@ -208,11 +208,11 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 			continue
 		}
 
-		if err := os.MkdirAll(dir, 0777); err != nil {
+		if err := os.MkdirAll(dir, 0755); err != nil {
 			panic(err)
 		}
 
-		err := ioutil.WriteFile(p, []byte(file.Data), 0777)
+		err := ioutil.WriteFile(p, []byte(file.Data), 0644) // nolint:gosec
 		if err != nil {
 			panic(err)
 		}
