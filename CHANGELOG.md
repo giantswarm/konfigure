@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deleted
+
+- Delete `App` CR controller.
+
 ## [0.2.4] - 2021-02-16
 
 ### Added

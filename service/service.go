@@ -6,7 +6,6 @@ import (
 	"context"
 	"sync"
 
-	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	corev1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/k8sclient/v5/pkg/k8sclient"
 	"github.com/giantswarm/k8sclient/v5/pkg/k8srestconfig"
@@ -34,11 +33,9 @@ type Config struct {
 type Service struct {
 	Version *version.Service
 
-	bootOnce                  sync.Once
-	appCatalogEntryController *controller.AppCatalogEntry
-	appController             *controller.App
-	configController          *controller.Config
-	operatorCollector         *collector.Set
+	bootOnce          sync.Once
+	configController  *controller.Config
+	operatorCollector *collector.Set
 }
 
 // New creates a new configured service object.
@@ -91,7 +88,6 @@ func New(config Config) (*Service, error) {
 			Logger:     config.Logger,
 			RestConfig: restConfig,
 			SchemeBuilder: k8sclient.SchemeBuilder{
-				applicationv1alpha1.AddToScheme,
 				corev1alpha1.AddToScheme,
 			},
 		}
@@ -111,40 +107,6 @@ func New(config Config) (*Service, error) {
 			return nil, microerror.Mask(err)
 		}
 		vaultClient.SetToken(config.Viper.GetString(config.Flag.Service.Vault.Token))
-	}
-
-	var appCatalogEntryController *controller.AppCatalogEntry
-	{
-		c := controller.AppCatalogEntryConfig{
-			K8sClient: k8sClient,
-			Logger:    config.Logger,
-
-			GitHubToken: config.Viper.GetString(config.Flag.Service.GitHub.Token),
-			UniqueApp:   config.Viper.GetBool(config.Flag.Service.App.Unique),
-		}
-
-		appCatalogEntryController, err = controller.NewAppCatalogEntry(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
-	var appController *controller.App
-	{
-		c := controller.AppConfig{
-			K8sClient: k8sClient,
-			Logger:    config.Logger,
-
-			GitHubToken:  config.Viper.GetString(config.Flag.Service.GitHub.Token),
-			Installation: config.Viper.GetString(config.Flag.Service.Installation.Name),
-			UniqueApp:    config.Viper.GetBool(config.Flag.Service.App.Unique),
-			VaultClient:  vaultClient,
-		}
-
-		appController, err = controller.NewApp(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
 	}
 
 	var configController *controller.Config
@@ -197,11 +159,9 @@ func New(config Config) (*Service, error) {
 	s := &Service{
 		Version: versionService,
 
-		bootOnce:                  sync.Once{},
-		appController:             appController,
-		appCatalogEntryController: appCatalogEntryController,
-		configController:          configController,
-		operatorCollector:         operatorCollector,
+		bootOnce:          sync.Once{},
+		configController:  configController,
+		operatorCollector: operatorCollector,
 	}
 
 	return s, nil
@@ -211,8 +171,6 @@ func (s *Service) Boot(ctx context.Context) {
 	s.bootOnce.Do(func() {
 		go s.operatorCollector.Boot(ctx) // nolint:errcheck
 
-		go s.appCatalogEntryController.Boot(ctx)
-		go s.appController.Boot(ctx)
 		go s.configController.Boot(ctx)
 	})
 }
