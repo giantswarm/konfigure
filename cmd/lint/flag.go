@@ -3,33 +3,37 @@ package lint
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 )
 
 const (
-	flagBranch          = "branch"
-	flagConfigVersion   = "config-version"
-	flagFilterFunctions = "filter-functions"
-	flagGithubToken     = "github-token"
-	flagMaxMessages     = "max-messages"
-	flagNoDescriptions  = "no-descriptions"
-	flagNoFuncNames     = "no-function-names"
-	flagOnlyErrors      = "only-errors"
+	flagBranch           = "branch"
+	flagConfigVersion    = "config-version"
+	flagFilterFunctions  = "filter-functions"
+	flagGithubToken      = "github-token"
+	flagMaxMessages      = "max-messages"
+	flagNoDescriptions   = "no-descriptions"
+	flagNoFuncNames      = "no-function-names"
+	flagOnlyErrors       = "only-errors"
+	flagSkipFieldsRegexp = "skip-fields-regexp"
 
 	envConfigControllerGithubToken = "CONFIG_CONTROLLER_GITHUB_TOKEN" //nolint:gosec
 )
 
 type flag struct {
-	Branch          string
-	ConfigVersion   string
-	FilterFunctions []string
-	GitHubToken     string
-	MaxMessages     int
-	NoDescriptions  bool
-	NoFuncNames     bool
-	OnlyErrors      bool
+	Branch           string
+	ConfigVersion    string
+	FilterFunctions  []string
+	GitHubToken      string
+	MaxMessages      int
+	NoDescriptions   bool
+	NoFuncNames      bool
+	OnlyErrors       bool
+	SkipFieldsRegexp string
 }
 
 func (f *flag) Init(cmd *cobra.Command) {
@@ -41,6 +45,7 @@ func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&f.NoDescriptions, flagNoDescriptions, false, "Disables output of message descriptions.")
 	cmd.Flags().BoolVar(&f.NoFuncNames, flagNoFuncNames, false, "Disables output of linter function names.")
 	cmd.Flags().BoolVar(&f.OnlyErrors, flagOnlyErrors, false, "Enables linter to output only errors, omitting suggestions.")
+	cmd.Flags().StringVar(&f.SkipFieldsRegexp, flagSkipFieldsRegexp, "", "List of regexp matchers to match field paths, which don't require validation.")
 }
 
 func (f *flag) Validate() error {
@@ -52,6 +57,18 @@ func (f *flag) Validate() error {
 	}
 	if f.GitHubToken == "" {
 		return microerror.Maskf(invalidFlagError, "--%s or $%s must not be empty", flagGithubToken, envConfigControllerGithubToken)
+	}
+
+	res := strings.Split(f.SkipFieldsRegexp, ",")
+	if res[0] == "" {
+		return nil
+	}
+
+	for _, re := range res {
+		_, err := regexp.Compile(re)
+		if err != nil {
+			return microerror.Maskf(invalidFlagError, "%#q must be a valid regex string", re)
+		}
 	}
 
 	return nil

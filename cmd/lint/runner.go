@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -73,11 +74,14 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 	var linter *lint.Linter
 	{
+		skipFieldsREs := strings.Split(r.flag.SkipFieldsRegexp, ",")
+
 		c := lint.Config{
-			Store:           store,
-			FilterFunctions: r.flag.FilterFunctions,
-			OnlyErrors:      r.flag.OnlyErrors,
-			MaxMessages:     r.flag.MaxMessages,
+			Store:            store,
+			FilterFunctions:  r.flag.FilterFunctions,
+			OnlyErrors:       r.flag.OnlyErrors,
+			MaxMessages:      r.flag.MaxMessages,
+			SkipFieldsRegexp: skipFieldsREs,
 		}
 
 		l, err := lint.New(c)

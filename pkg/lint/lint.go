@@ -35,17 +35,19 @@ var allLinterFunctions = []linterFunc{
 }
 
 type Config struct {
-	Store           generator.Filesystem
-	FilterFunctions []string
-	OnlyErrors      bool
-	MaxMessages     int
+	Store            generator.Filesystem
+	FilterFunctions  []string
+	OnlyErrors       bool
+	MaxMessages      int
+	SkipFieldsRegexp []string
 }
 
 type Linter struct {
-	discovery   *discovery
-	funcs       []linterFunc
-	onlyErrors  bool
-	maxMessages int
+	discovery        *discovery
+	funcs            []linterFunc
+	onlyErrors       bool
+	maxMessages      int
+	skipFieldsRegexp []*regexp.Regexp
 }
 
 func New(c Config) (*Linter, error) {
@@ -54,11 +56,29 @@ func New(c Config) (*Linter, error) {
 		return nil, microerror.Mask(err)
 	}
 
+	var skipREs []*regexp.Regexp
+	{
+		for _, re := range c.SkipFieldsRegexp {
+			if re == "" {
+				continue
+			}
+
+			matcher, err := regexp.Compile(re)
+			if err != nil {
+				return nil, microerror.Mask(err)
+			}
+
+			skipREs = append(skipREs, matcher)
+
+		}
+	}
+
 	l := &Linter{
-		discovery:   discovery,
-		funcs:       getFilteredLinterFunctions(c.FilterFunctions),
-		onlyErrors:  c.OnlyErrors,
-		maxMessages: c.MaxMessages,
+		discovery:        discovery,
+		funcs:            getFilteredLinterFunctions(c.FilterFunctions),
+		onlyErrors:       c.OnlyErrors,
+		maxMessages:      c.MaxMessages,
+		skipFieldsRegexp: skipREs,
 	}
 
 	return l, nil
@@ -71,6 +91,9 @@ func (l *Linter) Lint(ctx context.Context) (messages LinterMessages) {
 		sort.Sort(singleFuncMessages)
 
 		for _, msg := range singleFuncMessages {
+			if skipValidation(msg.Path(), l.skipFieldsRegexp) {
+				continue
+			}
 			if l.onlyErrors && !msg.IsError() {
 				continue
 			}
@@ -326,4 +349,14 @@ func getFilteredLinterFunctions(filters []string) []linterFunc {
 	}
 
 	return functions
+}
+
+func skipValidation(msg string, matchers []*regexp.Regexp) bool {
+	for _, re := range matchers {
+		if re.MatchString(msg) {
+			return true
+		}
+	}
+
+	return false
 }

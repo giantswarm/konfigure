@@ -108,6 +108,10 @@ func (m LinterMessages) Less(i, j int) bool {
 	}
 }
 
+func (m LinterMessage) Path() string {
+	return m.path
+}
+
 func (m LinterMessages) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
