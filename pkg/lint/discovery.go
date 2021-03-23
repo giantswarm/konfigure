@@ -7,6 +7,7 @@ import (
 	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/config-controller/pkg/generator"
+	"github.com/giantswarm/config-controller/pkg/github"
 )
 
 type discovery struct {
@@ -188,33 +189,39 @@ func newDiscovery(fs generator.Filesystem) (*discovery, error) {
 
 			filepath := fmt.Sprintf("installations/%s/apps/%s/configmap-values.yaml.patch", inst.Name(), app.Name())
 			body, err := fs.ReadFile(filepath)
-			if err != nil {
+			if err == nil {
+				templatePatch, err := newTemplateFile(filepath, body)
+				if err != nil {
+					return nil, microerror.Mask(err)
+				}
+				d.TemplatePatches = append(d.TemplatePatches, templatePatch)
+				d.TemplatePatchesPerInstallation[inst.Name()] = append(
+					d.TemplatePatchesPerInstallation[inst.Name()],
+					templatePatch,
+				)
+			} else if github.IsNotFound(err) {
+				// fallthrough
+			} else {
 				return nil, microerror.Mask(err)
 			}
-			templatePatch, err := newTemplateFile(filepath, body)
-			if err != nil {
-				return nil, microerror.Mask(err)
-			}
-			d.TemplatePatches = append(d.TemplatePatches, templatePatch)
-			d.TemplatePatchesPerInstallation[inst.Name()] = append(
-				d.TemplatePatchesPerInstallation[inst.Name()],
-				templatePatch,
-			)
 
 			filepath = fmt.Sprintf("installations/%s/apps/%s/secret-values.yaml.patch", inst.Name(), app.Name())
 			body, err = fs.ReadFile(filepath)
-			if err != nil {
+			if err == nil {
+				secretPatch, err := newTemplateFile(filepath, body)
+				if err != nil {
+					return nil, microerror.Mask(err)
+				}
+				d.SecretTemplatePatches = append(d.SecretTemplatePatches, secretPatch)
+				d.SecretTemplatePatchesPerInstallation[inst.Name()] = append(
+					d.SecretTemplatePatchesPerInstallation[inst.Name()],
+					secretPatch,
+				)
+			} else if github.IsNotFound(err) {
+				// fallthrough
+			} else {
 				return nil, microerror.Mask(err)
 			}
-			secretPatch, err := newTemplateFile(filepath, body)
-			if err != nil {
-				return nil, microerror.Mask(err)
-			}
-			d.SecretTemplatePatches = append(d.SecretTemplatePatches, secretPatch)
-			d.SecretTemplatePatchesPerInstallation[inst.Name()] = append(
-				d.SecretTemplatePatchesPerInstallation[inst.Name()],
-				secretPatch,
-			)
 		}
 	}
 

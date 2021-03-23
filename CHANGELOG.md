@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Skip non-existent application patches when linting.
+
 ## [0.2.6] - 2021-02-22
 
 ### Fixed
