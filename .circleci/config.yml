@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  architect: giantswarm/architect@0.10.2
+  architect: giantswarm/architect@2.4.1
 
 workflows:
   build:
@@ -54,12 +54,25 @@ workflows:
               only: /^v.*/
 
       - architect/push-to-app-collection:
+          name: push-config-controller-to-shared-app-collection
+          context: architect
+          app_name: "config-controller"
+          app_namespace: "giantswarm"
+          app_collection_repo: "shared-app-collection"
+          requires:
+            - push-config-controller-to-app-catalog
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+
+      - architect/push-to-app-collection:
           name: push-config-controller-to-aws-app-collection
           context: architect
           app_name: "config-controller"
           app_namespace: "giantswarm"
           app_collection_repo: "aws-app-collection"
-          unique: "true"
           requires:
             - push-config-controller-to-app-catalog
           filters:
@@ -74,7 +87,6 @@ workflows:
           app_name: "config-controller"
           app_namespace: "giantswarm"
           app_collection_repo: "azure-app-collection"
-          unique: "true"
           requires:
             - push-config-controller-to-app-catalog
           filters:
@@ -89,7 +101,6 @@ workflows:
           app_name: "config-controller"
           app_namespace: "giantswarm"
           app_collection_repo: "kvm-app-collection"
-          unique: "true"
           requires:
             - push-config-controller-to-app-catalog
           filters:
@@ -104,7 +115,6 @@ workflows:
           app_name: "config-controller"
           app_namespace: "giantswarm"
           app_collection_repo: "vmware-app-collection"
-          unique: "true"
           requires:
             - push-config-controller-to-app-catalog
           filters:
