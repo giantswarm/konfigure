@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8] - 2021-03-24
+
 ### Fixed
 
 - Prevent panic when linter cross-references apps and installations.
@@ -90,7 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create CLI/daemon scaffolding.
 - Generate application configuration using `generate` command.
 
-[Unreleased]: https://github.com/giantswarm/config-controller/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/giantswarm/config-controller/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/giantswarm/config-controller/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/giantswarm/config-controller/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/giantswarm/config-controller/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/giantswarm/config-controller/compare/v0.2.4...v0.2.5
