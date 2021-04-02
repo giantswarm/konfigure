@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] - 2021-04-02
+
 ### Fixed
 
 - Bump protobuf to v1.3.2 (CVE-2021-3121)
@@ -96,7 +98,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create CLI/daemon scaffolding.
 - Generate application configuration using `generate` command.
 
-[Unreleased]: https://github.com/giantswarm/config-controller/compare/v0.2.8...HEAD
+[Unreleased]: https://github.com/giantswarm/config-controller/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/giantswarm/config-controller/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/giantswarm/config-controller/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/giantswarm/config-controller/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/giantswarm/config-controller/compare/v0.2.5...v0.2.6
