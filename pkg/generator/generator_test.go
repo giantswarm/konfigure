@@ -113,6 +113,15 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			installation:     "puma",
 			decryptTraverser: &mapStringTraverser{},
 		},
+
+		{
+			name:     "case 10 - no extra encoding for included files",
+			caseFile: "testdata/case10.yaml",
+
+			app:              "operator",
+			installation:     "puma",
+			decryptTraverser: &noopTraverser{},
+		},
 	}
 
 	for _, tc := range testCases {

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Use `text/template` instead of `html` to avoid escaping strings.
 - Return a more descriptive error when given invalid YAML.
 
 ## [0.2.9] - 2021-04-02
