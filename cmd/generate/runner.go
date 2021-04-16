@@ -87,6 +87,14 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return microerror.Mask(err)
 	}
 
+	if r.flag.Raw {
+		fmt.Println("---")
+		fmt.Printf(string(configmap.Data["configmap-values.yaml"]) + "\n")
+		fmt.Println("---")
+		fmt.Printf(string(secret.Data["secret-values.yaml"]) + "\n")
+		return nil
+	}
+
 	fmt.Println("---")
 	out, err := yaml.Marshal(configmap)
 	if err != nil {

@@ -15,6 +15,7 @@ const (
 	flagInstallation  = "installation"
 	flagName          = "name"
 	flagNamespace     = "namespace"
+	flagRaw           = "raw"
 	flagVerbose       = "verbose"
 
 	envConfigControllerGithubToken = "CONFIG_CONTROLLER_GITHUB_TOKEN" //nolint:gosec
@@ -27,6 +28,7 @@ type flag struct {
 	Installation  string
 	Name          string
 	Namespace     string
+	Raw           bool
 	Verbose       bool
 }
 
@@ -37,6 +39,7 @@ func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.Installation, flagInstallation, "", `Installation codename (e.g. "gauss").`)
 	cmd.Flags().StringVar(&f.Name, flagName, "giantswarm", `Name of the generated ConfigMap/Secret.`)
 	cmd.Flags().StringVar(&f.Namespace, flagNamespace, "giantswarm", `Namespace of the generated ConfigMap/Secret.`)
+	cmd.Flags().BoolVar(&f.Raw, flagRaw, false, `Forces generator to output YAML instead of ConfigMap & Secret.`)
 	cmd.Flags().BoolVar(&f.Verbose, flagVerbose, false, `Enables generator to output consecutive generation stages.`)
 }
 
