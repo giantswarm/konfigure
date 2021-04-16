@@ -200,6 +200,19 @@ func lintUndefinedSecrettemplateValues(d *discovery) (messages LinterMessages) {
 				continue
 			}
 
+			// The path may be tree node (".registry"), but not tree leaf (".registry.domain").
+			// Let's check for this. It's enough if it occurs just once.
+			found := false
+			for _, secret := range d.Secrets {
+				if _, err := secret.pathmodifier.Get(PathmodifierPath(path)); err != nil {
+					found = true
+					break
+				}
+			}
+			if found {
+				continue
+			}
+
 			messages = append(messages, newError(template.filepath, path, "is templated but never configured"))
 		}
 	}
@@ -227,6 +240,17 @@ func lintUndefinedTemplateValues(d *discovery) (messages LinterMessages) {
 			}
 
 			used := false
+
+			for _, configPatch := range d.ConfigPatches {
+				if _, ok := configPatch.paths[path]; ok {
+					used = true
+					break
+				}
+			}
+			if used {
+				continue
+			}
+
 			for _, templatePatch := range d.TemplatePatches {
 				if _, ok := templatePatch.paths[path]; ok {
 					used = true

@@ -31,6 +31,7 @@ type configFile struct {
 	filepath     string
 	installation string // optional
 	paths        map[string]*configValue
+	pathmodifier *pathmodifier.Service
 }
 
 type configValue struct {
@@ -81,6 +82,7 @@ func newConfigFile(filepath string, body []byte) (*configFile, error) {
 	}
 
 	// extract paths with valuemodifier path service
+	var pathmodifierSvc *pathmodifier.Service
 	allPaths := map[string]*configValue{}
 	{
 		c := pathmodifier.Config{
@@ -91,6 +93,8 @@ func newConfigFile(filepath string, body []byte) (*configFile, error) {
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
+		pathmodifierSvc = svc
+
 		paths, err := svc.All()
 		if err != nil {
 			return nil, microerror.Maskf(executionFailedError, "error getting all paths for %q", filepath)
@@ -112,8 +116,9 @@ func newConfigFile(filepath string, body []byte) (*configFile, error) {
 	}
 
 	vf := &configFile{
-		filepath: filepath,
-		paths:    allPaths,
+		filepath:     filepath,
+		paths:        allPaths,
+		pathmodifier: pathmodifierSvc,
 	}
 
 	// assign installation if possible
@@ -248,6 +253,13 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 
 func NormalPath(path string) string {
 	return strings.TrimPrefix(path, ".")
+}
+
+func PathmodifierPath(path string) string {
+	if strings.HasPrefix(path, ".") {
+		return path
+	}
+	return "." + path
 }
 
 // includeExtract is a helper struct, with a method passed to template's
