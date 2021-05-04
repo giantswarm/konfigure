@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
+
 ### Added
 
 - Allow for raw config generation from CLI.
