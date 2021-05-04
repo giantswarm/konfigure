@@ -5,7 +5,9 @@ import (
 	"os"
 )
 
-type Store struct{}
+type Store struct {
+	Dir string
+}
 
 func (s *Store) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)

@@ -20,6 +20,7 @@ type Config struct {
 	Log         micrologger.Logger
 	VaultClient *vaultapi.Client
 
+	Dir          string
 	Installation string
 	Verbose      bool
 }
@@ -28,6 +29,7 @@ type Service struct {
 	log              micrologger.Logger
 	decryptTraverser generator.DecryptTraverser
 
+	dir          string
 	installation string
 	verbose      bool
 }
@@ -39,6 +41,10 @@ func New(config Config) (*Service, error) {
 
 	if config.Installation == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Installation must not be empty", config)
+	}
+
+	if config.Dir == "" {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
 	}
 
 	var err error
@@ -72,6 +78,7 @@ func New(config Config) (*Service, error) {
 		log:              config.Log,
 		decryptTraverser: decryptTraverser,
 
+		dir:          config.Dir,
 		installation: config.Installation,
 		verbose:      config.Verbose,
 	}
@@ -105,7 +112,9 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 	var gen *generator.Generator
 	{
 		c := generator.Config{
-			Fs:               &filesystem.Store{},
+			Fs: &filesystem.Store{
+				Dir: s.dir,
+			},
 			DecryptTraverser: s.decryptTraverser,
 
 			Installation: s.installation,

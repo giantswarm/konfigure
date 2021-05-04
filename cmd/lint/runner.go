@@ -43,7 +43,9 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		skipFieldsREs := strings.Split(r.flag.SkipFieldsRegexp, ",")
 
 		c := lint.Config{
-			Store:            &filesystem.Store{},
+			Store: &filesystem.Store{
+				Dir: r.flag.Dir,
+			},
 			FilterFunctions:  r.flag.FilterFunctions,
 			OnlyErrors:       r.flag.OnlyErrors,
 			MaxMessages:      r.flag.MaxMessages,
