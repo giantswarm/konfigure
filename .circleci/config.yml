@@ -8,15 +8,15 @@ workflows:
     jobs:
       - architect/go-build:
           name: go-build
-          binary: config-controller
+          binary: konfigure
           filters:
             tags:
               only: /^v.*/
 
       - architect/push-to-docker:
           context: "architect"
-          name: push-config-controller-to-quay
-          image: "quay.io/giantswarm/config-controller"
+          name: push-konfigure-to-quay
+          image: "quay.io/giantswarm/konfigure"
           username_envar: "QUAY_USERNAME"
           password_envar: "QUAY_PASSWORD"
           requires:
@@ -28,8 +28,8 @@ workflows:
 
       - architect/push-to-docker:
           context: "architect"
-          name: push-config-controller-to-aliyun
-          image: "registry-intl.cn-shanghai.aliyuncs.com/giantswarm/config-controller"
+          name: push-konfigure-to-aliyun
+          image: "registry-intl.cn-shanghai.aliyuncs.com/giantswarm/konfigure"
           username_envar: "ALIYUN_USERNAME"
           password_envar: "ALIYUN_PASSWORD"
           requires:
@@ -42,25 +42,25 @@ workflows:
 
       - architect/push-to-app-catalog:
           context: "architect"
-          name: push-config-controller-to-app-catalog
+          name: push-konfigure-to-app-catalog
           app_catalog: "control-plane-catalog"
           app_catalog_test: "control-plane-test-catalog"
-          chart: "config-controller"
+          chart: "konfigure"
           requires:
-            - push-config-controller-to-quay
+            - push-konfigure-to-quay
           # Needed to trigger job also on git tag.
           filters:
             tags:
               only: /^v.*/
 
       - architect/push-to-app-collection:
-          name: push-config-controller-to-shared-app-collection
+          name: push-konfigure-to-shared-app-collection
           context: architect
-          app_name: "config-controller"
+          app_name: "konfigure"
           app_namespace: "giantswarm"
           app_collection_repo: "shared-app-collection"
           requires:
-            - push-config-controller-to-app-catalog
+            - push-konfigure-to-app-catalog
           filters:
             branches:
               ignore: /.*/
@@ -68,13 +68,13 @@ workflows:
               only: /^v.*/
 
       - architect/push-to-app-collection:
-          name: push-config-controller-to-aws-app-collection
+          name: push-konfigure-to-aws-app-collection
           context: architect
-          app_name: "config-controller"
+          app_name: "konfigure"
           app_namespace: "giantswarm"
           app_collection_repo: "aws-app-collection"
           requires:
-            - push-config-controller-to-app-catalog
+            - push-konfigure-to-app-catalog
           filters:
             branches:
               ignore: /.*/
@@ -82,13 +82,13 @@ workflows:
               only: /^v.*/
 
       - architect/push-to-app-collection:
-          name: push-config-controller-to-azure-app-collection
+          name: push-konfigure-to-azure-app-collection
           context: architect
-          app_name: "config-controller"
+          app_name: "konfigure"
           app_namespace: "giantswarm"
           app_collection_repo: "azure-app-collection"
           requires:
-            - push-config-controller-to-app-catalog
+            - push-konfigure-to-app-catalog
           filters:
             branches:
               ignore: /.*/
@@ -96,13 +96,13 @@ workflows:
               only: /^v.*/
 
       - architect/push-to-app-collection:
-          name: push-config-controller-to-kvm-app-collection
+          name: push-konfigure-to-kvm-app-collection
           context: architect
-          app_name: "config-controller"
+          app_name: "konfigure"
           app_namespace: "giantswarm"
           app_collection_repo: "kvm-app-collection"
           requires:
-            - push-config-controller-to-app-catalog
+            - push-konfigure-to-app-catalog
           filters:
             branches:
               ignore: /.*/
@@ -110,13 +110,13 @@ workflows:
               only: /^v.*/
 
       - architect/push-to-app-collection:
-          name: push-config-controller-to-vmware-app-collection
+          name: push-konfigure-to-vmware-app-collection
           context: architect
-          app_name: "config-controller"
+          app_name: "konfigure"
           app_namespace: "giantswarm"
           app_collection_repo: "vmware-app-collection"
           requires:
-            - push-config-controller-to-app-catalog
+            - push-konfigure-to-app-catalog
           filters:
             branches:
               ignore: /.*/
