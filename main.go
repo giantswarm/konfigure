@@ -45,8 +45,7 @@ func mainE(ctx context.Context) error {
 	var newCommand command.Command
 	{
 		c := command.Config{
-			Logger:        logger,
-			ServerFactory: serverFactory,
+			Logger: logger,
 
 			Description: project.Description(),
 			GitCommit:   project.GitSHA(),

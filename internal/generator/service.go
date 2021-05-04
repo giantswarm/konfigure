@@ -71,7 +71,6 @@ func New(config Config) (*Service, error) {
 	s := &Service{
 		log:              config.Log,
 		decryptTraverser: decryptTraverser,
-		gitHub:           gitHub,
 
 		installation: config.Installation,
 		verbose:      config.Verbose,
@@ -103,11 +102,6 @@ type GenerateInput struct {
 }
 
 func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
-	tagPrefix, isTagRange, err := toTagPrefix(in.ConfigVersion)
-	if err != nil {
-		return nil, nil, microerror.Mask(err)
-	}
-
 	var gen *generator.Generator
 	{
 		c := generator.Config{

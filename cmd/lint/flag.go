@@ -1,8 +1,6 @@
 package lint
 
 import (
-	"fmt"
-	"os"
 	"regexp"
 	"strings"
 

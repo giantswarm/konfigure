@@ -1,9 +1,6 @@
 package generate
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 )
@@ -38,9 +35,6 @@ func (f *flag) Init(cmd *cobra.Command) {
 func (f *flag) Validate() error {
 	if f.App == "" {
 		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagApp)
-	}
-	if f.ConfigVersion == "" {
-		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagConfigVersion)
 	}
 	if f.Installation == "" {
 		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagInstallation)

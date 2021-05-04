@@ -1,9 +1,10 @@
 package generator
 
 import (
-	"github.com/giantswarm/microerror"
+	"errors"
+	"os"
 
-	"github.com/giantswarm/config-controller/pkg/github"
+	"github.com/giantswarm/microerror"
 )
 
 var invalidConfigError = &microerror.Error{
@@ -21,7 +22,7 @@ var notFoundError = &microerror.Error{
 
 // IsNotFound asserts notFoundError.
 func IsNotFound(err error) bool {
-	if github.IsNotFound(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return true
 	}
 

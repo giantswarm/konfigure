@@ -65,14 +65,11 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	}
 
 	in := generator.GenerateInput{
-		App:           r.flag.App,
-		ConfigVersion: r.flag.ConfigVersion,
-
+		App:       r.flag.App,
 		Name:      r.flag.Name,
 		Namespace: r.flag.Namespace,
 
 		ExtraAnnotations: map[string]string{
-			meta.Annotation.ConfigVersion.Key():   r.flag.ConfigVersion,
 			meta.Annotation.XAppInfo.Key():        meta.Annotation.XAppInfo.Val("<unknown>", r.flag.App, "<unknown>"),
 			meta.Annotation.XCreator.Key():        meta.Annotation.XCreator.Default(),
 			meta.Annotation.XInstallation.Key():   r.flag.Installation,

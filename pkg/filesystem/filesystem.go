@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"io/ioutil"
 	"os"
 )
 
@@ -12,5 +13,5 @@ func (s *Store) ReadFile(path string) ([]byte, error) {
 }
 
 func (s *Store) ReadDir(path string) ([]os.FileInfo, error) {
-	return os.ReadDir(path)
+	return ioutil.ReadDir(path)
 }

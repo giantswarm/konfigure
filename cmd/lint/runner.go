@@ -11,8 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/config-controller/pkg/filesystem"
-	"github.com/giantswarm/config-controller/pkg/generator"
-	"github.com/giantswarm/config-controller/pkg/github"
 	"github.com/giantswarm/config-controller/pkg/lint"
 )
 
