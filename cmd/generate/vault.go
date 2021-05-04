@@ -71,3 +71,23 @@ func createVaultClientUsingOpsctl(ctx context.Context, gitHubToken, installation
 	return vaultClient, nil
 
 }
+
+func createVaultClientUsingEnv(ctx context.Context) (*vaultapi.Client, error) {
+	for _, varName := range []string{"VAULT_ADDR", "VAULT_TOKEN", "VAULT_CAPATH"} {
+		if value, ok := os.LookupEnv(varName); !ok || value == "" {
+			return nil, microerror.Maskf(executionFailedError, "%s environment variable must be set", varName)
+		}
+	}
+
+	vaultClient, err := newVaultClient(vaultClientConfig{
+		Address: os.Getenv("VAULT_ADDR"),
+		Token:   os.Getenv("VAULT_TOKEN"),
+		CAPath:  os.Getenv("VAULT_CAPATH"),
+	})
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return vaultClient, nil
+
+}

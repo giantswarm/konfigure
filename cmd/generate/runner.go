@@ -43,7 +43,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 	var vaultClient *vaultapi.Client
 	{
-		vaultClient, err = createVaultClientUsingOpsctl(ctx, r.flag.GitHubToken, r.flag.Installation)
+		vaultClient, err = createVaultClientUsingEnv(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -54,7 +54,6 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		c := generator.Config{
 			VaultClient: vaultClient,
 
-			GitHubToken:  r.flag.GitHubToken,
 			Installation: r.flag.Installation,
 			Verbose:      r.flag.Verbose,
 		}
