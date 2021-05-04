@@ -25,7 +25,7 @@ func (s *Store) ReadFile(path string) ([]byte, error) {
 
 func (s *Store) ReadDir(path string) ([]os.FileInfo, error) {
 	if filepath.IsAbs(path) {
-		return []byte{}, microerror.Maskf(
+		return []os.FileInfo{}, microerror.Maskf(
 			invalidPathError,
 			"%q is an absolute path; expected sub-path of %q",
 			path, s.Dir,
