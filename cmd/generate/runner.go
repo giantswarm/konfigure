@@ -11,8 +11,8 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/config-controller/internal/generator"
-	"github.com/giantswarm/config-controller/internal/meta"
+	"github.com/giantswarm/konfigure/internal/generator"
+	"github.com/giantswarm/konfigure/internal/meta"
 )
 
 type runner struct {

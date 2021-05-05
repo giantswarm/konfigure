@@ -1,5 +1,5 @@
 image:
-  name: "giantswarm/config-controller"
+  name: "giantswarm/konfigure"
   tag: "[[ .Version ]]"
 Installation:
   V1:

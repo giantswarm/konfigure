@@ -24,13 +24,13 @@ type AnnotationType struct {
 	// Secret cleanup.
 	XPreviousConfig
 	// XProjectVersion is set on generated ConfigMap and Secret to show what
-	// version of config-controller was used to generate them.
+	// version of konfigure was used to generate them.
 	XProjectVersion
 }
 
 type LabelType struct {
 	// ManagedBy is standard "giantswarm.io/managed-by" label.
 	ManagedBy
-	// Version is standard "config-controller.giantswarm.io/version" label.
+	// Version is standard "konfigure.giantswarm.io/version" label.
 	Version
 }

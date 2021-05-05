@@ -1,4 +1,4 @@
 *.swp
 TODO
-/config-controller*
+/konfigure*
 !vendor/**

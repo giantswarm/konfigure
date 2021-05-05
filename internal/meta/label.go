@@ -4,7 +4,7 @@ import (
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/operatorkit/v4/pkg/controller"
 
-	"github.com/giantswarm/config-controller/pkg/project"
+	"github.com/giantswarm/konfigure/pkg/project"
 )
 
 var (
@@ -24,9 +24,9 @@ func (Version) Key() string { return versionLabel }
 
 func (Version) Val(uniqueApp bool) string {
 	if uniqueApp {
-		// When config-controller is deployed as a unique app it only
+		// When konfigure is deployed as a unique app it only
 		// processes management cluster CRs. These CRs always have the
-		// version label config-controller.giantswarm.io/version: 0.0.0
+		// version label konfigure.giantswarm.io/version: 0.0.0
 		return "0.0.0"
 	} else {
 		return project.Version()

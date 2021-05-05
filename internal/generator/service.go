@@ -9,11 +9,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/config-controller/internal/meta"
-	"github.com/giantswarm/config-controller/pkg/decrypt"
-	"github.com/giantswarm/config-controller/pkg/filesystem"
-	"github.com/giantswarm/config-controller/pkg/generator"
-	"github.com/giantswarm/config-controller/pkg/xstrings"
+	"github.com/giantswarm/konfigure/internal/meta"
+	"github.com/giantswarm/konfigure/pkg/decrypt"
+	"github.com/giantswarm/konfigure/pkg/filesystem"
+	"github.com/giantswarm/konfigure/pkg/generator"
+	"github.com/giantswarm/konfigure/pkg/xstrings"
 )
 
 type Config struct {

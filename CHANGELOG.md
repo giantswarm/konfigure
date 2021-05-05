@@ -11,4 +11,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 
-[Unreleased]: https://github.com/giantswarm/config-controller/compare/fc16094...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/fc16094...HEAD

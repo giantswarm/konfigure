@@ -10,9 +10,9 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/config-controller/cmd/generate"
-	"github.com/giantswarm/config-controller/cmd/lint"
-	"github.com/giantswarm/config-controller/pkg/project"
+	"github.com/giantswarm/konfigure/cmd/generate"
+	"github.com/giantswarm/konfigure/cmd/lint"
+	"github.com/giantswarm/konfigure/pkg/project"
 )
 
 func main() {

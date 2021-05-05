@@ -1,7 +1,7 @@
-[![CircleCI](https://circleci.com/gh/giantswarm/config-controller.svg?&style=shield)](https://circleci.com/gh/giantswarm/config-controller)
-[![Docker Repository on Quay](https://quay.io/repository/giantswarm/config-controller/status)](https://quay.io/repository/giantswarm/config-controller)
+[![CircleCI](https://circleci.com/gh/giantswarm/konfigure.svg?&style=shield)](https://circleci.com/gh/giantswarm/konfigure)
+[![Docker Repository on Quay](https://quay.io/repository/giantswarm/konfigure/status)](https://quay.io/repository/giantswarm/konfigure)
 
-# config-controller
+# konfigure
 
 Controller managing Control Plane cluster configuration.
 

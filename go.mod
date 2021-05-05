@@ -1,4 +1,4 @@
-module github.com/giantswarm/config-controller
+module github.com/giantswarm/konfigure
 
 go 1.14
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 
-	"github.com/giantswarm/config-controller/pkg/project"
+	"github.com/giantswarm/konfigure/pkg/project"
 )
 
 var (

@@ -10,8 +10,8 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/config-controller/pkg/filesystem"
-	"github.com/giantswarm/config-controller/pkg/lint"
+	"github.com/giantswarm/konfigure/pkg/filesystem"
+	"github.com/giantswarm/konfigure/pkg/lint"
 )
 
 type runner struct {
