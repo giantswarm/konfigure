@@ -78,6 +78,8 @@ func mainE(ctx context.Context) error {
 		subcommands = append(subcommands, cmd)
 	}
 
+	newCommand.CobraCommand().SilenceErrors = true
+	newCommand.CobraCommand().SilenceUsage = true
 	newCommand.CobraCommand().AddCommand(subcommands...)
 
 	err = newCommand.CobraCommand().Execute()
