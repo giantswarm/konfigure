@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -15,8 +16,7 @@ type Store struct {
 
 func (s *Store) ReadFile(path string) ([]byte, error) {
 	if filepath.IsAbs(path) {
-		panic(microerror.Maskf(
-			executionFailedError,
+		panic(fmt.Sprintf(
 			"%q is an absolute path; expected sub-path of %q",
 			path, s.Dir,
 		))
@@ -26,8 +26,7 @@ func (s *Store) ReadFile(path string) ([]byte, error) {
 
 func (s *Store) ReadDir(path string) ([]os.FileInfo, error) {
 	if filepath.IsAbs(path) {
-		panic(microerror.Maskf(
-			executionFailedError,
+		panic(fmt.Sprintf(
 			"%q is an absolute path; expected sub-path of %q",
 			path, s.Dir,
 		))
@@ -35,6 +34,9 @@ func (s *Store) ReadDir(path string) ([]os.FileInfo, error) {
 	return ioutil.ReadDir(filepath.Join(s.Dir, path))
 }
 
+// Version returns version of config files contained in Store.Dir. The
+// directory is expected to be a git repository. Returned version uses a
+// tag-like format: `v10.2.0` for tags, `v10.2.0-27-gf4262c857` for commits.
 func (s *Store) Version() (string, error) {
 	cmd := exec.Command("git", "describe", "--tags")
 	cmd.Dir = s.Dir
