@@ -11,7 +11,7 @@ import (
 
 	"github.com/giantswarm/microerror"
 
-	"github.com/giantswarm/config-controller/pkg/generator"
+	"github.com/giantswarm/konfigure/pkg/generator"
 )
 
 const (

@@ -1,10 +1,10 @@
 package project
 
 var (
-	description = "The config-controller does something."
+	description = "konfigure generates and lints application configuration"
 	gitSHA      = "n/a"
-	name        = "config-controller"
-	source      = "https://github.com/giantswarm/config-controller"
+	name        = "konfigure"
+	source      = "https://github.com/giantswarm/konfigure"
 	version     = "0.2.12-dev"
 )
 

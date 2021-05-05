@@ -2,12 +2,12 @@ package lint
 
 import (
 	"fmt"
+	"os"
 	"sort"
 
 	"github.com/giantswarm/microerror"
 
-	"github.com/giantswarm/config-controller/pkg/generator"
-	"github.com/giantswarm/config-controller/pkg/github"
+	"github.com/giantswarm/konfigure/pkg/generator"
 )
 
 type discovery struct {
@@ -199,7 +199,7 @@ func newDiscovery(fs generator.Filesystem) (*discovery, error) {
 					d.TemplatePatchesPerInstallation[inst.Name()],
 					templatePatch,
 				)
-			} else if github.IsNotFound(err) {
+			} else if os.IsNotExist(err) {
 				// fallthrough
 			} else {
 				return nil, microerror.Mask(err)
@@ -217,7 +217,7 @@ func newDiscovery(fs generator.Filesystem) (*discovery, error) {
 					d.SecretTemplatePatchesPerInstallation[inst.Name()],
 					secretPatch,
 				)
-			} else if github.IsNotFound(err) {
+			} else if os.IsNotExist(err) {
 				// fallthrough
 			} else {
 				return nil, microerror.Mask(err)

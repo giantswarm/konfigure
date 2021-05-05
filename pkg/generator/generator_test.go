@@ -126,7 +126,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tmpDir, err := ioutil.TempDir("", "config-controller-test")
+			tmpDir, err := ioutil.TempDir("", "konfigure-test")
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}

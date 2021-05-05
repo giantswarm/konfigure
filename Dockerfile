@@ -2,6 +2,6 @@ FROM alpine:3.13.4
 
 RUN apk add --no-cache ca-certificates
 
-ADD ./config-controller /config-controller
+ADD ./konfigure /konfigure
 
-ENTRYPOINT ["/config-controller"]
+ENTRYPOINT ["/konfigure"]

@@ -9,18 +9,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/config-controller/internal/generator/github"
-	"github.com/giantswarm/config-controller/internal/meta"
-	"github.com/giantswarm/config-controller/pkg/decrypt"
-	"github.com/giantswarm/config-controller/pkg/generator"
-	"github.com/giantswarm/config-controller/pkg/xstrings"
+	"github.com/giantswarm/konfigure/internal/meta"
+	"github.com/giantswarm/konfigure/pkg/decrypt"
+	"github.com/giantswarm/konfigure/pkg/filesystem"
+	"github.com/giantswarm/konfigure/pkg/generator"
+	"github.com/giantswarm/konfigure/pkg/xstrings"
 )
 
 type Config struct {
 	Log         micrologger.Logger
 	VaultClient *vaultapi.Client
 
-	GitHubToken  string
 	Installation string
 	Verbose      bool
 }
@@ -28,7 +27,6 @@ type Config struct {
 type Service struct {
 	log              micrologger.Logger
 	decryptTraverser generator.DecryptTraverser
-	gitHub           *github.GitHub
 
 	installation string
 	verbose      bool
@@ -39,9 +37,6 @@ func New(config Config) (*Service, error) {
 		return nil, microerror.Maskf(invalidConfigError, "%T.VaultClient must not be empty", config)
 	}
 
-	if config.GitHubToken == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.GitHubToken must not be empty", config)
-	}
 	if config.Installation == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Installation must not be empty", config)
 	}
@@ -73,22 +68,9 @@ func New(config Config) (*Service, error) {
 
 	}
 
-	var gitHub *github.GitHub
-	{
-		c := github.Config{
-			Token: config.GitHubToken,
-		}
-
-		gitHub, err = github.New(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	s := &Service{
 		log:              config.Log,
 		decryptTraverser: decryptTraverser,
-		gitHub:           gitHub,
 
 		installation: config.Installation,
 		verbose:      config.Verbose,
@@ -102,7 +84,7 @@ type GenerateInput struct {
 	App string
 	// ConfigVersion used to generate the configuration which is either a major
 	// version range in format "2.x.x" or a branch name. Exact version
-	// names (e.g. "1.2.3" are not supported.
+	// names (e.g. "1.2.3") are not supported.
 	ConfigVersion string
 
 	// Name of the generated ConfigMap and Secret.
@@ -120,40 +102,10 @@ type GenerateInput struct {
 }
 
 func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
-	tagPrefix, isTagRange, err := toTagPrefix(in.ConfigVersion)
-	if err != nil {
-		return nil, nil, microerror.Mask(err)
-	}
-
-	const (
-		owner = "giantswarm"
-		repo  = "config"
-	)
-
-	var store github.Store
-	if isTagRange {
-		tag, err := s.gitHub.GetLatestTag(ctx, owner, repo, tagPrefix)
-		if err != nil {
-			return nil, nil, microerror.Mask(err)
-		}
-
-		store, err = s.gitHub.GetFilesByTag(ctx, owner, repo, tag)
-		if err != nil {
-			return nil, nil, microerror.Mask(err)
-		}
-	} else {
-		branch := in.ConfigVersion
-
-		store, err = s.gitHub.GetFilesByBranch(ctx, owner, repo, branch)
-		if err != nil {
-			return nil, nil, microerror.Mask(err)
-		}
-	}
-
 	var gen *generator.Generator
 	{
 		c := generator.Config{
-			Fs:               store,
+			Fs:               &filesystem.Store{},
 			DecryptTraverser: s.decryptTraverser,
 
 			Installation: s.installation,

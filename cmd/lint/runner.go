@@ -10,14 +10,8 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/config-controller/pkg/generator"
-	"github.com/giantswarm/config-controller/pkg/github"
-	"github.com/giantswarm/config-controller/pkg/lint"
-)
-
-const (
-	owner = "giantswarm"
-	repo  = "config"
+	"github.com/giantswarm/konfigure/pkg/filesystem"
+	"github.com/giantswarm/konfigure/pkg/lint"
 )
 
 type runner struct {
@@ -44,40 +38,12 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 }
 
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
-	var store generator.Filesystem
-	{
-		gh, err := github.New(github.Config{
-			Token: r.flag.GitHubToken,
-		})
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		if r.flag.ConfigVersion != "" {
-			tag, err := gh.GetLatestTag(ctx, owner, repo, r.flag.ConfigVersion)
-			if err != nil {
-				return microerror.Mask(err)
-			}
-
-			store, err = gh.GetFilesByTag(ctx, owner, repo, tag)
-			if err != nil {
-				return microerror.Mask(err)
-			}
-
-		} else if r.flag.Branch != "" {
-			store, err = gh.GetFilesByBranch(ctx, owner, repo, r.flag.Branch)
-			if err != nil {
-				return microerror.Mask(err)
-			}
-		}
-	}
-
 	var linter *lint.Linter
 	{
 		skipFieldsREs := strings.Split(r.flag.SkipFieldsRegexp, ",")
 
 		c := lint.Config{
-			Store:            store,
+			Store:            &filesystem.Store{},
 			FilterFunctions:  r.flag.FilterFunctions,
 			OnlyErrors:       r.flag.OnlyErrors,
 			MaxMessages:      r.flag.MaxMessages,
