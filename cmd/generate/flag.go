@@ -13,7 +13,6 @@ const (
 	flagNamespace    = "namespace"
 	flagRaw          = "raw"
 	flagVerbose      = "verbose"
-	flagVersion      = "version"
 )
 
 type flag struct {
@@ -24,7 +23,6 @@ type flag struct {
 	Name         string
 	Raw          bool
 	Verbose      bool
-	Version      string
 }
 
 func (f *flag) Init(cmd *cobra.Command) {
