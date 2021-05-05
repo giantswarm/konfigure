@@ -20,6 +20,7 @@ type Config struct {
 	Log         micrologger.Logger
 	VaultClient *vaultapi.Client
 
+	Dir          string
 	Installation string
 	Verbose      bool
 }
@@ -28,6 +29,7 @@ type Service struct {
 	log              micrologger.Logger
 	decryptTraverser generator.DecryptTraverser
 
+	dir          string
 	installation string
 	verbose      bool
 }
@@ -39,6 +41,10 @@ func New(config Config) (*Service, error) {
 
 	if config.Installation == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Installation must not be empty", config)
+	}
+
+	if config.Dir == "" {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
 	}
 
 	var err error
@@ -72,6 +78,7 @@ func New(config Config) (*Service, error) {
 		log:              config.Log,
 		decryptTraverser: decryptTraverser,
 
+		dir:          config.Dir,
 		installation: config.Installation,
 		verbose:      config.Verbose,
 	}
@@ -82,10 +89,6 @@ func New(config Config) (*Service, error) {
 type GenerateInput struct {
 	// App for which the configuration is generated.
 	App string
-	// ConfigVersion used to generate the configuration which is either a major
-	// version range in format "2.x.x" or a branch name. Exact version
-	// names (e.g. "1.2.3") are not supported.
-	ConfigVersion string
 
 	// Name of the generated ConfigMap and Secret.
 	Name string
@@ -102,10 +105,14 @@ type GenerateInput struct {
 }
 
 func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
+	store := &filesystem.Store{
+		Dir: s.dir,
+	}
+
 	var gen *generator.Generator
 	{
 		c := generator.Config{
-			Fs:               &filesystem.Store{},
+			Fs:               store,
 			DecryptTraverser: s.decryptTraverser,
 
 			Installation: s.installation,
@@ -118,8 +125,12 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 		}
 	}
 
+	version, err := store.Version()
+	if err != nil {
+		return nil, nil, microerror.Mask(err)
+	}
 	annotations := xstrings.CopyMap(in.ExtraAnnotations)
-	annotations[meta.Annotation.ConfigVersion.Key()] = in.ConfigVersion
+	annotations[meta.Annotation.ConfigVersion.Key()] = version
 
 	meta := metav1.ObjectMeta{
 		Name:      in.Name,

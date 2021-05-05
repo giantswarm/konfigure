@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	flagDir              = "dir"
 	flagFilterFunctions  = "filter-functions"
 	flagMaxMessages      = "max-messages"
 	flagNoDescriptions   = "no-descriptions"
@@ -18,6 +19,7 @@ const (
 )
 
 type flag struct {
+	Dir              string
 	FilterFunctions  []string
 	MaxMessages      int
 	NoDescriptions   bool
@@ -27,6 +29,7 @@ type flag struct {
 }
 
 func (f *flag) Init(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&f.Dir, flagDir, ".", `Directory containing configuration source (e.g cloned "giantswarm/config" repo).`)
 	cmd.Flags().StringSliceVar(&f.FilterFunctions, flagFilterFunctions, []string{}, `Enables filtering linter functions by supplying a list of patterns to match, (e.g. "Lint.*,LintUnusedConfigValues").`)
 	cmd.Flags().IntVar(&f.MaxMessages, flagMaxMessages, 50, "Max number of linter messages to display. Unlimited output if set to 0. Defaults to 50.")
 	cmd.Flags().BoolVar(&f.NoDescriptions, flagNoDescriptions, false, "Disables output of message descriptions.")
