@@ -3,6 +3,7 @@ package filesystem
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/giantswarm/microerror"
@@ -32,4 +33,14 @@ func (s *Store) ReadDir(path string) ([]os.FileInfo, error) {
 		))
 	}
 	return ioutil.ReadDir(filepath.Join(s.Dir, path))
+}
+
+func (s *Store) Version() (string, error) {
+	cmd := exec.Command("git", "describe", "--tags")
+	cmd.Dir = s.Dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+	return string(out), nil
 }
