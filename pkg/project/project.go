@@ -1,7 +1,7 @@
 package project
 
 var (
-	description = "The konfigure does something."
+	description = "konfigure generates and lints application configuration"
 	gitSHA      = "n/a"
 	name        = "konfigure"
 	source      = "https://github.com/giantswarm/konfigure"

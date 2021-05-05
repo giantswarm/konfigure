@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/microkit/command"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
@@ -37,22 +36,10 @@ func mainE(ctx context.Context) error {
 	}
 
 	// Create a new microkit command which manages our custom microservice.
-	var newCommand command.Command
-	{
-		c := command.Config{
-			Logger: logger,
-
-			Description: project.Description(),
-			GitCommit:   project.GitSHA(),
-			Name:        project.Name(),
-			Source:      project.Source(),
-			Version:     project.Version(),
-		}
-
-		newCommand, err = command.New(c)
-		if err != nil {
-			return microerror.Mask(err)
-		}
+	newCommand := &cobra.Command{
+		Use:     project.Name(),
+		Long:    project.Description(),
+		Version: commandVersion(),
 	}
 
 	// Add sub-commands
@@ -78,14 +65,25 @@ func mainE(ctx context.Context) error {
 		subcommands = append(subcommands, cmd)
 	}
 
-	newCommand.CobraCommand().SilenceErrors = true
-	newCommand.CobraCommand().SilenceUsage = true
-	newCommand.CobraCommand().AddCommand(subcommands...)
+	newCommand.SilenceErrors = true
+	newCommand.SilenceUsage = true
+	newCommand.AddCommand(subcommands...)
 
-	err = newCommand.CobraCommand().Execute()
+	err = newCommand.Execute()
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
 	return nil
+}
+
+func commandVersion() string {
+	return fmt.Sprintf(
+		"\nDescription: %s\nGitCommit: %s\nName: %s\nSource: %s\nVersion: %s",
+		project.Description(),
+		project.GitSHA(),
+		project.Name(),
+		project.Source(),
+		project.Version(),
+	)
 }
