@@ -14,22 +14,22 @@ type Store struct {
 
 func (s *Store) ReadFile(path string) ([]byte, error) {
 	if filepath.IsAbs(path) {
-		return []byte{}, microerror.Maskf(
-			invalidPathError,
+		panic(microerror.Maskf(
+			executionFailedError,
 			"%q is an absolute path; expected sub-path of %q",
 			path, s.Dir,
-		)
+		))
 	}
 	return os.ReadFile(filepath.Join(s.Dir, path))
 }
 
 func (s *Store) ReadDir(path string) ([]os.FileInfo, error) {
 	if filepath.IsAbs(path) {
-		return []os.FileInfo{}, microerror.Maskf(
-			invalidPathError,
+		panic(microerror.Maskf(
+			executionFailedError,
 			"%q is an absolute path; expected sub-path of %q",
 			path, s.Dir,
-		)
+		))
 	}
 	return ioutil.ReadDir(filepath.Join(s.Dir, path))
 }
