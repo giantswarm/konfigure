@@ -14,11 +14,6 @@ import (
 	"github.com/giantswarm/config-controller/pkg/lint"
 )
 
-const (
-	owner = "giantswarm"
-	repo  = "config"
-)
-
 type runner struct {
 	flag   *flag
 	logger micrologger.Logger

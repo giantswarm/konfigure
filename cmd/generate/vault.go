@@ -2,10 +2,7 @@ package generate
 
 import (
 	"context"
-	"encoding/json"
 	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/giantswarm/microerror"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -36,40 +33,6 @@ func newVaultClient(config vaultClientConfig) (*vaultapi.Client, error) {
 	vaultClient.SetToken(config.Token)
 
 	return vaultClient, nil
-}
-
-func createVaultClientUsingOpsctl(ctx context.Context, gitHubToken, installation string) (*vaultapi.Client, error) {
-	cmdArgs := []string{"opsctl", "create", "vaultconfig", "-i", installation, "-o", "json"}
-
-	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...) //nolint:gosec
-	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), "OPSCTL_GITHUB_TOKEN="+gitHubToken)
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, microerror.Maskf(
-			executionFailedError,
-			"failed to execute %#q, see the output above",
-			strings.Join(cmdArgs, " "),
-		)
-	}
-
-	var config vaultClientConfig
-	err = json.Unmarshal(out, &config)
-	if err != nil {
-		return nil, microerror.Maskf(
-			executionFailedError,
-			"failed to unmarshal output of %#q with error %#q",
-			strings.Join(cmdArgs, " "), err,
-		)
-	}
-
-	vaultClient, err := newVaultClient(config)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	return vaultClient, nil
-
 }
 
 func createVaultClientUsingEnv(ctx context.Context) (*vaultapi.Client, error) {
