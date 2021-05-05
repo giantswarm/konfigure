@@ -6,13 +6,14 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.0
 	github.com/fatih/color v1.10.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/giantswarm/apiextensions/v3 v3.18.0
+	github.com/giantswarm/apiextensions/v3 v3.22.0
+	github.com/giantswarm/app/v4 v4.11.0
 	github.com/giantswarm/microerror v0.3.0
 	github.com/giantswarm/micrologger v0.5.0
 	github.com/giantswarm/operatorkit/v4 v4.0.0
 	github.com/giantswarm/valuemodifier v0.3.1
 	github.com/go-test/deep v1.0.7 // indirect
-	github.com/google/go-cmp v0.5.4
+	github.com/google/go-cmp v0.5.5
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20201001211907-38d91b749c77
 	github.com/hashicorp/vault/sdk v0.1.14-0.20201109203410-5e6e24692b32 // indirect

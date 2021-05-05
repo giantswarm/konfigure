@@ -6,6 +6,8 @@ import (
 	"io"
 
 	"github.com/ghodss/yaml"
+	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
+	"github.com/giantswarm/app/v4/pkg/app"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -92,6 +94,9 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return nil
 	}
 
+	// TODO: will be used by generateAppCR
+	// configVersion := configmap.Annotations[meta.Annotation.ConfigVersion.Key()]
+
 	fmt.Println("---")
 	out, err := yaml.Marshal(configmap)
 	if err != nil {
@@ -107,4 +112,20 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	fmt.Printf(string(out) + "\n")
 
 	return nil
+}
+
+func (r *runner) generateAppCR(configVersion string) *applicationv1alpha1.App {
+	c := app.Config{
+		AppCatalog:          "", // app-catalog
+		AppName:             r.flag.App,
+		AppNamespace:        r.flag.Namespace,
+		AppVersion:          "", // app-version
+		ConfigVersion:       configVersion,
+		DisableForceUpgrade: false, // app-disable-force-upgrade
+		Name:                "",    // flag appcr-name
+		UserConfigMapName:   r.flag.Name,
+		UserSecretName:      r.flag.Name,
+	}
+
+	return app.NewCR(c)
 }
