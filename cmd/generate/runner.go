@@ -12,6 +12,7 @@ import (
 	"github.com/giantswarm/micrologger"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
@@ -43,47 +44,68 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
 	var err error
 
-	var vaultClient *vaultapi.Client
+	var configmap *corev1.ConfigMap
+	var secret *corev1.Secret
 	{
-		vaultClient, err = createVaultClientUsingEnv(ctx)
+		var vaultClient *vaultapi.Client
+		{
+			vaultClient, err = createVaultClientUsingEnv(ctx)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+		}
+
+		var gen *generator.Service
+		{
+			c := generator.Config{
+				VaultClient: vaultClient,
+
+				Dir:          r.flag.Dir,
+				Installation: r.flag.Installation,
+				Verbose:      r.flag.Verbose,
+			}
+
+			gen, err = generator.New(c)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+		}
+
+		in := generator.GenerateInput{
+			App:       r.flag.App,
+			Name:      r.flag.Name,
+			Namespace: r.flag.Namespace,
+
+			ExtraAnnotations: map[string]string{
+				meta.Annotation.XAppInfo.Key():        meta.Annotation.XAppInfo.Val("<unknown>", r.flag.App, "<unknown>"),
+				meta.Annotation.XCreator.Key():        meta.Annotation.XCreator.Default(),
+				meta.Annotation.XInstallation.Key():   r.flag.Installation,
+				meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
+			},
+			ExtraLabels: nil,
+		}
+
+		configmap, secret, err = gen.Generate(ctx, in)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 	}
 
-	var gen *generator.Service
+	var appCR *applicationv1alpha1.App
 	{
-		c := generator.Config{
-			VaultClient: vaultClient,
-
-			Dir:          r.flag.Dir,
-			Installation: r.flag.Installation,
-			Verbose:      r.flag.Verbose,
+		c := app.Config{
+			AppCatalog:          r.flag.AppCatalog,
+			AppName:             r.flag.App,
+			AppNamespace:        r.flag.Namespace,
+			AppVersion:          r.flag.AppVersion,
+			ConfigVersion:       configmap.Annotations[meta.Annotation.ConfigVersion.Key()],
+			DisableForceUpgrade: r.flag.AppDisableForceUpgrade,
+			Name:                r.flag.Name,
+			UserConfigMapName:   configmap.Name,
+			UserSecretName:      secret.Name,
 		}
 
-		gen, err = generator.New(c)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
-	in := generator.GenerateInput{
-		App:       r.flag.App,
-		Name:      r.flag.Name,
-		Namespace: r.flag.Namespace,
-
-		ExtraAnnotations: map[string]string{
-			meta.Annotation.XAppInfo.Key():        meta.Annotation.XAppInfo.Val("<unknown>", r.flag.App, "<unknown>"),
-			meta.Annotation.XCreator.Key():        meta.Annotation.XCreator.Default(),
-			meta.Annotation.XInstallation.Key():   r.flag.Installation,
-			meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
-		},
-		ExtraLabels: nil,
-	}
-
-	configmap, secret, err := gen.Generate(ctx, in)
-	if err != nil {
-		return microerror.Mask(err)
+		appCR = app.NewCR(c)
 	}
 
 	if r.flag.Raw {
@@ -94,38 +116,29 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return nil
 	}
 
-	// TODO: will be used by generateAppCR
-	// configVersion := configmap.Annotations[meta.Annotation.ConfigVersion.Key()]
-
-	fmt.Println("---")
-	out, err := yaml.Marshal(configmap)
-	if err != nil {
+	if err := prettyPrint(configmap); err != nil {
 		return microerror.Mask(err)
 	}
-	fmt.Printf(string(out) + "\n")
 
-	fmt.Println("---")
-	out, err = yaml.Marshal(secret)
-	if err != nil {
+	if err := prettyPrint(secret); err != nil {
 		return microerror.Mask(err)
 	}
-	fmt.Printf(string(out) + "\n")
+
+	if err := prettyPrint(appCR); err != nil {
+		return microerror.Mask(err)
+	}
 
 	return nil
 }
 
-func (r *runner) generateAppCR(configVersion string) *applicationv1alpha1.App {
-	c := app.Config{
-		AppCatalog:          "", // app-catalog
-		AppName:             r.flag.App,
-		AppNamespace:        r.flag.Namespace,
-		AppVersion:          "", // app-version
-		ConfigVersion:       configVersion,
-		DisableForceUpgrade: false, // app-disable-force-upgrade
-		Name:                "",    // flag appcr-name
-		UserConfigMapName:   r.flag.Name,
-		UserSecretName:      r.flag.Name,
+func prettyPrint(in interface{}) error {
+	fmt.Println("---")
+
+	out, err := yaml.Marshal(in)
+	if err != nil {
+		return microerror.Mask(err)
 	}
 
-	return app.NewCR(c)
+	fmt.Printf(string(out) + "\n")
+	return nil
 }
