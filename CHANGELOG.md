@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Create App CR, with injected ConfigMap and Secret details, when generating config.
+
 ### Changed
 
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
