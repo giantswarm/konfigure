@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/giantswarm/microerror"
 )
@@ -44,5 +45,5 @@ func (s *Store) Version() (string, error) {
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
-	return string(out), nil
+	return strings.TrimSpace(string(out)), nil
 }
