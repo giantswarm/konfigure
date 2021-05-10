@@ -2,7 +2,6 @@ package generate
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/rest"
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
@@ -58,9 +56,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		{
 			if r.flag.VaultSecretName != "" && r.flag.VaultSecretNamespace != "" {
 				vaultClient, err = createVaultClientUsingK8sSecret(ctx, r.flag.VaultSecretNamespace, r.flag.VaultSecretName)
-				if errors.Is(err, rest.ErrNotInCluster) {
-					// fallthrough
-				} else if err != nil {
+				if err != nil {
 					return microerror.Mask(err)
 				}
 			}
