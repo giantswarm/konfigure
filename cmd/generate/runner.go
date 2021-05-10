@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
@@ -16,6 +17,10 @@ import (
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
+)
+
+const (
+	nameSuffix = "konfigure"
 )
 
 type runner struct {
@@ -43,6 +48,8 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
 	var err error
+
+	r.flag.Name = addNameSuffix(r.flag.Name)
 
 	var configmap *corev1.ConfigMap
 	var secret *corev1.Secret
@@ -129,6 +136,14 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	}
 
 	return nil
+}
+
+func addNameSuffix(name string) string {
+	if len(name) >= 63-len(nameSuffix)-1 {
+		name = name[:63-len(nameSuffix)-1]
+	}
+	name = strings.TrimSuffix(name, "-")
+	return fmt.Sprintf("%s-%s", name, nameSuffix)
 }
 
 func prettyPrint(in interface{}) error {
