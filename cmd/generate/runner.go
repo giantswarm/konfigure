@@ -49,8 +49,6 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
 	var err error
 
-	r.flag.Name = addNameSuffix(r.flag.Name)
-
 	var configmap *corev1.ConfigMap
 	var secret *corev1.Secret
 	{
@@ -80,7 +78,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 		in := generator.GenerateInput{
 			App:       r.flag.AppName,
-			Name:      r.flag.Name,
+			Name:      addNameSuffix(r.flag.Name),
 			Namespace: r.flag.Namespace,
 
 			ExtraAnnotations: map[string]string{
