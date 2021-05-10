@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Create App CR, with injected ConfigMap and Secret details, when generating config.
+- Add suffix to all generated resources' names.
 
 ### Changed
 
