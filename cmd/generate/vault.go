@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	VaultAddress = "VAULT_ADDR"
-	VaultToken   = "VAULT_TOKEN"
-	VaultCAPath  = "VAULT_CAPATH"
+	vaultAddress = "VAULT_ADDR"
+	vaultToken   = "VAULT_TOKEN"
+	vaultCAPath  = "VAULT_CAPATH"
 )
 
 type vaultClientConfig struct {
@@ -60,16 +60,16 @@ func createVaultClientUsingK8sSecret(ctx context.Context, namespace, name string
 		return nil, microerror.Mask(err)
 	}
 
-	for _, varName := range []string{VaultAddress, VaultToken, VaultCAPath} {
+	for _, varName := range []string{vaultAddress, vaultToken, vaultCAPath} {
 		if value, ok := secret.Data[varName]; !ok || string(value) == "" {
 			return nil, microerror.Maskf(executionFailedError, "secret.Data must contain %q", varName)
 		}
 	}
 
 	vaultClient, err := newVaultClient(vaultClientConfig{
-		Address: string(secret.Data[VaultAddress]),
-		Token:   string(secret.Data[VaultToken]),
-		CAPath:  string(secret.Data[VaultCAPath]),
+		Address: string(secret.Data[vaultAddress]),
+		Token:   string(secret.Data[vaultToken]),
+		CAPath:  string(secret.Data[vaultCAPath]),
 	})
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -79,16 +79,16 @@ func createVaultClientUsingK8sSecret(ctx context.Context, namespace, name string
 }
 
 func createVaultClientUsingEnv(ctx context.Context) (*vaultapi.Client, error) {
-	for _, varName := range []string{VaultAddress, VaultToken, VaultCAPath} {
+	for _, varName := range []string{vaultAddress, vaultToken, vaultCAPath} {
 		if value, ok := os.LookupEnv(varName); !ok || value == "" {
 			return nil, microerror.Maskf(executionFailedError, "%s environment variable must be set", varName)
 		}
 	}
 
 	vaultClient, err := newVaultClient(vaultClientConfig{
-		Address: os.Getenv(VaultAddress),
-		Token:   os.Getenv(VaultToken),
-		CAPath:  os.Getenv(VaultCAPath),
+		Address: os.Getenv(vaultAddress),
+		Token:   os.Getenv(vaultToken),
+		CAPath:  os.Getenv(vaultCAPath),
 	})
 	if err != nil {
 		return nil, microerror.Mask(err)
