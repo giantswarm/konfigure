@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Create App CR, with injected ConfigMap and Secret details, when generating config.
 - Add suffix to ConfigMap and Secret names.
+- Get Vault credentials from Secret.
 
 ### Changed
 
