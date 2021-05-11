@@ -54,9 +54,18 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	{
 		var vaultClient *vaultapi.Client
 		{
-			vaultClient, err = createVaultClientUsingEnv(ctx)
-			if err != nil {
-				return microerror.Mask(err)
+			if r.flag.VaultSecretName != "" && r.flag.VaultSecretNamespace != "" {
+				vaultClient, err = createVaultClientUsingK8sSecret(ctx, r.flag.VaultSecretNamespace, r.flag.VaultSecretName)
+				if err != nil {
+					return microerror.Mask(err)
+				}
+			}
+
+			if vaultClient == nil {
+				vaultClient, err = createVaultClientUsingEnv(ctx)
+				if err != nil {
+					return microerror.Mask(err)
+				}
 			}
 		}
 
