@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2021-05-12
 
-## [0.1.0] - 2021-05-12
-
 ### Added
 
 - Create App CR, with injected ConfigMap and Secret details, when generating config.
@@ -23,5 +21,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use local filesystem instead of GitHub as configuration source.
 
 [Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/giantswarm/konfigure/compare/v0.1.0...v0.1.0
 [0.1.0]: https://github.com/giantswarm/konfigure/compare/fc16094...v0.1.0
