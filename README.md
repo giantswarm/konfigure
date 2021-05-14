@@ -3,6 +3,6 @@
 
 # konfigure
 
-Controller managing Control Plane cluster configuration.
+Controller managing Management cluster configuration.
 
 Documentation: [intranet](https://intranet.giantswarm.io/docs/dev-and-releng/configuration-management/) | [GitHub](https://github.com/giantswarm/giantswarm/blob/master/content/docs/dev-and-releng/configuration-management/_index.md)
