@@ -64,6 +64,17 @@ func mainE(ctx context.Context) error {
 		}
 		subcommands = append(subcommands, cmd)
 	}
+	{
+		cmd := &cobra.Command{
+			Use:   "version",
+			Short: "Display version information.",
+			Long:  "Display version information.",
+			Run: func(_ *cobra.Command, _ []string) {
+				fmt.Println(commandVersion())
+			},
+		}
+		subcommands = append(subcommands, cmd)
+	}
 
 	newCommand.SilenceErrors = true
 	newCommand.SilenceUsage = true
@@ -79,7 +90,7 @@ func mainE(ctx context.Context) error {
 
 func commandVersion() string {
 	return fmt.Sprintf(
-		"\nDescription: %s\nGitCommit: %s\nName: %s\nSource: %s\nVersion: %s",
+		"Description: %s\nGitCommit: %s\nName: %s\nSource: %s\nVersion: %s",
 		project.Description(),
 		project.GitSHA(),
 		project.Name(),
