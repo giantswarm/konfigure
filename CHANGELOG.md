@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2021-05-19
+
 ### Added
 
 - Add `version` command.
@@ -24,5 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/giantswarm/konfigure/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/giantswarm/konfigure/compare/fc16094...v0.1.0
