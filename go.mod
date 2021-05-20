@@ -34,6 +34,7 @@ require (
 	k8s.io/api v0.19.10
 	k8s.io/apimachinery v0.19.10
 	k8s.io/client-go v0.19.10
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
