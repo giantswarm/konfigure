@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `--app-destination-namespace` flag to `generate` command.
+
+## Removed
+
+- Remove `--namespace` flag from `generate` command.
+- Remove defaulting to "giantswarm" from `--name` flag in `generate` command.
+
 ## [0.2.0] - 2021-05-19
 
 ### Added
