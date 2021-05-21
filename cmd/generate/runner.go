@@ -2,11 +2,11 @@ package generate
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/app/v4/pkg/app"
 	"github.com/giantswarm/microerror"
@@ -14,6 +14,7 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
@@ -131,15 +132,15 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return nil
 	}
 
-	if err := prettyPrint(configmap); err != nil {
+	if err := prettyPrint(configmap, false); err != nil {
 		return microerror.Mask(err)
 	}
 
-	if err := prettyPrint(secret); err != nil {
+	if err := prettyPrint(secret, false); err != nil {
 		return microerror.Mask(err)
 	}
 
-	if err := prettyPrint(appCR); err != nil {
+	if err := prettyPrint(appCR, true); err != nil {
 		return microerror.Mask(err)
 	}
 
@@ -154,14 +155,28 @@ func addNameSuffix(name string) string {
 	return fmt.Sprintf("%s-%s", name, nameSuffix)
 }
 
-func prettyPrint(in interface{}) error {
-	fmt.Println("---")
+func prettyPrint(in interface{}, purgeStatus bool) error {
+	if purgeStatus {
+		bytes, err := json.Marshal(in)
+		if err != nil {
+			return microerror.Mask(err)
+		}
 
+		var m map[string]interface{}
+		err = json.Unmarshal(bytes, &m)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		delete(m, "status")
+		in = m
+	}
 	out, err := yaml.Marshal(in)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
+	fmt.Println("---")
 	fmt.Printf(string(out) + "\n")
 	return nil
 }
