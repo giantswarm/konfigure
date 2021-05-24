@@ -347,11 +347,13 @@ func populateSecretPathsWithUsedBy(installationSecret *configFile, defaultTempla
 		}
 	}
 
-	if defaultTemplate != nil && templatePatch != nil {
+	if defaultTemplate != nil {
 		for path, value := range defaultTemplate.values {
-			if _, ok := templatePatch.paths[path]; ok {
-				// already checked; value is overriden by patch in this case
-				continue
+			if templatePatch != nil {
+				if _, ok := templatePatch.paths[path]; ok {
+					// already checked; value is overriden by patch in this case
+					continue
+				}
 			}
 			configValue, configValueOk := installationSecret.paths[path]
 			if configValueOk {
