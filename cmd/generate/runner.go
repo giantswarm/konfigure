@@ -133,9 +133,9 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 	if r.flag.Raw {
 		fmt.Println("---")
-		fmt.Printf(string(configmap.Data["configmap-values.yaml"]) + "\n")
+		fmt.Printf("%s\n", configmap.Data["configmap-values.yaml"])
 		fmt.Println("---")
-		fmt.Printf(string(secret.Data["secret-values.yaml"]) + "\n")
+		fmt.Printf("%s\n", secret.Data["secret-values.yaml"])
 		return nil
 	}
 
@@ -184,6 +184,6 @@ func prettyPrint(in interface{}, purgeStatus bool) error {
 	}
 
 	fmt.Println("---")
-	fmt.Printf(string(out) + "\n")
+	fmt.Printf("%s\n", out)
 	return nil
 }
