@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Use `App.spec.config` instead of `App.spec.userConfig`.
+
 ## [0.3.1] - 2021-05-24
 
 ### Fixed
