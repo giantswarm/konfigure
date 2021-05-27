@@ -117,11 +117,18 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			ConfigVersion:       configmap.Annotations[meta.Annotation.ConfigVersion.Key()],
 			DisableForceUpgrade: r.flag.AppDisableForceUpgrade,
 			Name:                r.flag.Name,
-			UserConfigMapName:   configmap.Name,
-			UserSecretName:      secret.Name,
 		}
 
 		appCR = app.NewCR(c)
+
+		appCR.Spec.Config.ConfigMap = applicationv1alpha1.AppSpecConfigConfigMap{
+			Name:      configmap.Name,
+			Namespace: configmap.Namespace,
+		}
+		appCR.Spec.Config.Secret = applicationv1alpha1.AppSpecConfigSecret{
+			Name:      secret.Name,
+			Namespace: secret.Namespace,
+		}
 	}
 
 	if r.flag.Raw {

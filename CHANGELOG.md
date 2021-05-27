@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Use `App.spec.config` instead of `App.spec.userConfig`.
 - Do not format strings in the rendered ConfigMap and Secret data.
 
 ## [0.3.1] - 2021-05-24
