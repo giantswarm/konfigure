@@ -91,11 +91,12 @@ func New(config Config) (*Generator, error) {
 // 4. Patch global template (result of 2.) with installation-specific (result
 //    of 3.) app overrides
 // 5. Get installation-specific secret template data and decrypt it
-// 6. Get global secret template for the app (if available) and render it with
+// 6. Merge config and secret values before templating app secret
+// 7. Get global secret template for the app (if available) and render it with
 //    installation secret template data (result of 5.)
-// 7. Get installation-specific secret template patch (if available) and
+// 8. Get installation-specific secret template patch (if available) and
 //    decrypt it
-// 8. Patch secret template (result of 6.) with decrypted patch values (result
+// 9. Patch secret template (result of 6.) with decrypted patch values (result
 //    of 7.)
 func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap string, secret string, err error) {
 	// 1.
@@ -169,6 +170,19 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	g.logMessage(ctx, "decrypted installation secret")
 
 	// 6.
+	secretContextFinal, err := applyPatch(
+		ctx,
+		[]byte(configmapContext),
+		[]byte(secretContext),
+	)
+	if err != nil {
+		return "", "", microerror.Mask(err)
+	}
+	g.logMessage(ctx, "merged config and secret values")
+
+	fmt.Println("here")
+
+	// 7.
 	secretTemplate, err := g.getWithPatchIfExists(
 		ctx,
 		"default/apps/"+app+"/secret-values.yaml.template",
@@ -182,13 +196,13 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	}
 	g.logMessage(ctx, "loaded secret-values template")
 
-	secret, err = g.renderTemplate(ctx, secretTemplate, secretContext)
+	secret, err = g.renderTemplate(ctx, secretTemplate, secretContextFinal)
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
 	g.logMessage(ctx, "rendered secret-values")
 
-	// 7.
+	// 8.
 	var secretPatch string
 	{
 		filepath := "installations/" + g.installation + "/apps/" + app + "/secret-values.yaml.patch"
@@ -208,7 +222,7 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 		}
 	}
 
-	// 8.
+	// 9.
 	if secretPatch == "" {
 		g.logMessage(ctx, "generated configmap and secret")
 		return configmap, secret, nil
