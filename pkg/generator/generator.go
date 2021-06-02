@@ -91,6 +91,7 @@ func New(config Config) (*Generator, error) {
 // 4. Patch global template (result of 2.) with installation-specific (result
 //    of 3.) app overrides
 // 5. Get installation-specific secret template data and decrypt it
+// 6. Merge config and secret values before templating app secret
 // 6. Get global secret template for the app (if available) and render it with
 //    installation secret template data (result of 5.)
 // 7. Get installation-specific secret template patch (if available) and
@@ -178,6 +179,8 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 		return "", "", microerror.Mask(err)
 	}
 	g.logMessage(ctx, "merged config and secret values")
+
+	fmt.Println("here")
 
 	// 7.
 	secretTemplate, err := g.getWithPatchIfExists(
