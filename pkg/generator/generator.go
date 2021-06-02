@@ -169,6 +169,17 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	g.logMessage(ctx, "decrypted installation secret")
 
 	// 6.
+	secretContextFinal, err := applyPatch(
+		ctx,
+		[]byte(configmapContext),
+		[]byte(secretContext),
+	)
+	if err != nil {
+		return "", "", microerror.Mask(err)
+	}
+	g.logMessage(ctx, "merged config and secret values")
+
+	// 7.
 	secretTemplate, err := g.getWithPatchIfExists(
 		ctx,
 		"default/apps/"+app+"/secret-values.yaml.template",
@@ -182,13 +193,13 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	}
 	g.logMessage(ctx, "loaded secret-values template")
 
-	secret, err = g.renderTemplate(ctx, secretTemplate, secretContext)
+	secret, err = g.renderTemplate(ctx, secretTemplate, secretContextFinal)
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
 	g.logMessage(ctx, "rendered secret-values")
 
-	// 7.
+	// 8.
 	var secretPatch string
 	{
 		filepath := "installations/" + g.installation + "/apps/" + app + "/secret-values.yaml.patch"
@@ -208,7 +219,7 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 		}
 	}
 
-	// 8.
+	// 9.
 	if secretPatch == "" {
 		g.logMessage(ctx, "generated configmap and secret")
 		return configmap, secret, nil
