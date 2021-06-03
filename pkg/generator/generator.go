@@ -180,8 +180,6 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	}
 	g.logMessage(ctx, "merged config and secret values")
 
-	fmt.Println("here")
-
 	// 7.
 	secretTemplate, err := g.getWithPatchIfExists(
 		ctx,
