@@ -255,17 +255,17 @@ func newDiscovery(fs generator.Filesystem) (*discovery, error) {
 	sort.Strings(d.Installations)
 	sort.Strings(d.Apps)
 
-	if err := d.populateconfigValues(); err != nil {
+	if err := d.populateConfigValues(); err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	return d, nil
 }
 
-// populateconfigValues fills UsedBy and overshadowedBy fields in all configValue
+// populateConfigValues fills UsedBy and overshadowedBy fields in all configValue
 // structs in d.Config and d.ConfigPatches. This allows linter to find unused
 // values easier.
-func (d *discovery) populateconfigValues() error {
+func (d *discovery) populateConfigValues() error {
 	// 1. Mark all overshadowed configValues in config.yaml
 	for _, configPatch := range d.ConfigPatches {
 		for path := range configPatch.paths {
@@ -292,6 +292,17 @@ func (d *discovery) populateconfigValues() error {
 			if defaultTemplate, ok := d.TemplatesPerApp[app]; ok {
 				populatePathsWithUsedBy(defaultTemplate, d.Config, configPatch)
 			}
+
+			// mark all fields used by secret template patch
+			if secretPatch, ok := d.getAppSecretTemplatePatch(installation, app); ok {
+				populatePathsWithUsedBy(secretPatch, d.Config, configPatch)
+			}
+
+			// mark all fields used by secret template
+			if secretTemplate, ok := d.SecretTemplatesPerApp[app]; ok {
+				populatePathsWithUsedBy(secretTemplate, d.Config, configPatch)
+			}
+
 		}
 	}
 
@@ -305,6 +316,7 @@ func (d *discovery) populateconfigValues() error {
 			defaultTemplate := d.SecretTemplatesPerApp[app]
 			templatePatch, _ := d.getAppSecretTemplatePatch(installation, app)
 
+			// mark all fields used by app secrets
 			populateSecretPathsWithUsedBy(secret, defaultTemplate, templatePatch)
 		}
 	}
@@ -319,6 +331,7 @@ func populatePathsWithUsedBy(source *templateFile, config, configPatch *configFi
 			if configValueOk {
 				// config patch exists and contains the path
 				configValue.usedBy = appendUniqueUsedBy(configValue.usedBy, source)
+				templatePath.mayBeMissing = false
 				continue
 			}
 		}
@@ -327,6 +340,7 @@ func populatePathsWithUsedBy(source *templateFile, config, configPatch *configFi
 		if configValueOk {
 			// the value comes from default config
 			configValue.usedBy = appendUniqueUsedBy(configValue.usedBy, source)
+			templatePath.mayBeMissing = false
 			continue
 		}
 
@@ -341,6 +355,7 @@ func populateSecretPathsWithUsedBy(installationSecret *configFile, defaultTempla
 			configValue, configValueOk := installationSecret.paths[path]
 			if configValueOk {
 				configValue.usedBy = appendUniqueUsedBy(configValue.usedBy, templatePatch)
+				value.mayBeMissing = false
 				continue
 			}
 			value.mayBeMissing = true
@@ -358,6 +373,7 @@ func populateSecretPathsWithUsedBy(installationSecret *configFile, defaultTempla
 			configValue, configValueOk := installationSecret.paths[path]
 			if configValueOk {
 				configValue.usedBy = appendUniqueUsedBy(configValue.usedBy, defaultTemplate)
+				value.mayBeMissing = false
 				continue
 			}
 			value.mayBeMissing = true
