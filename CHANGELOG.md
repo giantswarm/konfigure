@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2021-06-25
+
 ### Fixed
 
 - Mark all config fields used in secrets.
@@ -70,7 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/giantswarm/konfigure/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/giantswarm/konfigure/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/giantswarm/konfigure/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/giantswarm/konfigure/compare/v0.3.1...v0.3.2
