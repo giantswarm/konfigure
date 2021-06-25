@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Mark all config fields used in secrets.
+
 ## [0.3.4] - 2021-06-03
 
 ### Fixed
