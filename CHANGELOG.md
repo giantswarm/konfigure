@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix template path pattern.
+
 ## [0.3.5] - 2021-06-25
 
 ### Fixed

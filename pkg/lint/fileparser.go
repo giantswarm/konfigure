@@ -19,7 +19,7 @@ import (
 var (
 	fMap                 = dummyFuncMap()
 	includes             = &includeExtract{[]string{}}
-	templatePathPattern  = regexp.MustCompile(`(\.[a-zA-Z].[a-zA-Z0-9_\.]+)`)
+	templatePathPattern  = regexp.MustCompile(`(?:\{\{.*?[\-\s\(]?)(\.[a-zA-Z][a-zA-Z0-9_\.]+)(?:[\-\s\)]?.*?\}\})`)
 	yamlErrorLinePattern = regexp.MustCompile(`yaml: line (\d+)`)
 )
 
@@ -159,8 +159,9 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 				continue
 			}
 
-			nodePaths := templatePathPattern.FindAllString(node.String(), -1)
-			for _, np := range nodePaths {
+			nodePaths := templatePathPattern.FindAllStringSubmatch(node.String(), -1)
+			for _, npSlice := range nodePaths {
+				np := npSlice[1]
 				normalPath := NormalPath(np)
 				if _, ok := values[normalPath]; !ok {
 					values[normalPath] = &templateValue{
