@@ -238,10 +238,32 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	return configmap, secret, nil
 }
 
+func sortYAMLKeys(yamlString string) (string, error) {
+	var m map[string]interface{}
+	err := yaml.Unmarshal([]byte(yamlString), &m)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+	bs, err := yaml.Marshal(m)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+	return string(bs), nil
+}
+
 // GenerateConfig generates ConfigMap and Secret for a given App. The generated
 // CM and Secret metadata are configured with the provided value.
 func (g Generator) GenerateConfig(ctx context.Context, app string, meta metav1.ObjectMeta) (*corev1.ConfigMap, *corev1.Secret, error) {
 	cm, s, err := g.generateRawConfig(ctx, app)
+	if err != nil {
+		return nil, nil, microerror.Mask(err)
+	}
+
+	cm, err = sortYAMLKeys(cm)
+	if err != nil {
+		return nil, nil, microerror.Mask(err)
+	}
+	s, err = sortYAMLKeys(s)
 	if err != nil {
 		return nil, nil, microerror.Mask(err)
 	}

@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -165,6 +167,53 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			}
 			if secret != fs.ExpectedSecret {
 				t.Fatalf("secret not expected, got: %s", secret)
+			}
+		})
+	}
+}
+
+func Test_sortYAMLKeys(t *testing.T) {
+	testCases := []struct {
+		name               string
+		inputYAMLString    string
+		expectedYAMLString string
+		errorMatcher       func(err error) bool
+	}{
+		{
+			name: "case 0",
+			inputYAMLString: `b: v2
+a: v1
+`,
+			expectedYAMLString: `a: v1
+b: v2
+`,
+			errorMatcher: nil,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Log(tc.name)
+
+			yamlString, err := sortYAMLKeys(tc.inputYAMLString)
+
+			switch {
+			case err == nil && tc.errorMatcher == nil:
+				// correct; carry on
+			case err != nil && tc.errorMatcher == nil:
+				t.Fatalf("error == %#v, want nil", err)
+			case err == nil && tc.errorMatcher != nil:
+				t.Fatalf("error == nil, want non-nil")
+			case !tc.errorMatcher(err):
+				t.Fatalf("error == %#v, want matching", err)
+			}
+
+			if tc.errorMatcher != nil {
+				return
+			}
+
+			if !reflect.DeepEqual(yamlString, tc.expectedYAMLString) {
+				t.Fatalf("yamlString = %v, want %v", yamlString, tc.expectedYAMLString)
 			}
 		})
 	}
