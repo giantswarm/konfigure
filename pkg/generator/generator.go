@@ -101,8 +101,8 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	return
 }
 
-// generateRawConfig creates final configmap values and secret values for helm to
-// use by performing the following operations:
+// generateRawConfigUnsorted creates final configmap values and secret values
+// for helm to use by performing the following operations:
 // 1. Get configmap template data and patch it with installation-specific
 //    overrides (if available)
 // 2. Get global configmap template for the app and render it with template

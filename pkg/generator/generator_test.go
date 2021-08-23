@@ -175,7 +175,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 	}
 }
 
-//go:embed test_instances.yaml
+//go:embed testdata/test_instances.yaml
 var sortYAMLKeysTestInstancesYAML string
 
 func Test_sortYAMLKeys(t *testing.T) {
@@ -187,7 +187,7 @@ func Test_sortYAMLKeys(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	fs := newMockFilesystem(tmpDir, "test_instances.yaml")
+	fs := newMockFilesystem(tmpDir, "testdata/test_instances.yaml")
 
 	config := Config{
 		Fs:               fs,
