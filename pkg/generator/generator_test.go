@@ -4,7 +4,9 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,6 +15,8 @@ import (
 )
 
 func TestGenerator_generateRawConfig(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name                 string
 		caseFile             string
@@ -167,6 +171,73 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 				t.Fatalf("secret not expected, got: %s", secret)
 			}
 		})
+	}
+}
+
+func Test_sortYAMLKeys(t *testing.T) {
+	t.Parallel()
+
+	tmpDir, err := ioutil.TempDir("", "konfigure-sort-yaml-keys-test")
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpDir)
+
+	fs := newMockFilesystem(tmpDir, "testdata/test_instances.yaml")
+
+	config := Config{
+		Fs:               fs,
+		DecryptTraverser: &noopTraverser{},
+
+		Installation: "puma",
+	}
+	g, err := New(config)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	// This compares first generated YAML to many subsequent generated YAML
+	// to see if there is any difference in the keys order.
+	var firstConfigMap string
+	for i := 0; i < 100; i++ {
+		configmap, _, err := g.generateRawConfig(context.Background(), "operator")
+		if err != nil {
+			t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
+		}
+
+		if firstConfigMap == "" {
+			firstConfigMap = configmap
+			continue
+		}
+
+		if configmap != firstConfigMap {
+			f1 := filepath.Join(tmpDir, "cmp1")
+			f2 := filepath.Join(tmpDir, "cmp2")
+			for _, f := range []string{f1, f2} {
+				if err := os.WriteFile(f, []byte(firstConfigMap), 0666); err != nil {
+					t.Fatal("error creating file", f, err)
+				}
+			}
+			cmd := exec.Command("git", "diff", "--exit-code", "--no-index", f1, f2)
+			diff, err := cmd.CombinedOutput()
+			if err != nil {
+				t.Fatal("error calling `git diff`", err)
+			}
+			t.Fatalf("configmap[%d] (diff): %s\n", i, diff)
+		}
+	}
+}
+
+func Test_sortYAMLKeys_null(t *testing.T) {
+	t.Parallel()
+
+	out, err := sortYAMLKeys("")
+	if err != nil {
+		t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+	}
+
+	if out != "" {
+		t.Fatalf("out = %v, want %v", out, "")
 	}
 }
 

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replace github.com/dgrijalva/jwt-go
 
+### Fixed
+
+- Fix generated YAML keys sorting.
+
 ## [0.3.6] - 2021-08-12
 
 ### Fixed

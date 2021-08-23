@@ -29,7 +29,7 @@ path: configmap-values.yaml.golden
 data: |
   answer: 42
   availableInstances:
-  - small
-  - medium
-  - large
+    - small
+    - medium
+    - large
   region: us-east-1
