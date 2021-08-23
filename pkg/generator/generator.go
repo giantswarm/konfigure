@@ -6,14 +6,16 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/ghodss/yaml"
 	"github.com/giantswarm/microerror"
 	pathmodifier "github.com/giantswarm/valuemodifier/path"
+	yaml3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 /*
@@ -81,8 +83,26 @@ func New(config Config) (*Generator, error) {
 	return &g, nil
 }
 
-// generateRawConfig creates final configmap values and secret values for helm to
-// use by performing the following operations:
+func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap string, secret string, err error) {
+	configmap, secret, err = g.generateRawConfigUnsorted(ctx, app)
+	if err != nil {
+		return "", "", microerror.Mask(err)
+	}
+
+	configmap, err = sortYAMLKeys(configmap)
+	if err != nil {
+		return "", "", microerror.Mask(err)
+	}
+	secret, err = sortYAMLKeys(secret)
+	if err != nil {
+		return "", "", microerror.Mask(err)
+	}
+
+	return
+}
+
+// generateRawConfigUnsorted creates final configmap values and secret values
+// for helm to use by performing the following operations:
 // 1. Get configmap template data and patch it with installation-specific
 //    overrides (if available)
 // 2. Get global configmap template for the app and render it with template
@@ -98,7 +118,7 @@ func New(config Config) (*Generator, error) {
 //    decrypt it
 // 9. Patch secret template (result of 6.) with decrypted patch values (result
 //    of 7.)
-func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap string, secret string, err error) {
+func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (configmap string, secret string, err error) {
 	// 1.
 	configmapContext, err := g.getWithPatchIfExists(
 		ctx,
@@ -121,7 +141,6 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 		return "", "", microerror.Mask(err)
 	}
 	g.logMessage(ctx, "rendered configmap-values template")
-
 	// 3.
 	var configmapPatch string
 	{
@@ -236,6 +255,62 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	g.logMessage(ctx, "patched secret-values, generated configmap and secret")
 
 	return configmap, secret, nil
+}
+
+func sortYAMLKeys(yamlString string) (string, error) {
+	if yamlString == "" {
+		return yamlString, nil
+	}
+
+	n := new(yaml3.Node)
+	err := yaml3.Unmarshal([]byte(yamlString), n)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+	sortYAMLKeysNode(n)
+	buf := new(bytes.Buffer)
+	enc := yaml3.NewEncoder(buf)
+	enc.SetIndent(2)
+	err = enc.Encode(n)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+	return buf.String(), nil
+}
+
+// Coped (and adapted) from:
+// https://github.com/mikefarah/yq/blob/fe12407c936cc4dacf7495a04b5881d14e7b0f47/pkg/yqlib/operator_sort_keys.go#L32
+func sortYAMLKeysNode(node *yaml3.Node) {
+	if node.Kind == yaml3.DocumentNode || node.Kind == yaml3.SequenceNode {
+		for _, n := range node.Content {
+			sortYAMLKeysNode(n)
+		}
+	}
+	if node.Kind != yaml3.MappingNode {
+		return
+	}
+
+	keys := make([]string, len(node.Content)/2)
+	keyBucket := map[string]*yaml3.Node{}
+	valueBucket := map[string]*yaml3.Node{}
+	var contents = node.Content
+	for index := 0; index < len(contents); index = index + 2 {
+		key := contents[index]
+		value := contents[index+1]
+		keys[index/2] = key.Value
+		keyBucket[key.Value] = key
+		valueBucket[key.Value] = value
+
+		sortYAMLKeysNode(value)
+	}
+	sort.Strings(keys)
+	sortedContent := make([]*yaml3.Node, len(node.Content))
+	for index := 0; index < len(keys); index = index + 1 {
+		keyString := keys[index]
+		sortedContent[index*2] = keyBucket[keyString]
+		sortedContent[1+(index*2)] = valueBucket[keyString]
+	}
+	node.Content = sortedContent
 }
 
 // GenerateConfig generates ConfigMap and Secret for a given App. The generated
