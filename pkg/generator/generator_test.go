@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	_ "embed"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -175,9 +174,6 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 	}
 }
 
-//go:embed testdata/test_instances.yaml
-var sortYAMLKeysTestInstancesYAML string
-
 func Test_sortYAMLKeys(t *testing.T) {
 	t.Parallel()
 
@@ -200,6 +196,8 @@ func Test_sortYAMLKeys(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
+	// This compares first generated YAML to many subsequent generated YAML
+	// to see if there is any difference in the keys order.
 	var firstConfigMap string
 	for i := 0; i < 100; i++ {
 		configmap, _, err := g.generateRawConfig(context.Background(), "operator")
@@ -215,17 +213,17 @@ func Test_sortYAMLKeys(t *testing.T) {
 		if configmap != firstConfigMap {
 			f1 := filepath.Join(tmpDir, "cmp1")
 			f2 := filepath.Join(tmpDir, "cmp2")
-			os.WriteFile(f1, []byte(firstConfigMap), 0666)
-			os.WriteFile(f2, []byte(configmap), 0666)
-			t.Logf("configmap[%d] (diff) = \n", i)
-			cmd := exec.Command("git", "diff", "--exit-code", "--no-index", f1, f2)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			err := cmd.Run()
-			if err != nil {
-				t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+			for _, f := range []string{f1, f2} {
+				if err := os.WriteFile(f, []byte(firstConfigMap), 0666); err != nil {
+					t.Fatal("error creating file", f, err)
+				}
 			}
-			t.Fatal()
+			cmd := exec.Command("git", "diff", "--exit-code", "--no-index", f1, f2)
+			diff, err := cmd.CombinedOutput()
+			if err != nil {
+				t.Fatal("error calling `git diff`", err)
+			}
+			t.Fatalf("configmap[%d] (diff): %s\n", i, diff)
 		}
 	}
 }
