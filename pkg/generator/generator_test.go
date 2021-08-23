@@ -2,11 +2,12 @@ package generator
 
 import (
 	"context"
+	_ "embed"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
-	"reflect"
-	"strconv"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -15,6 +16,8 @@ import (
 )
 
 func TestGenerator_generateRawConfig(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name                 string
 		caseFile             string
@@ -172,50 +175,71 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 	}
 }
 
+//go:embed test_instances.yaml
+var sortYAMLKeysTestInstancesYAML string
+
 func Test_sortYAMLKeys(t *testing.T) {
-	testCases := []struct {
-		name               string
-		inputYAMLString    string
-		expectedYAMLString string
-		errorMatcher       func(err error) bool
-	}{
-		{
-			name: "case 0",
-			inputYAMLString: `b: v2
-a: v1
-`,
-			expectedYAMLString: `a: v1
-b: v2
-`,
-			errorMatcher: nil,
-		},
+	t.Parallel()
+
+	tmpDir, err := ioutil.TempDir("", "konfigure-sort-yaml-keys-test")
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpDir)
+
+	fs := newMockFilesystem(tmpDir, "test_instances.yaml")
+
+	config := Config{
+		Fs:               fs,
+		DecryptTraverser: &noopTraverser{},
+
+		Installation: "puma",
+	}
+	g, err := New(config)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	for i, tc := range testCases {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			t.Log(tc.name)
+	var firstConfigMap string
+	for i := 0; i < 100; i++ {
+		configmap, _, err := g.generateRawConfig(context.Background(), "operator")
+		if err != nil {
+			t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
+		}
 
-			yamlString, err := sortYAMLKeys(tc.inputYAMLString)
+		if firstConfigMap == "" {
+			firstConfigMap = configmap
+			continue
+		}
 
-			switch {
-			case err == nil && tc.errorMatcher == nil:
-				// correct; carry on
-			case err != nil && tc.errorMatcher == nil:
-				t.Fatalf("error == %#v, want nil", err)
-			case err == nil && tc.errorMatcher != nil:
-				t.Fatalf("error == nil, want non-nil")
-			case !tc.errorMatcher(err):
-				t.Fatalf("error == %#v, want matching", err)
+		if configmap != firstConfigMap {
+			f1 := filepath.Join(tmpDir, "cmp1")
+			f2 := filepath.Join(tmpDir, "cmp2")
+			os.WriteFile(f1, []byte(firstConfigMap), 0666)
+			os.WriteFile(f2, []byte(configmap), 0666)
+			t.Logf("configmap[%d] (diff) = \n", i)
+			cmd := exec.Command("git", "diff", "--exit-code", "--no-index", f1, f2)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err := cmd.Run()
+			if err != nil {
+				t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
 			}
+			t.Fatal()
+		}
+	}
+}
 
-			if tc.errorMatcher != nil {
-				return
-			}
+func Test_sortYAMLKeys_null(t *testing.T) {
+	t.Parallel()
 
-			if !reflect.DeepEqual(yamlString, tc.expectedYAMLString) {
-				t.Fatalf("yamlString = %v, want %v", yamlString, tc.expectedYAMLString)
-			}
-		})
+	out, err := sortYAMLKeys("")
+	if err != nil {
+		t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+	}
+
+	if out != "" {
+		t.Fatalf("out = %v, want %v", out, "")
 	}
 }
 
