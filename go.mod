@@ -11,7 +11,7 @@ require (
 	github.com/giantswarm/microerror v0.3.0
 	github.com/giantswarm/micrologger v0.5.0
 	github.com/giantswarm/operatorkit/v4 v4.0.0
-	github.com/giantswarm/valuemodifier v0.3.1
+	github.com/giantswarm/valuemodifier v0.4.0
 	github.com/go-logr/logr v0.2.1 // indirect
 	github.com/go-test/deep v1.0.7 // indirect
 	github.com/google/go-cmp v0.5.6
