@@ -102,6 +102,9 @@ type GenerateInput struct {
 	// ExtraLabels are additional labels to be set on the generated
 	// ConfigMap and Secret.
 	ExtraLabels map[string]string
+	// ExtraFinalizers are additional finalizers to be set on the generated
+	// ConfigMap and Secret.
+	ExtraFinalizers []string
 }
 
 func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
@@ -138,6 +141,7 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 
 		Annotations: annotations,
 		Labels:      in.ExtraLabels,
+		Finalizers:  in.ExtraFinalizers,
 	}
 
 	configMap, secret, err := gen.GenerateConfig(ctx, in.App, meta)
