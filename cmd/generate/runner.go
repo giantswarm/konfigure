@@ -18,7 +18,6 @@ import (
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
-	"github.com/giantswarm/konfigure/pkg/generator/key"
 )
 
 const (
@@ -100,9 +99,6 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 				meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
 			},
 			ExtraLabels: nil,
-			ExtraFinalizers: []string{
-				key.ArgoResourceFinalizer,
-			},
 		}
 
 		configmap, secret, err = gen.Generate(ctx, in)
@@ -133,7 +129,6 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			Name:      secret.Name,
 			Namespace: secret.Namespace,
 		}
-		appCR.ObjectMeta.Finalizers = []string{key.ArgoResourceFinalizer}
 	}
 
 	if r.flag.Raw {
