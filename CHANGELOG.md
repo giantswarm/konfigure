@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.8] - 2021-09-15
+
 ### Fixed
 
 - Improve include file discovery in linter.
@@ -93,7 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.3.7...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.3.8...HEAD
+[0.3.8]: https://github.com/giantswarm/konfigure/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/giantswarm/konfigure/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/giantswarm/konfigure/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/giantswarm/konfigure/compare/v0.3.4...v0.3.5
