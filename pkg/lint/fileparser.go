@@ -18,14 +18,10 @@ import (
 
 var (
 	fMap                 = dummyFuncMap()
-	includes             = &includeExtract{[]string{}}
 	templatePathPattern  = regexp.MustCompile(`(?:\{\{.*?[\-\s\(]?)(\.[a-zA-Z][a-zA-Z0-9_\.]+)(?:[\-\s\)]?.*?\}\})`)
+	includeFilePattern   = regexp.MustCompile(`(?:\{\{.*?[\-\s]?)include(?:\s?['"])([a-zA-Z0-9\-]+)(?:\s?['"])(?:[\-\s]?.*?\}\})`)
 	yamlErrorLinePattern = regexp.MustCompile(`yaml: line (\d+)`)
 )
-
-func init() {
-	fMap["include"] = includes.include
-}
 
 type configFile struct {
 	filepath     string
@@ -137,13 +133,19 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 
 	tf := &templateFile{
 		filepath: filepath,
+		includes: []string{},
+	}
+
+	// extract included filenames
+	includeStatements := includeFilePattern.FindAllStringSubmatch(string(body), -1)
+	for _, matchSlice := range includeStatements {
+		tf.includes = append(tf.includes, "include/"+matchSlice[1]+".yaml.template")
 	}
 
 	// extract templated values and all paths from the template
 	values := map[string]*templateValue{}
 	paths := map[string]bool{}
 	{
-		includes.clear()
 		t, err := template.
 			New(filepath).
 			Funcs(fMap).
@@ -184,7 +186,6 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
-		tf.includes = includes.Filepaths
 
 		c := pathmodifier.Config{
 			InputBytes: output.Bytes(),
@@ -263,23 +264,6 @@ func PathmodifierPath(path string) string {
 	return "." + path
 }
 
-// includeExtract is a helper struct, with a method passed to template's
-// funcmap. It collects filepaths used as arguments to "include" function in
-// templates.
-type includeExtract struct {
-	Filepaths []string
-}
-
-func (ie *includeExtract) include(filepath string, data interface{}) string {
-	filepath = "include/" + filepath + ".yaml.template"
-	ie.Filepaths = append(ie.Filepaths, filepath)
-	return ""
-}
-
-func (ie *includeExtract) clear() {
-	ie.Filepaths = []string{}
-}
-
 func dummyFuncMap() template.FuncMap {
 	// sprig.funcMap
 	dummy := template.FuncMap{}
@@ -289,7 +273,7 @@ func dummyFuncMap() template.FuncMap {
 		}
 	}
 	// built-ins, which might be affected by interface comparison
-	for _, fName := range []string{"eq", "ne"} {
+	for _, fName := range []string{"eq", "ne", "include"} {
 		dummy[fName] = func(args ...interface{}) string {
 			return ""
 		}
