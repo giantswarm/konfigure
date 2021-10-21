@@ -214,7 +214,7 @@ func Test_sortYAMLKeys(t *testing.T) {
 			f1 := filepath.Join(tmpDir, "cmp1")
 			f2 := filepath.Join(tmpDir, "cmp2")
 			for _, f := range []string{f1, f2} {
-				if err := os.WriteFile(f, []byte(firstConfigMap), 0666); err != nil {
+				if err := os.WriteFile(f, []byte(firstConfigMap), 0666); err != nil { // nolint:gosec
 					t.Fatal("error creating file", f, err)
 				}
 			}
