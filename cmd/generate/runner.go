@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
-	"github.com/giantswarm/app/v4/pkg/app"
+	"github.com/giantswarm/app/v5/pkg/app"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	vaultapi "github.com/hashicorp/vault/api"
