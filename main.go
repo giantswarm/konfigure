@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/konfigure/cmd/generate"
+	"github.com/giantswarm/konfigure/cmd/kustomizepatch"
 	"github.com/giantswarm/konfigure/cmd/lint"
 	"github.com/giantswarm/konfigure/pkg/project"
 )
@@ -49,6 +50,16 @@ func mainE(ctx context.Context) error {
 			Logger: logger,
 		}
 		cmd, err := generate.New(c)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		subcommands = append(subcommands, cmd)
+	}
+	{
+		c := kustomizepatch.Config{
+			Logger: logger,
+		}
+		cmd, err := kustomizepatch.New(c)
 		if err != nil {
 			return microerror.Mask(err)
 		}
