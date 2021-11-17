@@ -13,8 +13,7 @@ const (
 	name             = "kustomize-patch"
 	shortDescription = "Generate application configuration as a kustomize patch."
 	// TODO(kuba): Add configuration description here.
-	longDescription = `
-`
+	longDescription = ``
 )
 
 type Config struct {
