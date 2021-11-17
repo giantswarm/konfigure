@@ -58,8 +58,12 @@ func (r *runner) Run(_ *cobra.Command, _ []string) error {
 
 func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	ctx := context.Background()
+
+	var dir string // TODO(kuba): this is where giantswarm/config is pulled
+
 	var configmap *corev1.ConfigMap
 	var secret *corev1.Secret
+	var err error
 	{
 		if r.config == nil {
 			return nil, microerror.Maskf(invalidConfigError, "r.config is required, got <nil>")
@@ -79,7 +83,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 		var vaultClient *vaultapi.Client
 		{
-			vaultClient, err := createVaultClientUsingEnv(ctx)
+			vaultClient, err = createVaultClientUsingEnv(ctx)
 			if err != nil {
 				return nil, microerror.Mask(err)
 			}
@@ -91,7 +95,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				VaultClient: vaultClient,
 
 				// TODO(kuba): r.config.Dir will be constant, probably. Remove it.
-				Dir:          r.config.Dir,
+				Dir:          dir,
 				Installation: installation,
 			}
 
@@ -150,22 +154,24 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		b, err := yaml.Marshal(item)
 		if err != nil {
 			return nil, microerror.Maskf(
-				err,
-				"error marshalling %s/%s %s",
+				executionFailedError,
+				"error marshalling %s/%s %s: %s",
 				item.GetObjectKind().GroupVersionKind().Group,
 				item.GetObjectKind().GroupVersionKind().Version,
 				item.GetObjectKind().GroupVersionKind().Kind,
+				err,
 			)
 		}
 
 		rnode, err := kyaml.Parse(string(b))
 		if err != nil {
 			return nil, microerror.Maskf(
-				err,
-				"error parsing %s/%s %s",
+				executionFailedError,
+				"error parsing %s/%s %s: %s",
 				item.GetObjectKind().GroupVersionKind().Group,
 				item.GetObjectKind().GroupVersionKind().Version,
 				item.GetObjectKind().GroupVersionKind().Kind,
+				err,
 			)
 		}
 

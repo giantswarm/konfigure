@@ -45,9 +45,6 @@ func (c *config) Validate() error {
 	if c.AppDestinationNamespace == "" {
 		return microerror.Maskf(invalidConfigError, "%T.AppDestinationNamespace is required", c)
 	}
-	if c.AppDisableForceUpgrade == "" {
-		return microerror.Maskf(invalidConfigError, "%T.AppDisableForceUpgrade is required", c)
-	}
 	if c.AppName == "" {
 		return microerror.Maskf(invalidConfigError, "%T.AppName is required", c)
 	}
