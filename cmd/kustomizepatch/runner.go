@@ -29,6 +29,7 @@ const (
 	nameSuffix          = "konfigure"
 	giantswarmNamespace = "giantswarm"
 	installationEnvVar  = "KONFIGURE_INSTALLATION"
+	sourceServiceEnvVar = "SOURCE_SERVICE"
 )
 
 type runner struct {
@@ -72,6 +73,19 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		if err := r.config.Validate(); err != nil {
 			return nil, microerror.Mask(err)
 		}
+
+		// TODO(kuba):
+		// If a `dir` is given in config we no longer care about sourceServiceEnvVar.
+		// Else:
+		// REQUIRES GitRepository pointing to giantswarm/config!
+		// 1. Check if sourceServiceEnvVar is a valid URL (format: http://<kubernetes service ref>)
+		// 1.5. (optional) Is it possible to check if we have the latest version pulled?
+		// 2. Download http://<sourceServiceEnvVar>/gitrepository/<namespace>/<name>/latest.tar.gz
+		//    example: http://<>/gitrepository/flux-system/gitrepository-giantswarm-config/latest.tar.gz
+		//    if: there is a GitRepository CR 'flux-system/gitrepository-giantswarm-config'
+		// 3. Untar with github.com/fluxcd/pkg/untar (untar.Untar())
+		// 4. Set dir to location of untarred files
+		dir = "/home/jakub/Work/giantswarm/config"
 
 		var installation string
 		{
