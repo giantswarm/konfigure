@@ -15,7 +15,7 @@ import "github.com/giantswarm/microerror"
 //         path: /plugins/konfigure
 // app_catalog: ""
 // app_destination_namespace: ""
-// app_disable_force_upgrade: ""
+// app_disable_force_upgrade: true
 // app_name: ""
 // app_version: ""
 // name: ""
