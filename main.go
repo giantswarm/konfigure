@@ -15,6 +15,10 @@ import (
 	"github.com/giantswarm/konfigure/pkg/project"
 )
 
+const (
+	konfigureModeEnvVar = "KONFIGURE_MODE"
+)
+
 func main() {
 	err := mainE(context.Background())
 	if err != nil {
@@ -64,6 +68,20 @@ func mainE(ctx context.Context) error {
 			return microerror.Mask(err)
 		}
 		subcommands = append(subcommands, cmd)
+
+		// Make kustomizepatch main command if konfigure is running in
+		// container as a kustomize plugin. Kustomize does not know how to call
+		// sub-commands. This is discovered by setting KONFIGURE_MODE:
+		// "kustomizepatch" environment variable.
+		if v := os.Getenv(konfigureModeEnvVar); v == "kustomizepatch" {
+			cmd.SilenceErrors = true
+			cmd.SilenceUsage = true
+			err = cmd.Execute()
+			if err != nil {
+				return microerror.Mask(err)
+			}
+			return nil
+		}
 	}
 	{
 		c := lint.Config{
