@@ -227,6 +227,9 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 }
 
 func (r *runner) updateConfig() error {
+	// Get source-controller's service URL and GitRepository data from
+	// environment variables. We use this data to construct an URL to
+	// source-controller's artifact.
 	svc := os.Getenv(sourceServiceEnvVar)
 	if svc == "" {
 		return microerror.Maskf(executionFailedError, "%q environment variable not set", sourceServiceEnvVar)
@@ -237,6 +240,8 @@ func (r *runner) updateConfig() error {
 		return microerror.Maskf(executionFailedError, "%q environment variable not set", gitRepositoryEnvVar)
 	}
 
+	// Make a HEAD request. This allows us to check if the artifact we have
+	// cached is still fresh - we will check the 'Last-Modified' header.
 	client := &http.Client{Timeout: 15 * time.Second}
 	request, err := http.NewRequest("HEAD", fmt.Sprintf("http://%s/%s/latest.tar.gz", svc, repo), nil)
 	if err != nil {
@@ -255,6 +260,8 @@ func (r *runner) updateConfig() error {
 		)
 	}
 
+	// Figure out if the cache is still fresh. If no artifacts have been pulled
+	// yet, download it for the first time.
 	var cacheUpToDate = true
 
 	sourceLastModified := response.Header.Get("Last-Modified")
@@ -272,6 +279,8 @@ func (r *runner) updateConfig() error {
 	} else if err != nil {
 		return microerror.Mask(err)
 	} else {
+		// Compare the time source-controller advertises as Last-Modified with
+		// the time we saved last time an artifact was downloaded and cached.
 		timeSourceLastModified, err := time.Parse(time.RFC1123, sourceLastModified)
 		if err != nil {
 			return microerror.Mask(err)
@@ -287,11 +296,7 @@ func (r *runner) updateConfig() error {
 		return nil // early exit, cache matches the file served by source-controller
 	}
 
-	dir := path.Join(cacheDir, "latest")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return microerror.Mask(err)
-	}
-
+	// Cache is stale, pull the latest artifact.
 	request.Method = "GET" // reuse the request we used to ask for HEAD
 	getResponse, err = client.Do(request)
 	if err != nil {
@@ -311,7 +316,21 @@ func (r *runner) updateConfig() error {
 		return microerror.Mask(err)
 	}
 
+	// Clear the old artifact's directory and untar a fresh one.
+	dir := path.Join(cacheDir, "latest")
+	if err := os.RemoveAll(dir); err != nil {
+		return microerror.Mask(err)
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return microerror.Mask(err)
+	}
 	if _, err = untar.Untar(&buf, dir); err != nil {
+		return microerror.Mask(err)
+	}
+
+	// Update the timestamp
+	err = os.WriteFile(path.Join(cacheDir, cacheLastModFile), []byte(sourceLastModified), 0755)
+	if err != nil {
 		return microerror.Mask(err)
 	}
 
