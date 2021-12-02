@@ -1,6 +1,7 @@
 package kustomizepatch
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fluxcd/pkg/untar"
 	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/app/v4/pkg/app"
 	"github.com/giantswarm/microerror"
@@ -245,6 +247,7 @@ func (r *runner) updateConfig() error {
 	if err != nil {
 		return microerror.Mask(err)
 	}
+	// TODO: check status code
 
 	var cacheUpToDate = true
 
@@ -267,7 +270,7 @@ func (r *runner) updateConfig() error {
 		if err != nil {
 			return microerror.Mask(err)
 		}
-		timeCacheLastModified, err := time.Parse(time.RFC1123, cacheLastModified)
+		timeCacheLastModified, err := time.Parse(time.RFC1123, string(cacheLastModified))
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -278,12 +281,31 @@ func (r *runner) updateConfig() error {
 		return nil // early exit, cache matches the file served by source-controller
 	}
 
+	dir := path.Join(cacheDir, "latest")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return microerror.Mask(err)
+	}
+
 	request.Method = "GET" // reuse the request we used to ask for HEAD
 	response, err = client.Do(request)
 	if err != nil {
 		return microerror.Mask(err)
 	}
+	defer response.Body.Close()
 
+	// TODO: check if response.StatusCode != http.StatusOK
+
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, response.Body)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	if _, err = untar.Untar(&buf, dir); err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
 }
 
 func addNameSuffix(name string) string {

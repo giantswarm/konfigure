@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Masterminds/sprig/v3 v3.2.0
 	github.com/fatih/color v1.10.0
+	github.com/fluxcd/pkg/untar v0.1.0 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions/v3 v3.22.0
 	github.com/giantswarm/app/v4 v4.11.0
