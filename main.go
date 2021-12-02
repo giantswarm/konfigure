@@ -69,7 +69,7 @@ func mainE(ctx context.Context) error {
 		}
 		subcommands = append(subcommands, cmd)
 
-		// Make kustomizepatch main command if konfigure is running in
+		// Make kustomizepatch the main command if konfigure is running in
 		// container as a kustomize plugin. Kustomize does not know how to call
 		// sub-commands. This is discovered by setting KONFIGURE_MODE:
 		// "kustomizepatch" environment variable.

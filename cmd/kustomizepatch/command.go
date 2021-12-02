@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	name             = "kustomize-patch"
+	name             = "kustomizepatch"
 	shortDescription = "Generate application configuration as a kustomize patch."
 	// TODO(kuba): Add configuration description here.
 	longDescription = ``

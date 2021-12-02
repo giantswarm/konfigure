@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
+	"path"
 	"strings"
+	"time"
 
 	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
 	"github.com/giantswarm/app/v4/pkg/app"
@@ -28,9 +31,32 @@ import (
 const (
 	nameSuffix          = "konfigure"
 	giantswarmNamespace = "giantswarm"
-	installationEnvVar  = "KONFIGURE_INSTALLATION"
-	sourceServiceEnvVar = "SOURCE_SERVICE"
+
+	// cacheDir is a subfolder where konfigure will keep its cache if it's
+	// running in cluster and talking to source-controller.
+	cacheDir         = "cache"
+	cacheLastModFile = "lastmod"
+	// dirEnvVar is a directory containing giantswarm/config. If set, requests
+	// to source-controller will not be made and both sourceServiceEnvVar and
+	// gitRepositoryEnvVar will be ignored. Used only on local machine for
+	// debugging.
+	dirEnvVar = "KONFIGURE_DIR"
+	// installationEnvVar tells konfigure which installation it's running in,
+	// e.g. "ginger"
+	installationEnvVar = "KONFIGURE_INSTALLATION"
+	// gitRepositoryEnvVar is namespace/name of GitRepository pointing to
+	// giantswarm/config, e.g. "flux-system/gs-config"
+	gitRepositoryEnvVar = "KONFIGURE_GITREPO"
+	// sourceServiceEnvVar is K8s address of source-controller's service, e.g.
+	// "source-controller.flux-system.svc"
+	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
 )
+
+var httpRetryBackoff = []time.Duration{
+	time.Second,
+	15 * time.Second,
+	30 * time.Second,
+}
 
 type runner struct {
 	logger micrologger.Logger
@@ -60,8 +86,6 @@ func (r *runner) Run(_ *cobra.Command, _ []string) error {
 func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	ctx := context.Background()
 
-	var dir string // TODO(kuba): this is where giantswarm/config is pulled
-
 	var configmap *corev1.ConfigMap
 	var secret *corev1.Secret
 	var err error
@@ -73,19 +97,6 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		if err := r.config.Validate(); err != nil {
 			return nil, microerror.Mask(err)
 		}
-
-		// TODO(kuba):
-		// If a `dir` is given in config we no longer care about sourceServiceEnvVar.
-		// Else:
-		// REQUIRES GitRepository pointing to giantswarm/config!
-		// 1. Check if sourceServiceEnvVar is a valid URL (format: http://<kubernetes service ref>)
-		// 1.5. (optional) Is it possible to check if we have the latest version pulled?
-		// 2. Download http://<sourceServiceEnvVar>/gitrepository/<namespace>/<name>/latest.tar.gz
-		//    example: http://<>/gitrepository/flux-system/gitrepository-giantswarm-config/latest.tar.gz
-		//    if: there is a GitRepository CR 'flux-system/gitrepository-giantswarm-config'
-		// 3. Untar with github.com/fluxcd/pkg/untar (untar.Untar())
-		// 4. Set dir to location of untarred files
-		dir = "/home/jakub/Work/giantswarm/config"
 
 		var installation string
 		{
@@ -103,12 +114,36 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 		}
 
+		// TODO(kuba):
+		// If a `dir` is given in config we no longer care about sourceServiceEnvVar.
+		// Else:
+		// REQUIRES GitRepository pointing to giantswarm/config!
+		// 1. Check if sourceServiceEnvVar is a valid URL (format: http://<kubernetes service ref>)
+		// 1.5. (optional) Is it possible to check if we have the latest version pulled?
+		// 2. Download http://<sourceServiceEnvVar>/gitrepository/<namespace>/<name>/latest.tar.gz
+		//    example: http://<>/gitrepository/flux-system/gitrepository-giantswarm-config/latest.tar.gz
+		//    if: there is a GitRepository CR 'flux-system/gitrepository-giantswarm-config'
+		// 3. Untar with github.com/fluxcd/pkg/untar (untar.Untar())
+		// 4. Set dir to location of untarred files
+		var dir string
+		{
+			// If the dirEnvVar is set we don't communicate with
+			// source-controller. Use what's in the dir.
+			dir = os.Getenv(dirEnvVar)
+			// Else, we download the packaged config from source-controller.
+			if dir == "" {
+				if err := r.updateConfig(); err != nil {
+					return nil, microerror.Mask(err)
+				}
+				dir = path.Join(cacheDir, "latest")
+			}
+		}
+
 		var gen *generator.Service
 		{
 			c := generator.Config{
 				VaultClient: vaultClient,
 
-				// TODO(kuba): r.config.Dir will be constant, probably. Remove it.
 				Dir:          dir,
 				Installation: installation,
 			}
@@ -193,6 +228,70 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	}
 
 	return output, nil
+}
+
+func (r *runner) updateConfig() error {
+	svc := os.Getenv(sourceServiceEnvVar)
+	if svc == "" {
+		return microerror.Maskf(executionFailedError, "%q environment variable not set", sourceServiceEnvVar)
+	}
+
+	repo := os.Getenv(gitRepositoryEnvVar)
+	if repo == "" {
+		return microerror.Maskf(executionFailedError, "%q environment variable not set", gitRepositoryEnvVar)
+	}
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	request, err := http.NewRequest("HEAD", fmt.Sprintf("http://%s/%s/latest.tar.gz", svc, repo), nil)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	var response *http.Response
+	for _, retryBackoff := range httpRetryBackoff {
+		response, err = client.Do(request)
+		if err != nil {
+			time.Sleep(retryBackoff)
+			continue
+		}
+		break
+	}
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	var cacheUpToDate = true
+
+	sourceLastModified := response.Header.Get("Last-Modified")
+	if sourceLastModified == "" {
+		return microerror.Maskf(executionFailedError, "%s does not expose Last-Modified header", request.URL.String())
+	}
+
+	cacheLastModified, err := os.ReadFile(path.Join(cacheDir, cacheLastModFile))
+	if err != nil && os.IsNotExist(err) {
+		err = os.WriteFile(path.Join(cacheDir, cacheLastModFile), []byte(sourceLastModified), 755)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		cacheUpToDate = false // file did not exist until now
+	} else if err != nil {
+		return microerror.Mask(err)
+	} else {
+		timeSourceLastModified, err := time.Parse(time.RFC1123, sourceLastModified)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		timeCacheLastModified, err := time.Parse(time.RFC1123, cacheLastModified)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		cacheUpToDate = timeCacheLastModified.Equal(timeSourceLastModified) || timeCacheLastModified.After(timeSourceLastModified)
+	}
+
+	if cacheUpToDate {
+		return nil // early exit, cache matches the file served by source-controller
+	}
+
 }
 
 func addNameSuffix(name string) string {
