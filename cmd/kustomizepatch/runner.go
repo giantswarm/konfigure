@@ -247,7 +247,13 @@ func (r *runner) updateConfig() error {
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	// TODO: check status code
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return mircoerror.Mask(
+			executionFailedError,
+			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
+		)
+	}
 
 	var cacheUpToDate = true
 
@@ -287,16 +293,20 @@ func (r *runner) updateConfig() error {
 	}
 
 	request.Method = "GET" // reuse the request we used to ask for HEAD
-	response, err = client.Do(request)
+	getResponse, err = client.Do(request)
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	defer response.Body.Close()
-
-	// TODO: check if response.StatusCode != http.StatusOK
+	if getResponse.StatusCode != http.StatusOK {
+		return mircoerror.Mask(
+			executionFailedError,
+			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, getResponse.StatusCode,
+		)
+	}
+	defer getResponse.Body.Close()
 
 	var buf bytes.Buffer
-	_, err = io.Copy(&buf, response.Body)
+	_, err = io.Copy(&buf, getResponse.Body)
 	if err != nil {
 		return microerror.Mask(err)
 	}
