@@ -52,12 +52,6 @@ const (
 	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
 )
 
-var httpRetryBackoff = []time.Duration{
-	time.Second,
-	15 * time.Second,
-	30 * time.Second,
-}
-
 type runner struct {
 	logger micrologger.Logger
 	stdout io.Writer
@@ -247,15 +241,7 @@ func (r *runner) updateConfig() error {
 		return microerror.Mask(err)
 	}
 
-	var response *http.Response
-	for _, retryBackoff := range httpRetryBackoff {
-		response, err = client.Do(request)
-		if err != nil {
-			time.Sleep(retryBackoff)
-			continue
-		}
-		break
-	}
+	response, err := client.Do(request)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -290,6 +276,12 @@ func (r *runner) updateConfig() error {
 
 	if cacheUpToDate {
 		return nil // early exit, cache matches the file served by source-controller
+	}
+
+	request.Method = "GET" // reuse the request we used to ask for HEAD
+	response, err = client.Do(request)
+	if err != nil {
+		return microerror.Mask(err)
 	}
 
 }
