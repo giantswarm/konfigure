@@ -254,7 +254,7 @@ func (r *runner) updateConfig() error {
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return mircoerror.Mask(
+		return microerror.Maskf(
 			executionFailedError,
 			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
 		)
@@ -298,12 +298,12 @@ func (r *runner) updateConfig() error {
 
 	// Cache is stale, pull the latest artifact.
 	request.Method = "GET" // reuse the request we used to ask for HEAD
-	getResponse, err = client.Do(request)
+    getResponse, err := client.Do(request)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 	if getResponse.StatusCode != http.StatusOK {
-		return mircoerror.Mask(
+		return microerror.Maskf(
 			executionFailedError,
 			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, getResponse.StatusCode,
 		)
