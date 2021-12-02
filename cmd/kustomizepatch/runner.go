@@ -298,7 +298,7 @@ func (r *runner) updateConfig() error {
 
 	// Cache is stale, pull the latest artifact.
 	request.Method = "GET" // reuse the request we used to ask for HEAD
-    getResponse, err := client.Do(request)
+	getResponse, err := client.Do(request)
 	if err != nil {
 		return microerror.Mask(err)
 	}
