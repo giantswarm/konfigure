@@ -73,6 +73,8 @@ func (r *runner) Run(_ *cobra.Command, _ []string) error {
 
 	err := pluginCmd.Execute()
 	if err != nil {
+		// print pretty error for the sake of kustomize-controller logs
+		r.logger.Errorf(context.Background(), err, "konfigure encountered an error")
 		return microerror.Mask(err)
 	}
 
