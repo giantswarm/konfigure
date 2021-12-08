@@ -262,7 +262,7 @@ func (r *runner) updateConfig() error {
 
 	// Figure out if the cache is still fresh. If no artifacts have been pulled
 	// yet, download it for the first time.
-	var cacheUpToDate = true
+	var cacheUpToDate = true // nolint: ineffassign
 
 	sourceLastModified := response.Header.Get("Last-Modified")
 	if sourceLastModified == "" {
@@ -271,7 +271,7 @@ func (r *runner) updateConfig() error {
 
 	cacheLastModified, err := os.ReadFile(path.Join(cacheDir, cacheLastModFile))
 	if err != nil && os.IsNotExist(err) {
-		err = os.WriteFile(path.Join(cacheDir, cacheLastModFile), []byte(sourceLastModified), 755)
+		err = os.WriteFile(path.Join(cacheDir, cacheLastModFile), []byte(sourceLastModified), 0755) // nolint:gosec
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -329,7 +329,7 @@ func (r *runner) updateConfig() error {
 	}
 
 	// Update the timestamp
-	err = os.WriteFile(path.Join(cacheDir, cacheLastModFile), []byte(sourceLastModified), 0755)
+	err = os.WriteFile(path.Join(cacheDir, cacheLastModFile), []byte(sourceLastModified), 0755) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}
