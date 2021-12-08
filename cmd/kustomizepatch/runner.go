@@ -34,9 +34,9 @@ const (
 	nameSuffix          = "konfigure"
 	giantswarmNamespace = "giantswarm"
 
-	// cacheDir is a subfolder where konfigure will keep its cache if it's
+	// cacheDir is a directory where konfigure will keep its cache if it's
 	// running in cluster and talking to source-controller.
-	cacheDir         = "cache"
+	cacheDir         = "/tmp/konfigure-cache"
 	cacheLastModFile = "lastmod"
 	// dirEnvVar is a directory containing giantswarm/config. If set, requests
 	// to source-controller will not be made and both sourceServiceEnvVar and
