@@ -161,7 +161,8 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				meta.Annotation.XInstallation.Key():   installation,
 				meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
 			},
-			ExtraLabels: nil,
+			ExtraLabels:     nil,
+			VersionOverride: "main",
 		}
 
 		configmap, secret, err = gen.Generate(ctx, in)
