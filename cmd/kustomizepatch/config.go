@@ -31,9 +31,6 @@ type config struct {
 	AppName string `json:"app_name" yaml:"app_name"`
 	// AppVersion is application version to be set in App CR.
 	AppVersion string `json:"app_version" yaml:"app_version"`
-	// TODO(kuba): Dir will be constant, probably. Remove it.
-	// // Dir is a directory path containing configuration source (e.g cloned "giantswarm/config" repo).
-	// Dir string `json:"dir" yaml:"dir"`
 	// Name is the name of the generated ConfigMap/Secret/App.
 	Name string `json:"name" yaml:"name"`
 }
