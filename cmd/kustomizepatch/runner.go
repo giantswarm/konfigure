@@ -218,6 +218,16 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	return output, nil
 }
 
+// updateConfig makes sure that the giantswarm/config version we keep stashed
+// in <cacheDir>/latest is still *the* latest version out there. To do that,
+// it sends a HEAD request to source-controller to compare Last-Modified
+// timestamp of what it downloaded with the time our cache was last updated.
+// If this is the first time and there is nothing to compare yet, or cache's
+// timestamp is older than what source-controller advertises, a new version
+// will be downloaded from source-controller and untarred. It's Last-Modified
+// timestamp will be saved for later comparison.
+// Otherwise we assume we have the latest version cached, all is well and we
+// can proceed.
 func (r *runner) updateConfig() error {
 	// Get source-controller's service URL and GitRepository data from
 	// environment variables. We use this data to construct an URL to
