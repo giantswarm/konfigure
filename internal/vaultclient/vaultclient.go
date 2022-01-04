@@ -1,4 +1,4 @@
-package generate
+package vaultclient
 
 import (
 	"context"
@@ -17,13 +17,13 @@ const (
 	vaultCAPath  = "VAULT_CAPATH"
 )
 
-type vaultClientConfig struct {
+type Config struct {
 	Address string `json:"addr"`
 	Token   string `json:"token"`
 	CAPath  string `json:"caPath"`
 }
 
-func newVaultClient(config vaultClientConfig) (*vaultapi.Client, error) {
+func NewClient(config Config) (*vaultapi.Client, error) {
 	c := vaultapi.DefaultConfig()
 	c.Address = config.Address
 	c.MaxRetries = 4 // Total of 5 tries.
@@ -44,7 +44,7 @@ func newVaultClient(config vaultClientConfig) (*vaultapi.Client, error) {
 	return vaultClient, nil
 }
 
-func createVaultClientUsingK8sSecret(ctx context.Context, namespace, name string) (*vaultapi.Client, error) {
+func NewClientUsingK8sSecret(ctx context.Context, namespace, name string) (*vaultapi.Client, error) {
 	c, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -66,7 +66,7 @@ func createVaultClientUsingK8sSecret(ctx context.Context, namespace, name string
 		}
 	}
 
-	vaultClient, err := newVaultClient(vaultClientConfig{
+	vaultClient, err := NewClient(Config{
 		Address: string(secret.Data[vaultAddress]),
 		Token:   string(secret.Data[vaultToken]),
 		CAPath:  string(secret.Data[vaultCAPath]),
@@ -78,14 +78,14 @@ func createVaultClientUsingK8sSecret(ctx context.Context, namespace, name string
 	return vaultClient, nil
 }
 
-func createVaultClientUsingEnv(ctx context.Context) (*vaultapi.Client, error) {
+func NewClientUsingEnv(ctx context.Context) (*vaultapi.Client, error) {
 	for _, varName := range []string{vaultAddress, vaultToken, vaultCAPath} {
 		if value, ok := os.LookupEnv(varName); !ok || value == "" {
 			return nil, microerror.Maskf(executionFailedError, "%s environment variable must be set", varName)
 		}
 	}
 
-	vaultClient, err := newVaultClient(vaultClientConfig{
+	vaultClient, err := NewClient(Config{
 		Address: os.Getenv(vaultAddress),
 		Token:   os.Getenv(vaultToken),
 		CAPath:  os.Getenv(vaultCAPath),

@@ -28,6 +28,7 @@ import (
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
+	"github.com/giantswarm/konfigure/internal/vaultclient"
 )
 
 const (
@@ -106,7 +107,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 		var vaultClient *vaultapi.Client
 		{
-			vaultClient, err = createVaultClientUsingEnv(ctx)
+			vaultClient, err = vaultclient.NewClientUsingEnv(ctx)
 			if err != nil {
 				return nil, microerror.Mask(err)
 			}
