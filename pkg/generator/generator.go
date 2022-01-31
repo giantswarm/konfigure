@@ -399,8 +399,8 @@ func (g Generator) getRenderedTemplate(ctx context.Context, filepath, templateDa
 
 func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
 	patcher, err := uberconfig.NewYAML(
-		uberconfig.RawSource(bytes.NewBuffer(base)),
-		uberconfig.RawSource(bytes.NewBuffer(patch)),
+		uberconfig.Source(bytes.NewBuffer(base)),
+		uberconfig.Source(bytes.NewBuffer(patch)),
 	)
 	if err != nil {
 		return "", microerror.Mask(err)
