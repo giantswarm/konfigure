@@ -398,12 +398,15 @@ func (g Generator) getRenderedTemplate(ctx context.Context, filepath, templateDa
 }
 
 func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
-	patcher, err := uberconfig.NewYAMLProviderFromBytes(base, patch)
+	patcher, err := uberconfig.NewYAML(
+		uberconfig.RawSource(bytes.NewBuffer(base)),
+		uberconfig.RawSource(bytes.NewBuffer(patch)),
+	)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
-	value := patcher.Get(uberconfig.Root).Value()
+	value := patcher.Get(uberconfig.Root).Value() // nolint:staticcheck
 	output, err := yaml3.Marshal(value)
 	if err != nil {
 		return "", microerror.Mask(err)
