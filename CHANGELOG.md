@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Replaced `giantswarm/valuemodifier` with `uber/config` for the purpose of merging YAML patches.
+- Replaced `giantswarm/valuemodifier` with `uber-go/config` for the purpose of merging YAML patches.
 
 ## [0.3.8] - 2021-09-15
 
