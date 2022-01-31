@@ -11,7 +11,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/giantswarm/microerror"
-	pathmodifier "github.com/giantswarm/valuemodifier/path"
+	uberconfig "go.uber.org/config"
 	yaml3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -398,67 +398,23 @@ func (g Generator) getRenderedTemplate(ctx context.Context, filepath, templateDa
 }
 
 func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
-	var basePathSvc *pathmodifier.Service
-	{
-		c := pathmodifier.DefaultConfig()
-		c.InputBytes = base
-		svc, err := pathmodifier.New(c)
-		if pathmodifier.IsInvalidFormat(err) {
-			// return a descriptive error message
-			x := struct{}{}
-			yamlErr := yaml.Unmarshal([]byte(base), &x)
-			if yamlErr != nil {
-				return "", microerror.Mask(yamlErr)
-			}
-			return "", microerror.Mask(err)
-		} else if err != nil {
-			return "", microerror.Mask(err)
-		}
-		basePathSvc = svc
-	}
-
-	var patchPathSvc *pathmodifier.Service
-	{
-		c := pathmodifier.DefaultConfig()
-		c.InputBytes = patch
-		svc, err := pathmodifier.New(c)
-		if pathmodifier.IsInvalidFormat(err) {
-			// return a descriptive error message
-			x := struct{}{}
-			yamlErr := yaml.Unmarshal([]byte(patch), &x)
-			if yamlErr != nil {
-				return "", microerror.Mask(yamlErr)
-			}
-			return "", microerror.Mask(err)
-		} else if err != nil {
-			return "", microerror.Mask(err)
-		}
-		patchPathSvc = svc
-	}
-
-	patchedPaths, err := patchPathSvc.All()
+	patcher, err := uberconfig.NewYAMLProviderFromBytes(base, patch)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
-	for _, p := range patchedPaths {
-		value, err := patchPathSvc.Get(p)
-		if err != nil {
-			return "", microerror.Mask(err)
-		}
-
-		err = basePathSvc.Set(p, value)
-		if err != nil {
-			return "", microerror.Mask(err)
-		}
-	}
-
-	outputBytes, err := basePathSvc.OutputBytes()
+	merged := map[string]interface{}{}
+	err = patcher.Get(uberconfig.Root).Populate(merged)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
-	return string(outputBytes), nil
+	output, err := yaml.Marshal(merged)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return string(output), nil
 }
 
 func (g Generator) renderTemplate(ctx context.Context, templateText string, templateData string) (string, error) {
