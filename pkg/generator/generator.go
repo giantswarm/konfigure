@@ -403,13 +403,8 @@ func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
-	merged := map[string]interface{}{}
-	err = patcher.Get(uberconfig.Root).Populate(merged)
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	output, err := yaml.Marshal(merged)
+	value := patcher.Get(uberconfig.Root).Value()
+	output, err := yaml3.Marshal(value)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
