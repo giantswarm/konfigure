@@ -399,6 +399,7 @@ func (g Generator) getRenderedTemplate(ctx context.Context, filepath, templateDa
 
 func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
 	patcher, err := uberconfig.NewYAML(
+		uberconfig.Permissive(),
 		uberconfig.Source(bytes.NewBuffer(base)),
 		uberconfig.Source(bytes.NewBuffer(patch)),
 	)
