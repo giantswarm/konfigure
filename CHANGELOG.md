@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2022-02-07
+
 ### Added
 
 - Add `kustomizepatch` command, enabling konfigure to run as a kustomize plugin.
@@ -106,7 +108,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/giantswarm/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/giantswarm/giantswarm/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/giantswarm/giantswarm/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/giantswarm/giantswarm/compare/v0.3.8...v0.4.0
 [0.3.8]: https://github.com/giantswarm/konfigure/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/giantswarm/konfigure/compare/v0.3.6...v0.3.7
