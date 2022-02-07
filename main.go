@@ -10,8 +10,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/konfigure/cmd/generate"
+	"github.com/giantswarm/konfigure/cmd/kustomizepatch"
 	"github.com/giantswarm/konfigure/cmd/lint"
 	"github.com/giantswarm/konfigure/pkg/project"
+)
+
+const (
+	konfigureModeEnvVar = "KONFIGURE_MODE"
 )
 
 func main() {
@@ -53,6 +58,30 @@ func mainE(ctx context.Context) error {
 			return microerror.Mask(err)
 		}
 		subcommands = append(subcommands, cmd)
+	}
+	{
+		c := kustomizepatch.Config{
+			Logger: logger,
+		}
+		cmd, err := kustomizepatch.New(c)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		subcommands = append(subcommands, cmd)
+
+		// Make kustomizepatch the main command if konfigure is running in
+		// container as a kustomize plugin. Kustomize does not know how to call
+		// sub-commands. This is discovered by setting KONFIGURE_MODE:
+		// "kustomizepatch" environment variable.
+		if v := os.Getenv(konfigureModeEnvVar); v == "kustomizepatch" {
+			cmd.SilenceErrors = true
+			cmd.SilenceUsage = true
+			err = cmd.Execute()
+			if err != nil {
+				return microerror.Mask(err)
+			}
+			return nil
+		}
 	}
 	{
 		c := lint.Config{

@@ -102,6 +102,8 @@ type GenerateInput struct {
 	// ExtraLabels are additional labels to be set on the generated
 	// ConfigMap and Secret.
 	ExtraLabels map[string]string
+	// VersionOverride allows user to set version manually.
+	VersionOverride string
 }
 
 func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
@@ -125,10 +127,17 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 		}
 	}
 
-	version, err := store.Version()
-	if err != nil {
-		return nil, nil, microerror.Mask(err)
+	var version string
+	if in.VersionOverride != "" {
+		version = in.VersionOverride
+	} else {
+		v, err := store.Version()
+		if err != nil {
+			return nil, nil, microerror.Mask(err)
+		}
+		version = v
 	}
+
 	annotations := xstrings.CopyMap(in.ExtraAnnotations)
 	annotations[meta.Annotation.ConfigVersion.Key()] = version
 

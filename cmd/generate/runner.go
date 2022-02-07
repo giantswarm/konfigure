@@ -18,6 +18,7 @@ import (
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
+	"github.com/giantswarm/konfigure/internal/vaultclient"
 )
 
 const (
@@ -57,14 +58,14 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		var vaultClient *vaultapi.Client
 		{
 			if r.flag.VaultSecretName != "" && r.flag.VaultSecretNamespace != "" {
-				vaultClient, err = createVaultClientUsingK8sSecret(ctx, r.flag.VaultSecretNamespace, r.flag.VaultSecretName)
+				vaultClient, err = vaultclient.NewClientUsingK8sSecret(ctx, r.flag.VaultSecretNamespace, r.flag.VaultSecretName)
 				if err != nil {
 					return microerror.Mask(err)
 				}
 			}
 
 			if vaultClient == nil {
-				vaultClient, err = createVaultClientUsingEnv(ctx)
+				vaultClient, err = vaultclient.NewClientUsingEnv(ctx)
 				if err != nil {
 					return microerror.Mask(err)
 				}

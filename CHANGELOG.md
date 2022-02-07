@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `kustomizepatch` command, enabling konfigure to run as a kustomize plugin.
+
 ## [0.4.0] - 2022-02-03
 
 ### Fixed
 
 - Replaced `giantswarm/valuemodifier` with `uber-go/config` for the purpose of merging YAML patches.
+
 
 ## [0.3.8] - 2021-09-15
 
