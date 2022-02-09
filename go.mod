@@ -3,38 +3,33 @@ module github.com/giantswarm/konfigure
 go 1.16
 
 require (
-	github.com/Masterminds/sprig/v3 v3.2.0
-	github.com/fatih/color v1.10.0
+	github.com/Masterminds/sprig/v3 v3.2.2
+	github.com/fatih/color v1.13.0
 	github.com/fluxcd/pkg/untar v0.1.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions/v3 v3.22.0
-	github.com/giantswarm/app/v4 v4.11.0
-	github.com/giantswarm/microerror v0.3.0
-	github.com/giantswarm/micrologger v0.5.0
-	github.com/giantswarm/operatorkit/v4 v4.0.0
+	github.com/giantswarm/app/v4 v4.13.0
+	github.com/giantswarm/microerror v0.4.0
+	github.com/giantswarm/micrologger v0.6.0
+	github.com/giantswarm/operatorkit/v4 v4.3.1
 	github.com/giantswarm/valuemodifier v0.4.0
 	github.com/go-logr/logr v0.2.1 // indirect
 	github.com/go-test/deep v1.0.7 // indirect
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.7
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
-	github.com/hashicorp/vault/api v1.0.5-0.20201001211907-38d91b749c77
-	github.com/hashicorp/vault/sdk v0.1.14-0.20201109203410-5e6e24692b32 // indirect
+	github.com/hashicorp/vault/api v1.3.1
 	github.com/huandu/xstrings v1.3.2 // indirect
-	github.com/kr/pretty v0.2.1 // indirect
-	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra v1.3.0
 	go.mongodb.org/mongo-driver v1.4.2 // indirect
 	go.uber.org/config v1.4.0
-	go.uber.org/zap v1.14.1 // indirect
-	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-	k8s.io/api v0.19.10
-	k8s.io/apimachinery v0.19.10
-	k8s.io/client-go v0.19.10
-	sigs.k8s.io/kustomize/kyaml v0.13.0
-	sigs.k8s.io/yaml v1.2.0
+	k8s.io/api v0.20.15
+	k8s.io/apimachinery v0.20.15
+	k8s.io/client-go v0.20.15
+	sigs.k8s.io/kustomize/kyaml v0.13.3
+	sigs.k8s.io/yaml v1.3.0
 )
 
 replace (
