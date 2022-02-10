@@ -2,7 +2,6 @@ package meta
 
 import (
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
-	"github.com/giantswarm/operatorkit/v4/pkg/controller"
 
 	"github.com/giantswarm/konfigure/pkg/project"
 )
@@ -31,17 +30,4 @@ func (Version) Val(uniqueApp bool) string {
 	} else {
 		return project.Version()
 	}
-}
-
-func (Version) Selector(uniqueApp bool) controller.Selector {
-	return controller.NewSelector(func(labels controller.Labels) bool {
-		if !labels.Has(versionLabel) {
-			return false
-		}
-		if labels.Get(versionLabel) == (Version{}).Val(uniqueApp) {
-			return true
-		}
-
-		return false
-	})
 }
