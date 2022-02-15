@@ -215,7 +215,6 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 		output = append(output, rnode)
 	}
-	r.logger.Log("logger", "konfigure", "level", "info", "ts", time.Now().String(), "message", fmt.Sprintf("Generated %s@%s", r.config.AppName, r.config.AppVersion))
 
 	return output, nil
 }
@@ -243,8 +242,6 @@ func (r *runner) updateConfig() error {
 	if repo == "" {
 		return microerror.Maskf(executionFailedError, "%q environment variable not set", gitRepositoryEnvVar)
 	}
-
-	r.logger.Log("logger", "konfigure", "level", "info", "ts", time.Now().String(), "message", fmt.Sprintf("Checking if GitRepository %s is up to date", repo))
 
 	// Make a HEAD request. This allows us to check if the artifact we have
 	// cached is still fresh - we will check the 'Last-Modified' header.
@@ -299,10 +296,8 @@ func (r *runner) updateConfig() error {
 	}
 
 	if cacheUpToDate {
-		r.logger.Log("logger", "konfigure", "level", "info", "ts", time.Now().String(), "message", fmt.Sprintf("GitRepository %s is up to date", repo))
 		return nil // early exit, cache matches the file served by source-controller
 	}
-	r.logger.Log("logger", "konfigure", "level", "info", "ts", time.Now().String(), "message", fmt.Sprintf("Updating GitRepository %s", repo))
 
 	// Cache is stale, pull the latest artifact.
 	request.Method = "GET" // reuse the request we used to ask for HEAD
@@ -342,7 +337,6 @@ func (r *runner) updateConfig() error {
 		return microerror.Mask(err)
 	}
 
-	r.logger.Log("logger", "konfigure", "level", "info", "ts", time.Now().String(), "message", fmt.Sprintf("Updated GitRepository %s", repo))
 	return nil
 }
 
