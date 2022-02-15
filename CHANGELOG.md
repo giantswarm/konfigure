@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Improve timeout when calling source-controller.
+- Improve logging when running `konfigure kustomizepatch`.
+
 ## [0.5.0] - 2022-02-07
 
 ### Added
