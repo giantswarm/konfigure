@@ -245,7 +245,7 @@ func (r *runner) updateConfig() error {
 
 	// Make a HEAD request. This allows us to check if the artifact we have
 	// cached is still fresh - we will check the 'Last-Modified' header.
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{Timeout: 60 * time.Second}
 	request, err := http.NewRequest("HEAD", fmt.Sprintf("http://%s/gitrepository/%s/latest.tar.gz", svc, repo), nil)
 	if err != nil {
 		return microerror.Mask(err)
