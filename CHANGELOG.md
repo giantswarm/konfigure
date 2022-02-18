@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Add `giantswarm.io/managed-by` label so new app CRs in collections are not
+blocked by app-admission-controller.
+
 ## [0.5.2] - 2022-02-15
 
 ### Fixed

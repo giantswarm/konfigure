@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/fluxcd/pkg/untar"
-	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
-	"github.com/giantswarm/app/v4/pkg/app"
+	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
+	"github.com/giantswarm/app/v6/pkg/app"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -173,6 +173,9 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			ConfigVersion:       configmap.Annotations[meta.Annotation.ConfigVersion.Key()],
 			DisableForceUpgrade: r.config.AppDisableForceUpgrade,
 			Name:                r.config.Name,
+			Labels: map[string]string{
+				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
+			},
 		}
 
 		appCR = app.NewCR(c)
