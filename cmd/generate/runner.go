@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	applicationv1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/application/v1alpha1"
-	"github.com/giantswarm/app/v4/pkg/app"
+	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
+	"github.com/giantswarm/app/v6/pkg/app"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -118,6 +118,9 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			ConfigVersion:       configmap.Annotations[meta.Annotation.ConfigVersion.Key()],
 			DisableForceUpgrade: r.flag.AppDisableForceUpgrade,
 			Name:                r.flag.Name,
+			Labels: map[string]string{
+				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
+			},
 		}
 
 		appCR = app.NewCR(c)
