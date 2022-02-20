@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed new InCluster app config option and set to true
+
 ## [0.5.3] - 2022-02-18
 
 ### Fixed
