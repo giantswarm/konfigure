@@ -173,7 +173,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			ConfigVersion:       configmap.Annotations[meta.Annotation.ConfigVersion.Key()],
 			DisableForceUpgrade: r.config.AppDisableForceUpgrade,
 			Name:                r.config.Name,
-			InCluster:       	 true,
+			InCluster:           true,
 			Labels: map[string]string{
 				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
 			},
