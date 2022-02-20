@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed new InCluster app config option and set to true
 - Add `giantswarm.io/managed-by` label so new app CRs in collections are not
 blocked by app-admission-controller.
 
