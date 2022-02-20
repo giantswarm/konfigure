@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2022-02-18
+
 ### Fixed
 
 - Fixed new InCluster app config option and set to true
@@ -127,7 +129,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/giantswarm/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/giantswarm/giantswarm/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/giantswarm/giantswarm/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/giantswarm/giantswarm/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/giantswarm/giantswarm/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/giantswarm/giantswarm/compare/v0.4.0...v0.5.0
