@@ -154,7 +154,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
 			},
 			ExtraLabels:     nil,
-			InCluster: true,
+			InCluster:       true,
 			VersionOverride: "main",
 		}
 
