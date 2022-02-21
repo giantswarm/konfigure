@@ -118,6 +118,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			ConfigVersion:       configmap.Annotations[meta.Annotation.ConfigVersion.Key()],
 			DisableForceUpgrade: r.flag.AppDisableForceUpgrade,
 			Name:                r.flag.Name,
+			InCluster:           true,
 			Labels: map[string]string{
 				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
 			},
