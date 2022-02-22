@@ -15,6 +15,19 @@ workflows:
 
       - architect/push-to-docker:
           context: "architect"
+          name: push-konfigure-to-docker
+          image: "docker.io/giantswarm/konfigure"
+          username_envar: "DOCKER_USERNAME"
+          password_envar: "DOCKER_PASSWORD"
+          requires:
+            - go-build
+          # Needed to trigger job also on git tag.
+          filters:
+            tags:
+              only: /^v.*/
+
+      - architect/push-to-docker:
+          context: "architect"
           name: push-konfigure-to-quay
           image: "quay.io/giantswarm/konfigure"
           username_envar: "QUAY_USERNAME"
