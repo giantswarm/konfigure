@@ -76,7 +76,7 @@ func (r *runner) Run(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		// print pretty error for the sake of kustomize-controller logs
 		r.logger.Errorf(context.Background(), err, "konfigure encountered an error")
-		return microerror.Maskf(err, "konfigure input: %+v", r.config)
+		return fmt.Errorf("error %w\noccurred with konfigure input: %+v", err, r.config)
 	}
 
 	return nil
