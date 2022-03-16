@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.6] - 2022-03-16
+
 ### Added
 
 - Push image to docker hub as this is the registry we use in
 management-clusters-fleet.
+
+- Log additional context for errors occurring in `konfigure kustomizepatch`.
 
 ## [0.5.5] - 2022-02-21
 
@@ -145,7 +149,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.5.5...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.5.6...HEAD
+[0.5.6]: https://github.com/giantswarm/konfigure/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/giantswarm/konfigure/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/giantswarm/konfigure/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/giantswarm/konfigure/compare/v0.5.2...v0.5.3
