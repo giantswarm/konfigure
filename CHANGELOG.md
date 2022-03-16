@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Push image to docker hub as this is the registry we use in
 management-clusters-fleet.
 
+- Log additional context for errors occurring in `konfigure kustomizepatch`.
+
 ## [0.5.5] - 2022-02-21
 
 ### Fixed
