@@ -39,4 +39,3 @@ data: |
 path: secret-values.yaml.golden
 data: |
   secretAccessKey: 1234
-
