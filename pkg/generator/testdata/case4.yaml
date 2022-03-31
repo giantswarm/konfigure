@@ -49,4 +49,3 @@ data: |
 path: secret-values.yaml.golden
 data: |
   secretAccessKey: password
-
