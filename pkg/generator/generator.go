@@ -119,6 +119,32 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 // 9. Patch secret template (result of 6.) with decrypted patch values (result
 //    of 7.)
 func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (configmap string, secret string, err error) {
+	// Check if installation folder exists at all. If not, return a descriptive
+	// error.
+	if _, err := g.fs.ReadDir("installations/" + g.installation); err != nil {
+		if IsNotFound(err) {
+			return "", "", microerror.Maskf(
+				notFoundError,
+				"cannot generate config for installation %s, because \"installations/%s\" does not exist",
+				g.installation, g.installation,
+			)
+		} else {
+			return "", "", microerror.Mask(err)
+		}
+	}
+	// Check if app folder exists at all. If not, return a descriptive error.
+	if _, err := g.fs.ReadDir("default/apps/" + app); err != nil {
+		if IsNotFound(err) {
+			return "", "", microerror.Maskf(
+				notFoundError,
+				"cannot generate config for app %s, because \"default/apps/%s\" does not exist",
+				app, app,
+			)
+		} else {
+			return "", "", microerror.Mask(err)
+		}
+	}
+
 	// 1.
 	configmapContext, err := g.getWithPatchIfExists(
 		ctx,
