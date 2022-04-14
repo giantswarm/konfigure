@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Make errors related to `giantswarm/config` structure more descriptive.
+
 ## [0.5.6] - 2022-03-16
 
 ### Added
