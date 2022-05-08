@@ -1,27 +1,27 @@
 path: default/config.yaml
 data: |
   universalValue: 42
----
+===
 path: installations/puma/secret.yaml
 data: |
   key: password
----
+===
 path: default/apps/operator/configmap-values.yaml.template
 data: |
   answer: {{ .universalValue }}
----
+===
 path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
----
+===
 path: installations/puma/apps/operator/secret-values.yaml.patch
 data: |
   secretAccessKeyTheSecond: SuperSpecialKeyForOperatorOnPuma123!#
----
+===
 path: configmap-values.yaml.golden
 data: |
   answer: 42
----
+===
 path: secret-values.yaml.golden
 data: |
   secretAccessKey: decrypted-password

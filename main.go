@@ -9,6 +9,7 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/konfigure/cmd/fetchkeys"
 	"github.com/giantswarm/konfigure/cmd/generate"
 	"github.com/giantswarm/konfigure/cmd/kustomizepatch"
 	"github.com/giantswarm/konfigure/cmd/lint"
@@ -49,6 +50,16 @@ func mainE(ctx context.Context) error {
 
 	// Add sub-commands
 	subcommands := []*cobra.Command{}
+	{
+		c := fetchkeys.Config{
+			Logger: logger,
+		}
+		cmd, err := fetchkeys.New(c)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		subcommands = append(subcommands, cmd)
+	}
 	{
 		c := generate.Config{
 			Logger: logger,

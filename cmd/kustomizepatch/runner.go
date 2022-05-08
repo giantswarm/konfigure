@@ -50,6 +50,12 @@ const (
 	// gitRepositoryEnvVar is namespace/name of GitRepository pointing to
 	// giantswarm/config, e.g. "flux-system/gs-config"
 	gitRepositoryEnvVar = "KONFIGURE_GITREPO"
+	// sopsKeysDirEnvVar tells Konfigure how to configure environment to make
+	// it possible for SOPS to find the keys
+	sopsKeysDirEnvVar = "KONFIGURE_SOPS_KEYS_DIR"
+	// sopsKeysSourceEnvVar tells Konfigure to either get keys from Kubernetes
+	// Secrets or rely on local storage when setting up environment for SOPS
+	sopsKeysSourceEnvVar = "KONFIGURE_SOPS_KEYS_SOURCE"
 	// sourceServiceEnvVar is K8s address of source-controller's service, e.g.
 	// "source-controller.flux-system.svc"
 	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
@@ -127,13 +133,28 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 		}
 
+		var sopsKeysSource string
+		{
+			sopsKeysSource = os.Getenv(sopsKeysSourceEnvVar)
+
+			if sopsKeysSource == "" {
+				sopsKeysSource = "local"
+			}
+
+			if sopsKeysSource != "local" && sopsKeysSource != "kubernetes" {
+				return nil, microerror.Maskf(invalidConfigError, "%q environment variable wrong value, must be one of: local,kubernetes\n", sopsKeysSourceEnvVar)
+			}
+		}
+
 		var gen *generator.Service
 		{
 			c := generator.Config{
 				VaultClient: vaultClient,
 
-				Dir:          dir,
-				Installation: installation,
+				Dir:            dir,
+				Installation:   installation,
+				SOPSKeysDir:    os.Getenv(sopsKeysDirEnvVar),
+				SOPSKeysSource: sopsKeysSource,
 			}
 
 			gen, err = generator.New(c)

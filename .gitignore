@@ -1,4 +1,7 @@
 *.swp
 TODO
 /konfigure*
+**/testdata/keys/*.private
+**/testdata/keys/*.public
+**/testdata/expected/keys*.txt
 !vendor/**

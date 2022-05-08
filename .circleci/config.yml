@@ -12,6 +12,9 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+          pre-steps:
+            - run:
+                command: "apk add --no-cach gnupg"
 
       - architect/push-to-docker:
           context: "architect"

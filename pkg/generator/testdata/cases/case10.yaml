@@ -1,0 +1,43 @@
+path: default/config.yaml
+data: |
+  universalValue: 42
+===
+path: installations/puma/config.yaml.patch
+data: |
+  provider:
+    kind: aws
+    region: us-east-1
+===
+path: installations/puma/secret.yaml
+data: |
+  key: password
+===
+path: default/apps/operator/configmap-values.yaml.template
+data: |
+  answer: {{ .universalValue }}
+  region: {{ .provider.region }}
+  data:
+  {{- include "weird-data" . | nindent 2 }}
+===
+path: default/apps/operator/secret-values.yaml.template
+data: |
+  secretAccessKey: {{ .key }}
+===
+path: include/weird-data.yaml.template
+data: |
+  weirdData: |
+    "this string might cause issues//!@#$%&*()<>"
+    And this line //!@#$%&*()<> as well
+===
+path: configmap-values.yaml.golden
+data: |
+  answer: 42
+  data:
+    weirdData: |
+      "this string might cause issues//!@#$%&*()<>"
+      And this line //!@#$%&*()<> as well
+  region: us-east-1
+===
+path: secret-values.yaml.golden
+data: |
+  secretAccessKey: password

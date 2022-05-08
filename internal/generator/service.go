@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/giantswarm/konfigure/internal/meta"
+	"github.com/giantswarm/konfigure/internal/sopsenv"
 	"github.com/giantswarm/konfigure/pkg/decrypt"
 	"github.com/giantswarm/konfigure/pkg/filesystem"
 	"github.com/giantswarm/konfigure/pkg/generator"
@@ -20,14 +21,19 @@ type Config struct {
 	Log         micrologger.Logger
 	VaultClient *vaultapi.Client
 
-	Dir          string
-	Installation string
-	Verbose      bool
+	Dir            string
+	Installation   string
+	SOPSKeysDir    string
+	SOPSKeysSource string
+	Verbose        bool
 }
 
 type Service struct {
 	log              micrologger.Logger
 	decryptTraverser generator.DecryptTraverser
+
+	sopsKeysDir    string
+	sopsKeysSource string
 
 	dir          string
 	installation string
@@ -77,6 +83,9 @@ func New(config Config) (*Service, error) {
 	s := &Service{
 		log:              config.Log,
 		decryptTraverser: decryptTraverser,
+
+		sopsKeysDir:    config.SOPSKeysDir,
+		sopsKeysSource: config.SOPSKeysSource,
 
 		dir:          config.Dir,
 		installation: config.Installation,
@@ -147,6 +156,29 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 
 		Annotations: annotations,
 		Labels:      in.ExtraLabels,
+	}
+
+	var sopsCleanup func()
+	var sopsEnv *sopsenv.SOPSEnv
+	{
+		c := sopsenv.SOPSEnvConfig{
+			KeysDir:    s.sopsKeysDir,
+			KeysSource: s.sopsKeysSource,
+		}
+
+		sopsEnv, sopsCleanup, err = sopsenv.NewSOPSEnv(c)
+		if err != nil {
+			return nil, nil, microerror.Mask(err)
+		}
+
+		if sopsCleanup != nil {
+			defer sopsCleanup()
+		}
+	}
+
+	err = sopsEnv.Setup(ctx)
+	if err != nil {
+		return nil, nil, microerror.Mask(err)
 	}
 
 	configMap, secret, err := gen.GenerateConfig(ctx, in.App, meta)

@@ -10,12 +10,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/giantswarm/konfigure/internal/sopsenv"
+	"github.com/giantswarm/konfigure/internal/testutils"
+
 	"github.com/ghodss/yaml"
 	"github.com/giantswarm/microerror"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgofake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestGenerator_generateRawConfig(t *testing.T) {
 	t.Parallel()
+
+	err := testutils.UntarFile("testdata/keys", "keys.tgz")
+	if err != nil {
+		t.Fatalf("error == %#v, want nil", err)
+	}
 
 	testCases := []struct {
 		name                 string
@@ -26,10 +37,12 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 		installation string
 
 		decryptTraverser DecryptTraverser
+
+		secrets []*corev1.Secret
 	}{
 		{
 			name:     "case 0 - basic config with config.yaml.patch",
-			caseFile: "testdata/case0.yaml",
+			caseFile: "testdata/cases/case0.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -38,7 +51,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 1 - include files in templates",
-			caseFile: "testdata/case1.yaml",
+			caseFile: "testdata/cases/case1.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -47,7 +60,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 2 - override global value for one installation",
-			caseFile: "testdata/case2.yaml",
+			caseFile: "testdata/cases/case2.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -56,7 +69,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 3 - keep non-string values after templating/patching",
-			caseFile: "testdata/case3.yaml",
+			caseFile: "testdata/cases/case3.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -65,7 +78,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 4 - allow templating in included files ",
-			caseFile: "testdata/case4.yaml",
+			caseFile: "testdata/cases/case4.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -74,7 +87,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 5 - test indentation when including files",
-			caseFile: "testdata/case5.yaml",
+			caseFile: "testdata/cases/case5.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -83,7 +96,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 6 - test app with no secrets (configmap only)",
-			caseFile: "testdata/case6.yaml",
+			caseFile: "testdata/cases/case6.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -92,7 +105,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 7 - patch configmap and secret",
-			caseFile: "testdata/case7.yaml",
+			caseFile: "testdata/cases/case7.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -101,7 +114,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 8 - decrypt secret data",
-			caseFile: "testdata/case8.yaml",
+			caseFile: "testdata/cases/case8.yaml",
 
 			app:              "operator",
 			installation:     "puma",
@@ -110,7 +123,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:                 "case 9 - throw error when a key is missing",
-			caseFile:             "testdata/case9.yaml",
+			caseFile:             "testdata/cases/case9.yaml",
 			expectedErrorMessage: `<.this.key.is.missing>: map has no entry for key "this"`,
 
 			app:              "operator",
@@ -120,23 +133,89 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 		{
 			name:     "case 10 - no extra encoding for included files",
-			caseFile: "testdata/case10.yaml",
+			caseFile: "testdata/cases/case10.yaml",
 
 			app:              "operator",
 			installation:     "puma",
 			decryptTraverser: &noopTraverser{},
+		},
+
+		{ ///age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw
+			name:     "case 11 - same as case 10 with SOPS GnuPGP encryption",
+			caseFile: "testdata/cases/case11.yaml",
+
+			app:              "operator",
+			installation:     "puma",
+			decryptTraverser: &noopTraverser{},
+
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
+					"key.asc": testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+				}),
+			},
+		},
+
+		{
+			name:     "case 12 - same as case 10 with SOPS AGE encryption",
+			caseFile: "testdata/cases/case12.yaml",
+
+			app:              "operator",
+			installation:     "puma",
+			decryptTraverser: &noopTraverser{},
+
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
+					"key.agekey": testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+				}),
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tmpDir, err := ioutil.TempDir("", "konfigure-test")
+
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}
 			defer os.RemoveAll(tmpDir)
 
 			fs := newMockFilesystem(tmpDir, tc.caseFile)
+
+			var cl func()
+			var se *sopsenv.SOPSEnv
+			{
+				k8sObj := make([]runtime.Object, 0)
+				for _, sec := range tc.secrets {
+					k8sObj = append(k8sObj, sec)
+				}
+
+				client := clientgofake.NewSimpleClientset(k8sObj...)
+
+				seConfig := sopsenv.SOPSEnvConfig{
+					K8sClient:  client,
+					KeysDir:    "",
+					KeysSource: "kubernetes",
+				}
+
+				se, cl, err = sopsenv.NewSOPSEnv(seConfig)
+				if err != nil {
+					t.Fatalf("error == %#v, want nil", err)
+				}
+
+				if cl != nil {
+					defer cl()
+				}
+			}
+
+			isSOPS := len(tc.secrets) != 0
+
+			if isSOPS {
+				err = se.Setup(context.TODO())
+				if err != nil {
+					t.Fatalf("error == %#v, want nil", err)
+				}
+			}
 
 			config := Config{
 				Fs:               fs,
@@ -148,7 +227,6 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}
-
 			configmap, secret, err := g.generateRawConfig(context.Background(), tc.app)
 			if tc.expectedErrorMessage == "" {
 				if err != nil {
@@ -183,7 +261,7 @@ func Test_sortYAMLKeys(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	fs := newMockFilesystem(tmpDir, "testdata/test_instances.yaml")
+	fs := newMockFilesystem(tmpDir, "testdata/cases/test_instances.yaml")
 
 	config := Config{
 		Fs:               fs,
@@ -268,7 +346,7 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 		panic(err)
 	}
 
-	splitFiles := strings.Split(string(rawData), "---")
+	splitFiles := strings.Split(string(rawData), "===")
 
 	for _, rawYaml := range splitFiles {
 		file := testFile{}

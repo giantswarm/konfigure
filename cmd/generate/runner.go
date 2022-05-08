@@ -77,9 +77,11 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			c := generator.Config{
 				VaultClient: vaultClient,
 
-				Dir:          r.flag.Dir,
-				Installation: r.flag.Installation,
-				Verbose:      r.flag.Verbose,
+				Dir:            r.flag.Dir,
+				Installation:   r.flag.Installation,
+				SOPSKeysDir:    r.flag.SOPSKeysDir,
+				SOPSKeysSource: r.flag.SOPSKeysSource,
+				Verbose:        r.flag.Verbose,
 			}
 
 			gen, err = generator.New(c)

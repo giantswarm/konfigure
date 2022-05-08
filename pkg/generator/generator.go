@@ -11,6 +11,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/giantswarm/microerror"
+	"go.mozilla.org/sops/v3/decrypt"
 	uberconfig "go.uber.org/config"
 	yaml3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -207,10 +208,11 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	}
 	g.logMessage(ctx, "loaded installation secret")
 
-	decryptedBytes, err := g.decryptTraverser.Traverse(ctx, []byte(secretContext))
+	decryptedBytes, err := g.decryptSecret(ctx, []byte(secretContext))
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+
 	secretContext = string(decryptedBytes)
 	g.logMessage(ctx, "decrypted installation secret")
 
@@ -256,10 +258,12 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 			return "", "", microerror.Mask(err)
 		} else {
 			g.logMessage(ctx, "loaded secret-values patch")
-			decryptedBytes, err := g.decryptTraverser.Traverse(ctx, []byte(patch))
+
+			decryptedBytes, err := g.decryptSecret(ctx, []byte(patch))
 			if err != nil {
 				return "", "", microerror.Mask(err)
 			}
+
 			secretPatch = string(decryptedBytes)
 			g.logMessage(ctx, "decrypted secret-values patch")
 		}
@@ -485,6 +489,47 @@ func (g Generator) include(templateName string, templateData interface{}) (strin
 	}
 
 	return out.String(), nil
+}
+
+// TODO: get rid of the Vault decryption eventually. For now supporting both
+//       options doesn't feel like a bad idea, having both of them opens a door
+//       for less stressfull and coordinated migration, allowing us to migrate
+//       less-critical apps first, etc.
+func (g *Generator) decryptSecret(ctx context.Context, data []byte) ([]byte, error) {
+	// Check if file is SOPS-encrypted
+	forSOPS, err := isSOPSEncrypted(ctx, data)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	// If SOPS-encrypted decrypt with SOPS API, otherwise fallback to the
+	// Vault method
+	var decryptedBytes []byte
+	if forSOPS {
+		decryptedBytes, err = decrypt.Data(data, "yaml")
+	} else {
+		decryptedBytes, err = g.decryptTraverser.Traverse(ctx, data)
+	}
+
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+	return decryptedBytes, nil
+}
+
+// Each SOPS-encrypted file carries the `sops` key, that in turn carries metadata
+// necessary to decrypt it, hence this key is good for discovering files for SOPS
+// decryption.
+func isSOPSEncrypted(ctx context.Context, data []byte) (bool, error) {
+	values := make(map[interface{}]interface{})
+
+	err := yaml3.Unmarshal([]byte(data), &values)
+	if err != nil {
+		return false, microerror.Mask(err)
+	}
+
+	_, ok := values["sops"]
+	return ok, nil
 }
 
 func (g Generator) logMessage(ctx context.Context, format string, params ...interface{}) {

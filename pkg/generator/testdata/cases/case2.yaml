@@ -1,43 +1,27 @@
 path: default/config.yaml
 data: |
-  universalValue: 42
----
+  registry: docker.io
+===
 path: installations/puma/config.yaml.patch
 data: |
-  provider:
-    kind: aws
-    region: us-east-1
----
+  registry: azurecr.io
+===
 path: installations/puma/secret.yaml
 data: |
   key: password
----
+===
 path: default/apps/operator/configmap-values.yaml.template
 data: |
-  answer: {{ .universalValue }}
-  region: {{ .provider.region }}
-  availableInstances:
-  {{- include "instances" . | nindent 2 }}
----
+  registry: {{ .registry }}
+===
 path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
----
-path: include/instances.yaml.template
-data: |
-  - small
-  - medium
-  - large
----
+===
 path: configmap-values.yaml.golden
 data: |
-  answer: 42
-  availableInstances:
-    - small
-    - medium
-    - large
-  region: us-east-1
----
+  registry: azurecr.io
+===
 path: secret-values.yaml.golden
 data: |
   secretAccessKey: password

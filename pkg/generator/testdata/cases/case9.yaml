@@ -1,17 +1,17 @@
 path: default/config.yaml
 data: |
   universalValue: 42
----
+===
 path: installations/puma/secret.yaml
 data: |
   key: password
----
+===
 path: installations/puma/config.yaml.patch
 data: |
   provider:
     kind: aws
     region: us-east-1
----
+===
 path: default/apps/operator/configmap-values.yaml.template
 data: |
   answer: {{ .universalValue }}

@@ -1,31 +1,41 @@
 path: default/config.yaml
 data: |
   universalValue: 42
----
+  nested:
+    value:
+      example: 17.99
+===
 path: installations/puma/config.yaml.patch
 data: |
-  provider:
-    kind: aws
-    region: us-east-1
----
+  nested:
+    value:
+      example: 18.11
+      another_example: true
+===
 path: installations/puma/secret.yaml
 data: |
-  key: password
----
+  key: 1234
+===
 path: default/apps/operator/configmap-values.yaml.template
 data: |
-  answer: {{ .universalValue }}
-  region: {{ .provider.region }}
----
+  a: {{ .universalValue }}
+  b: {{ .nested.value.example }}
+  {{ if .nested.value.another_example }}
+  c: {{ .nested.value.another_example }}
+  {{ end }}
+  d: 123.4
+===
 path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
----
+===
 path: configmap-values.yaml.golden
 data: |
-  answer: 42
-  region: us-east-1
----
+  a: 42
+  b: 18.11
+  c: true
+  d: 123.4
+===
 path: secret-values.yaml.golden
 data: |
-  secretAccessKey: password
+  secretAccessKey: 1234

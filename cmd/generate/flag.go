@@ -15,6 +15,8 @@ const (
 	flagInstallation            = "installation"
 	flagName                    = "name"
 	flagRaw                     = "raw"
+	flagSOPSKeysSource          = "sops-keys-source"
+	flagSOPSKeysDir             = "sops-keys-dir"
 	flagVaultSecretName         = "vault-secret-name"
 	flagVaultSecretNamespace    = "vault-secret-namespace"
 	flagVerbose                 = "verbose"
@@ -30,6 +32,8 @@ type flag struct {
 	Installation            string
 	Name                    string
 	Raw                     bool
+	SOPSKeysDir             string
+	SOPSKeysSource          string
 	VaultSecretName         string
 	VaultSecretNamespace    string
 	Verbose                 bool
@@ -45,6 +49,8 @@ func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.Installation, flagInstallation, "", `Installation codename (e.g. "gauss").`)
 	cmd.Flags().StringVar(&f.Name, flagName, "", `Name of the generated ConfigMap/Secret/App.`)
 	cmd.Flags().BoolVar(&f.Raw, flagRaw, false, `Forces generator to output YAML instead of ConfigMap & Secret.`)
+	cmd.Flags().StringVar(&f.SOPSKeysDir, flagSOPSKeysDir, "", `Directory containing SOPS private keys (optional).`)
+	cmd.Flags().StringVar(&f.SOPSKeysSource, flagSOPSKeysSource, "local", `Source of SOPS private keys, supports "local" and "kubernetes", (optional).`)
 	cmd.Flags().StringVar(&f.VaultSecretName, flagVaultSecretName, "", "Name of K8s secret containing vault credentials (optional).")
 	cmd.Flags().StringVar(&f.VaultSecretNamespace, flagVaultSecretNamespace, "", "Namespace of K8s secret containing vault credentials (optional).")
 	cmd.Flags().BoolVar(&f.Verbose, flagVerbose, false, `Enables generator to output consecutive generation stages.`)
@@ -74,6 +80,9 @@ func (f *flag) Validate() error {
 	}
 	if (f.VaultSecretName == "" || f.VaultSecretNamespace == "") && f.VaultSecretName != f.VaultSecretNamespace {
 		return microerror.Maskf(invalidFlagError, "you have to specify both or neither %q and %q", flagVaultSecretName, flagVaultSecretNamespace)
+	}
+	if f.SOPSKeysSource != "local" && f.SOPSKeysSource != "kubernetes" {
+		return microerror.Maskf(invalidFlagError, "--%s must be one of: %s", flagSOPSKeysSource, "local,kubernetes")
 	}
 
 	return nil
