@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	//"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -24,6 +23,12 @@ import (
 func TestGenerator_generateRawConfig(t *testing.T) {
 	t.Parallel()
 
+	// This archive store development private keys. This is to avoid `gitleaks`
+	// and `pre-commit` to complain on files stored in this repository. We untar
+	// it here so that it can be used in test cases. Storing testing private keys
+	// doesn't seem like a bad thing, since SOPS seems to do it as well, see:
+	// AGE development key: https://raw.githubusercontent.com/mozilla/sops/master/age/keys.txt
+	// PGP development key: https://raw.githubusercontent.com/mozilla/sops/master/pgp/sops_functional_tests_key.asc
 	err := testutils.UntarFile("testdata/keys", "keys.tgz")
 	if err != nil {
 		t.Fatalf("error == %#v, want nil", err)
@@ -141,7 +146,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			decryptTraverser: &noopTraverser{},
 		},
 
-		{ ///age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw
+		{
 			name:     "case 11 - same as case 10 with SOPS GnuPGP encryption",
 			caseFile: "testdata/cases/case11.yaml",
 

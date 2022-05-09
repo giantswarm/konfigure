@@ -132,6 +132,12 @@ func TestSetups(t *testing.T) {
 func TestImportKeys(t *testing.T) {
 	var err error
 
+	// This archive store development private keys. This is to avoid `gitleaks`
+	// and `pre-commit` to complain on files stored in this repository. We untar
+	// it here so that it can be used in test cases. Storing testing private keys
+	// doesn't seem like a bad thing, since SOPS seems to do it as well, see:
+	// AGE development key: https://raw.githubusercontent.com/mozilla/sops/master/age/keys.txt
+	// PGP development key: https://raw.githubusercontent.com/mozilla/sops/master/pgp/sops_functional_tests_key.asc
 	err = testutils.UntarFile("testdata/keys", "keys.tgz")
 	if err != nil {
 		t.Fatalf("error == %#v, want nil", err)
