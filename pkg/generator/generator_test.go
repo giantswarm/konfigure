@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	//"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -346,9 +347,12 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 		panic(err)
 	}
 
-	splitFiles := strings.Split(string(rawData), "===")
+	// Necessary to avoid cutting SOPS-encrypted files
+	splitFiles := strings.Split(string(rawData), "\n---\n")
 
 	for _, rawYaml := range splitFiles {
+		rawYaml = rawYaml + "\n"
+
 		file := testFile{}
 		if err := yaml.Unmarshal([]byte(rawYaml), &file); err != nil {
 			panic(err)

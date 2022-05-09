@@ -4,18 +4,18 @@ data: |
   nested:
     value:
       example: 17.99
-===
+---
 path: installations/puma/config.yaml.patch
 data: |
   nested:
     value:
       example: 18.11
       another_example: true
-===
+---
 path: installations/puma/secret.yaml
 data: |
   key: 1234
-===
+---
 path: default/apps/operator/configmap-values.yaml.template
 data: |
   a: {{ .universalValue }}
@@ -24,18 +24,18 @@ data: |
   c: {{ .nested.value.another_example }}
   {{ end }}
   d: 123.4
-===
+---
 path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
-===
+---
 path: configmap-values.yaml.golden
 data: |
   a: 42
   b: 18.11
   c: true
   d: 123.4
-===
+---
 path: secret-values.yaml.golden
 data: |
   secretAccessKey: 1234

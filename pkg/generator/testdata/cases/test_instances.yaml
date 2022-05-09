@@ -1,32 +1,32 @@
 path: default/config.yaml
 data: |
   universalValue: 42
-===
+---
 path: installations/puma/config.yaml.patch
 data: |
   provider:
     kind: aws
     region: us-east-1
-===
+---
 path: installations/puma/secret.yaml
 data: |
   key: password
-===
+---
 path: default/apps/operator/configmap-values.yaml.template
 data: |
   answer: {{ .universalValue }}
   region: {{ .provider.region }}
   availableInstances:
     {{- include "instances" . | nindent 4 }}
-===
+---
 path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
-===
+---
 path: secret-values.yaml.golden
 data: |
   secretAccessKey: password
-===
+---
 path: include/instances.yaml.template
 data: |
   managementCluster:
@@ -347,7 +347,7 @@ data: |
     kubernetes:
       api:
         endpointBase: k8s.gauss.eu-west-1.aws.gigantic.io
-===
+---
 path: configmap-values.yaml.golden
 data: |
   answer: 42

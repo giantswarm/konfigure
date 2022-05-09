@@ -1,13 +1,13 @@
 path: default/config.yaml
 data: |
   universalValue: 42
-===
+---
 path: installations/puma/config.yaml.patch
 data: |
   provider:
     kind: aws
     region: us-east-1
-===
+---
 path: installations/puma/secret.yaml
 data: |
     key: ENC[AES256_GCM,data:SewepKxtVFI=,iv:HwuOSzBUPdvyVLSq+8zpI8kw3js6Lf8GgryAaogaIsU=,tag:61wpkogBtjLEkwoqu4rFbQ==,type:str]
@@ -35,24 +35,24 @@ data: |
           fp: F65B080F01DB7669363DFE31B69A68334353D9C0
       unencrypted_suffix: _unencrypted
       version: 3.7.1
-===
+---
 path: default/apps/operator/configmap-values.yaml.template
 data: |
   answer: {{ .universalValue }}
   region: {{ .provider.region }}
   data:
   {{- include "weird-data" . | nindent 2 }}
-===
+---
 path: default/apps/operator/secret-values.yaml.template
 data: |
   secretAccessKey: {{ .key }}
-===
+---
 path: include/weird-data.yaml.template
 data: |
   weirdData: |
     "this string might cause issues//!@#$%&*()<>"
     And this line //!@#$%&*()<> as well
-===
+---
 path: configmap-values.yaml.golden
 data: |
   answer: 42
@@ -61,7 +61,7 @@ data: |
       "this string might cause issues//!@#$%&*()<>"
       And this line //!@#$%&*()<> as well
   region: us-east-1
-===
+---
 path: secret-values.yaml.golden
 data: |
   secretAccessKey: password
