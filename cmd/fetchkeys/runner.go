@@ -51,7 +51,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		return microerror.Mask(err)
 	}
 
-	fmt.Printf("Keychains Directory: %s", sopsEnv.GetKeysDir())
+	fmt.Fprintf(r.stdout, "Keychains Directory: %s\n", sopsEnv.GetKeysDir())
 
 	return nil
 }

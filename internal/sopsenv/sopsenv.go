@@ -117,6 +117,48 @@ func (s *SOPSEnv) GetKeysDir() string {
 	return s.keysDir
 }
 
+// RunGPGCmd runs GPG binary with given args and input.
+// It is exporter mainly for re-using in tests
+func (s *SOPSEnv) RunGPGCmd(ctx context.Context, stdin io.Reader, args []string) (err error, stdout bytes.Buffer, stderr bytes.Buffer) {
+	cmd := exec.Command("gpg", args...)
+	cmd.Stdin = stdin
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	return
+}
+
+// Setup sets up a self-contingent environment for PGP and AGE keys,
+// and temporarily point SOPS to it, by exporting env vars
+func (s *SOPSEnv) Setup(ctx context.Context) error {
+	var err error
+
+	// Empty keysDir means we running against user / system default
+	// keychains, no need to point SOPS to a custom ones. In this mode
+	// we also do not import keys from K8s
+	if s.keysDir == "" {
+		return nil
+	}
+
+	err = s.setEnv()
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	// `local` keysSource means we running against local directory and
+	// do not want to download keys from Kubernetes Secrets
+	if s.k8sClient == nil {
+		return nil
+	}
+
+	err = s.importKeys(ctx)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
 // importKeys grabs Kubernetes Secrets matching selector and import PGP and AGE
 // keys into desired location. The Secrets are expected to match the Flux secrets constraints,
 // see https://fluxcd.io/docs/components/kustomize/kustomization/#decryption-secret-reference.
@@ -173,17 +215,6 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 	return nil
 }
 
-// RunGPGCmd runs GPG binary with given args and input.
-// It is exporter mainly for re-using in tests
-func (s *SOPSEnv) RunGPGCmd(ctx context.Context, stdin io.Reader, args []string) (err error, stdout bytes.Buffer, stderr bytes.Buffer) {
-	cmd := exec.Command("gpg", args...)
-	cmd.Stdin = stdin
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	return
-}
-
 // setEnv exports GnuPGP and AGE environment variables telling
 // where to find private keys
 func (s *SOPSEnv) setEnv() error {
@@ -194,37 +225,6 @@ func (s *SOPSEnv) setEnv() error {
 		return microerror.Mask(err)
 	}
 	err = os.Setenv(ageKeyFileVar, fmt.Sprintf("%s/%s", s.keysDir, "keys.txt"))
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	return nil
-}
-
-// Setup sets up a self-contingent environment for PGP and AGE keys,
-// and temporarily point SOPS to it, by exporting env vars
-func (s *SOPSEnv) Setup(ctx context.Context) error {
-	var err error
-
-	// Empty keysDir means we running against user / system default
-	// keychains, no need to point SOPS to a custom ones. In this mode
-	// we also do not import keys from K8s
-	if s.keysDir == "" {
-		return nil
-	}
-
-	err = s.setEnv()
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	// `local` keysSource means we running against local directory and
-	// do not want to download keys from Kubernetes Secrets
-	if s.k8sClient == nil {
-		return nil
-	}
-
-	err = s.importKeys(ctx)
 	if err != nil {
 		return microerror.Mask(err)
 	}
