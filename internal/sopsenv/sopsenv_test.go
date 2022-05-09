@@ -95,7 +95,7 @@ func TestSetups(t *testing.T) {
 				defer os.RemoveAll(tc.config.KeysDir)
 			}
 
-			se, cl, err := NewSOPSEnv(tc.config)
+			se, err := NewSOPSEnv(tc.config)
 			if err != nil {
 				t.Fatalf("error == %#v, want nil", err)
 			}
@@ -104,6 +104,7 @@ func TestSetups(t *testing.T) {
 			if err != nil && tc.expectedErr == nil {
 				t.Fatalf("error == %#v, want nil", err)
 			}
+			defer se.Cleanup()
 
 			if err != nil && tc.expectedErr != nil {
 				if microerror.Cause(err) != tc.expectedErr {
@@ -111,13 +112,9 @@ func TestSetups(t *testing.T) {
 				}
 			}
 
-			gotCleanup := cl != nil
+			gotCleanup := se.cleanup != nil
 			if gotCleanup != tc.expectCleanup {
 				t.Fatalf("want cleanup: %t, got: %t", tc.expectCleanup, gotCleanup)
-			}
-
-			if gotCleanup {
-				defer cl()
 			}
 
 			for k, v := range tc.expectedVars {
@@ -204,7 +201,6 @@ func TestImportKeys(t *testing.T) {
 
 			client := clientgofake.NewSimpleClientset(k8sObj...)
 
-			var cl func()
 			var se *SOPSEnv
 			{
 				seConfig := SOPSEnvConfig{
@@ -213,14 +209,11 @@ func TestImportKeys(t *testing.T) {
 					KeysSource: "kubernetes",
 				}
 
-				se, cl, err = NewSOPSEnv(seConfig)
+				se, err = NewSOPSEnv(seConfig)
 				if err != nil {
 					t.Fatalf("error == %#v, want nil", err)
 				}
-
-				if cl != nil {
-					defer cl()
-				}
+				defer se.Cleanup()
 			}
 
 			oldEnvs := map[string]string{

@@ -31,9 +31,7 @@ type Config struct {
 type Service struct {
 	log              micrologger.Logger
 	decryptTraverser generator.DecryptTraverser
-
-	sopsKeysDir    string
-	sopsKeysSource string
+	sopsEnv          *sopsenv.SOPSEnv
 
 	dir          string
 	installation string
@@ -80,12 +78,23 @@ func New(config Config) (*Service, error) {
 
 	}
 
+	var sopsEnv *sopsenv.SOPSEnv
+	{
+		c := sopsenv.SOPSEnvConfig{
+			KeysDir:    config.SOPSKeysDir,
+			KeysSource: config.SOPSKeysSource,
+		}
+
+		sopsEnv, err = sopsenv.NewSOPSEnv(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	s := &Service{
 		log:              config.Log,
 		decryptTraverser: decryptTraverser,
-
-		sopsKeysDir:    config.SOPSKeysDir,
-		sopsKeysSource: config.SOPSKeysSource,
+		sopsEnv:          sopsEnv,
 
 		dir:          config.Dir,
 		installation: config.Installation,
@@ -158,28 +167,11 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 		Labels:      in.ExtraLabels,
 	}
 
-	var sopsCleanup func()
-	var sopsEnv *sopsenv.SOPSEnv
-	{
-		c := sopsenv.SOPSEnvConfig{
-			KeysDir:    s.sopsKeysDir,
-			KeysSource: s.sopsKeysSource,
-		}
-
-		sopsEnv, sopsCleanup, err = sopsenv.NewSOPSEnv(c)
-		if err != nil {
-			return nil, nil, microerror.Mask(err)
-		}
-
-		if sopsCleanup != nil {
-			defer sopsCleanup()
-		}
-	}
-
-	err = sopsEnv.Setup(ctx)
+	err = s.sopsEnv.Setup(ctx)
 	if err != nil {
 		return nil, nil, microerror.Mask(err)
 	}
+	defer s.sopsEnv.Cleanup()
 
 	configMap, secret, err := gen.GenerateConfig(ctx, in.App, meta)
 	if err != nil {

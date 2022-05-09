@@ -41,7 +41,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		KeysSource: "kubernetes",
 	}
 
-	sopsEnv, _, err := sopsenv.NewSOPSEnv(cfg)
+	sopsEnv, err := sopsenv.NewSOPSEnv(cfg)
 	if err != nil {
 		return microerror.Mask(err)
 	}

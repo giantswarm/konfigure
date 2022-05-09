@@ -15,7 +15,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	// to run by the GS stuff
+	// GS stuff uses `kgs`-generated kubeconfigs that use
+	// `oidc` auth provider. This import makes is possible to
+	// run `konfigure` locally for troubleshooting purposes.
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
@@ -48,6 +50,7 @@ type SOPSEnvConfig struct {
 }
 
 type SOPSEnv struct {
+	cleanup    func()
 	k8sClient  kubernetes.Interface
 	keysDir    string
 	keysSource string
@@ -72,45 +75,49 @@ type SOPSEnv struct {
 //      keysDir="path"
 //      keysSource="kubernetes"
 //
-func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, func(), error) {
-	var f func()
-
+func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
 	s := &SOPSEnv{
 		keysDir:    config.KeysDir,
 		keysSource: config.KeysSource,
 	}
 
 	if config.KeysSource == "local" {
-		return s, f, nil
+		return s, nil
 	}
 
 	if config.KeysDir == "" {
 		keysDir, err := os.MkdirTemp("", konfigureTmpDirName)
 		if err != nil {
-			return nil, nil, microerror.Mask(err)
+			return nil, microerror.Mask(err)
 		}
 
 		s.keysDir = keysDir
-		f = func() { os.RemoveAll(keysDir) }
+		s.cleanup = func() { os.RemoveAll(keysDir) }
 	}
 
 	if config.K8sClient != nil {
 		s.k8sClient = config.K8sClient
-		return s, f, nil
+		return s, nil
 	}
 
 	cfg, err := ctrl.GetConfig()
 	if err != nil {
-		return nil, nil, microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
 	k8sClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return nil, nil, microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
 	s.k8sClient = k8sClient
-	return s, f, nil
+	return s, nil
+}
+
+func (s *SOPSEnv) Cleanup() {
+	if s.cleanup != nil {
+		s.cleanup()
+	}
 }
 
 func (s *SOPSEnv) GetKeysDir() string {
