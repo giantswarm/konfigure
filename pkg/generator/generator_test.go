@@ -188,7 +188,6 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 			fs := newMockFilesystem(tmpDir, tc.caseFile)
 
-			var cl func()
 			var se *sopsenv.SOPSEnv
 			{
 				k8sObj := make([]runtime.Object, 0)
@@ -204,14 +203,11 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 					KeysSource: "kubernetes",
 				}
 
-				se, cl, err = sopsenv.NewSOPSEnv(seConfig)
+				se, err = sopsenv.NewSOPSEnv(seConfig)
 				if err != nil {
 					t.Fatalf("error == %#v, want nil", err)
 				}
-
-				if cl != nil {
-					defer cl()
-				}
+				defer se.Cleanup()
 			}
 
 			isSOPS := len(tc.secrets) != 0
