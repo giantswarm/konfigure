@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/konfigure/internal/sopsenv"
+	"github.com/giantswarm/konfigure/internal/sopsenv/key"
 	"github.com/giantswarm/konfigure/internal/testutils"
 
 	"github.com/ghodss/yaml"
@@ -200,7 +201,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 				seConfig := sopsenv.SOPSEnvConfig{
 					K8sClient:  client,
 					KeysDir:    "",
-					KeysSource: "kubernetes",
+					KeysSource: key.KeysSourceKubernetes,
 				}
 
 				se, err = sopsenv.NewSOPSEnv(seConfig)

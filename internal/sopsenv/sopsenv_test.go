@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/giantswarm/konfigure/internal/sopsenv/key"
 	"github.com/giantswarm/konfigure/internal/testutils"
 )
 
@@ -29,7 +30,7 @@ func TestSetups(t *testing.T) {
 		{
 			name: "default",
 			config: SOPSEnvConfig{
-				KeysSource: "local",
+				KeysSource: key.KeysSourceLocal,
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  "",
@@ -40,7 +41,7 @@ func TestSetups(t *testing.T) {
 			name: "local with dir given",
 			config: SOPSEnvConfig{
 				KeysDir:    tmpDirName("local"),
-				KeysSource: "local",
+				KeysSource: key.KeysSourceLocal,
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  tmpDirName("local"),
@@ -54,7 +55,7 @@ func TestSetups(t *testing.T) {
 					testutils.NewSecret("test", "giantswarm", true, map[string][]byte{}),
 				),
 				KeysDir:    tmpDirName("k8s"),
-				KeysSource: "kubernetes",
+				KeysSource: key.KeysSourceKubernetes,
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  tmpDirName("k8s"),
@@ -67,7 +68,7 @@ func TestSetups(t *testing.T) {
 				K8sClient: clientgofake.NewSimpleClientset(
 					testutils.NewSecret("test", "giantswarm", true, map[string][]byte{}),
 				),
-				KeysSource: "kubernetes",
+				KeysSource: key.KeysSourceKubernetes,
 			},
 			expectCleanup: true,
 		},
@@ -75,7 +76,7 @@ func TestSetups(t *testing.T) {
 			name: "kubernetes with no Secrets",
 			config: SOPSEnvConfig{
 				K8sClient:  clientgofake.NewSimpleClientset(),
-				KeysSource: "kubernetes",
+				KeysSource: key.KeysSourceKubernetes,
 			},
 			expectCleanup: true,
 			expectedErr:   secretNotFoundError,
@@ -206,7 +207,7 @@ func TestImportKeys(t *testing.T) {
 				seConfig := SOPSEnvConfig{
 					K8sClient:  client,
 					KeysDir:    "",
-					KeysSource: "kubernetes",
+					KeysSource: key.KeysSourceKubernetes,
 				}
 
 				se, err = NewSOPSEnv(seConfig)
@@ -244,7 +245,7 @@ func TestImportKeys(t *testing.T) {
 			}
 
 			for _, fp := range tc.expectedPGPKeys {
-				err, _, stderr := se.RunGPGCmd(
+				err, _, stderr := se.runGPGCmd(
 					context.TODO(),
 					bytes.NewReader([]byte{}),
 					[]string{"--list-secret-key", fp},

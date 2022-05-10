@@ -15,6 +15,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/giantswarm/konfigure/internal/sopsenv/key"
+
 	// GS stuff uses `kgs`-generated kubeconfigs that use
 	// `oidc` auth provider. This import makes is possible to
 	// run `konfigure` locally for troubleshooting purposes.
@@ -28,8 +30,8 @@ const (
 	// we do not interfere with Kustomize operations, by leaving key chains
 	// under default locations expected by SOPS, nor by leaving env vars set
 	// to some custom locations when Kustomize decrypts files.
-	gnuPGHomeVar  = "GNUPGHOME"
 	ageKeyFileVar = "SOPS_AGE_KEY_FILE"
+	gnuPGHomeVar  = "GNUPGHOME"
 
 	// `konfigure.giantswarm.io/data=sops-key` is used to fetch Kubernetes
 	// Secrets with SOPS keys in order to import them to a temporary location.
@@ -81,7 +83,7 @@ func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
 		keysSource: config.KeysSource,
 	}
 
-	if config.KeysSource == "local" {
+	if config.KeysSource == key.KeysSourceLocal {
 		return s, nil
 	}
 
@@ -122,17 +124,6 @@ func (s *SOPSEnv) Cleanup() {
 
 func (s *SOPSEnv) GetKeysDir() string {
 	return s.keysDir
-}
-
-// RunGPGCmd runs GPG binary with given args and input.
-// It is exporter mainly for re-using in tests
-func (s *SOPSEnv) RunGPGCmd(ctx context.Context, stdin io.Reader, args []string) (err error, stdout bytes.Buffer, stderr bytes.Buffer) {
-	cmd := exec.Command("gpg", args...)
-	cmd.Stdin = stdin
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	return
 }
 
 // Setup sets up a self-contingent environment for PGP and AGE keys,
@@ -202,7 +193,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 					"--import",
 				}
 
-				err, _, stderr := s.RunGPGCmd(ctx, bytes.NewReader(v), args)
+				err, _, stderr := s.runGPGCmd(ctx, bytes.NewReader(v), args)
 				if err != nil {
 					return microerror.Maskf(pgpImportError, "failed to import key GnuPG keyring: \n %s", stderr.String())
 				}
@@ -220,6 +211,17 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// RunGPGCmd runs GPG binary with given args and input.
+// It is exporter mainly for re-using in tests
+func (s *SOPSEnv) runGPGCmd(ctx context.Context, stdin io.Reader, args []string) (err error, stdout bytes.Buffer, stderr bytes.Buffer) {
+	cmd := exec.Command("gpg", args...)
+	cmd.Stdin = stdin
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	return
 }
 
 // setEnv exports GnuPGP and AGE environment variables telling

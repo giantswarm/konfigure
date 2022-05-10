@@ -28,6 +28,7 @@ import (
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
+	"github.com/giantswarm/konfigure/internal/sopsenv/key"
 	"github.com/giantswarm/konfigure/internal/vaultclient"
 )
 
@@ -138,10 +139,10 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			sopsKeysSource = os.Getenv(sopsKeysSourceEnvVar)
 
 			if sopsKeysSource == "" {
-				sopsKeysSource = "local"
+				sopsKeysSource = key.KeysSourceLocal
 			}
 
-			if sopsKeysSource != "local" && sopsKeysSource != "kubernetes" {
+			if sopsKeysSource != key.KeysSourceLocal && sopsKeysSource != key.KeysSourceKubernetes {
 				return nil, microerror.Maskf(invalidConfigError, "%q environment variable wrong value, must be one of: local,kubernetes\n", sopsKeysSourceEnvVar)
 			}
 		}

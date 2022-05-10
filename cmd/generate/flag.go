@@ -3,6 +3,8 @@ package generate
 import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/konfigure/internal/sopsenv/key"
 )
 
 const (
@@ -81,7 +83,7 @@ func (f *flag) Validate() error {
 	if (f.VaultSecretName == "" || f.VaultSecretNamespace == "") && f.VaultSecretName != f.VaultSecretNamespace {
 		return microerror.Maskf(invalidFlagError, "you have to specify both or neither %q and %q", flagVaultSecretName, flagVaultSecretNamespace)
 	}
-	if f.SOPSKeysSource != "local" && f.SOPSKeysSource != "kubernetes" {
+	if f.SOPSKeysSource != key.KeysSourceLocal && f.SOPSKeysSource != key.KeysSourceKubernetes {
 		return microerror.Maskf(invalidFlagError, "--%s must be one of: %s", flagSOPSKeysSource, "local,kubernetes")
 	}
 

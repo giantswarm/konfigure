@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/konfigure/internal/sopsenv"
+	"github.com/giantswarm/konfigure/internal/sopsenv/key"
 )
 
 type runner struct {
@@ -38,7 +39,7 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
 	cfg := sopsenv.SOPSEnvConfig{
 		KeysDir:    r.flag.SOPSKeysDir,
-		KeysSource: "kubernetes",
+		KeysSource: key.KeysSourceKubernetes,
 	}
 
 	sopsEnv, err := sopsenv.NewSOPSEnv(cfg)
