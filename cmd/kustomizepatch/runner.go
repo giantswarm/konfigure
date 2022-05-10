@@ -152,6 +152,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			c := generator.Config{
 				VaultClient: vaultClient,
 
+				Log:            r.logger,
 				Dir:            dir,
 				Installation:   installation,
 				SOPSKeysDir:    os.Getenv(sopsKeysDirEnvVar),

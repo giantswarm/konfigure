@@ -40,6 +40,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	cfg := sopsenv.SOPSEnvConfig{
 		KeysDir:    r.flag.SOPSKeysDir,
 		KeysSource: key.KeysSourceKubernetes,
+		Logger:     r.logger,
 	}
 
 	sopsEnv, err := sopsenv.NewSOPSEnv(cfg)

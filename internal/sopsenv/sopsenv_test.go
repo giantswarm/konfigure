@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger/microloggertest"
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,13 +24,13 @@ func TestSetups(t *testing.T) {
 		name          string
 		config        SOPSEnvConfig
 		expectCleanup bool
-		expectedErr   error
 		expectedVars  map[string]string
 	}{
 		{
 			name: "default",
 			config: SOPSEnvConfig{
 				KeysSource: key.KeysSourceLocal,
+				Logger:     microloggertest.New(),
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  "",
@@ -42,6 +42,7 @@ func TestSetups(t *testing.T) {
 			config: SOPSEnvConfig{
 				KeysDir:    tmpDirName("local"),
 				KeysSource: key.KeysSourceLocal,
+				Logger:     microloggertest.New(),
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  tmpDirName("local"),
@@ -56,6 +57,7 @@ func TestSetups(t *testing.T) {
 				),
 				KeysDir:    tmpDirName("k8s"),
 				KeysSource: key.KeysSourceKubernetes,
+				Logger:     microloggertest.New(),
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  tmpDirName("k8s"),
@@ -69,6 +71,7 @@ func TestSetups(t *testing.T) {
 					testutils.NewSecret("test", "giantswarm", true, map[string][]byte{}),
 				),
 				KeysSource: key.KeysSourceKubernetes,
+				Logger:     microloggertest.New(),
 			},
 			expectCleanup: true,
 		},
@@ -77,9 +80,9 @@ func TestSetups(t *testing.T) {
 			config: SOPSEnvConfig{
 				K8sClient:  clientgofake.NewSimpleClientset(),
 				KeysSource: key.KeysSourceKubernetes,
+				Logger:     microloggertest.New(),
 			},
 			expectCleanup: true,
-			expectedErr:   secretNotFoundError,
 		},
 	}
 
@@ -102,16 +105,10 @@ func TestSetups(t *testing.T) {
 			}
 
 			err = se.Setup(context.TODO())
-			if err != nil && tc.expectedErr == nil {
+			if err != nil {
 				t.Fatalf("error == %#v, want nil", err)
 			}
 			defer se.Cleanup()
-
-			if err != nil && tc.expectedErr != nil {
-				if microerror.Cause(err) != tc.expectedErr {
-					t.Fatalf("error == %#v, want %#v", err, tc.expectedErr)
-				}
-			}
 
 			gotCleanup := se.cleanup != nil
 			if gotCleanup != tc.expectCleanup {
@@ -208,6 +205,7 @@ func TestImportKeys(t *testing.T) {
 					K8sClient:  client,
 					KeysDir:    "",
 					KeysSource: key.KeysSourceKubernetes,
+					Logger:     microloggertest.New(),
 				}
 
 				se, err = NewSOPSEnv(seConfig)

@@ -16,6 +16,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger/microloggertest"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
@@ -176,6 +177,32 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 				}),
 			},
 		},
+
+		{
+			name:     "case 13 - same as case 11, but with missing key",
+			caseFile: "testdata/cases/case11.yaml",
+
+			app:              "operator",
+			installation:     "puma",
+			decryptTraverser: &noopTraverser{},
+
+			secrets: []*corev1.Secret{},
+
+			expectedErrorMessage: `Error getting data key: 0 successful groups required, got 0`,
+		},
+
+		{
+			name:     "case 14 - same as case 12, but with missing key",
+			caseFile: "testdata/cases/case12.yaml",
+
+			app:              "operator",
+			installation:     "puma",
+			decryptTraverser: &noopTraverser{},
+
+			secrets: []*corev1.Secret{},
+
+			expectedErrorMessage: `Error getting data key: 0 successful groups required, got 0`,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -202,6 +229,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 					K8sClient:  client,
 					KeysDir:    "",
 					KeysSource: key.KeysSourceKubernetes,
+					Logger:     microloggertest.New(),
 				}
 
 				se, err = sopsenv.NewSOPSEnv(seConfig)

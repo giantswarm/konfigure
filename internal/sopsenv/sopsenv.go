@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,6 +50,7 @@ type SOPSEnvConfig struct {
 	K8sClient  kubernetes.Interface
 	KeysDir    string
 	KeysSource string
+	Logger     micrologger.Logger
 }
 
 type SOPSEnv struct {
@@ -56,6 +58,7 @@ type SOPSEnv struct {
 	k8sClient  kubernetes.Interface
 	keysDir    string
 	keysSource string
+	logger     micrologger.Logger
 }
 
 // NewSOPSEnv creates SOPS environment configurator, it works according to the
@@ -78,9 +81,14 @@ type SOPSEnv struct {
 //      keysSource="kubernetes"
 //
 func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
+	if config.Logger == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
+	}
+
 	s := &SOPSEnv{
 		keysDir:    config.KeysDir,
 		keysSource: config.KeysSource,
+		logger:     config.Logger,
 	}
 
 	if config.KeysSource == key.KeysSourceLocal {
@@ -172,13 +180,13 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	// Let user know no Secrets have been found using selector. Better
-	// to stop here than to go further and possibly fail on SOPS Decrypt.
+	// Let user know no Secrets have been found using selector.
 	if len(secrets.Items) == 0 {
-		return microerror.Maskf(
-			secretNotFoundError,
-			"no Kubernetes Secrets matching %s=%s selector found\n",
-			konfigureLabelKey, konfigureLabelValue,
+		s.logger.Debugf(
+			ctx,
+			"no Kubernetes Secrets found matching selector: %s=%s",
+			konfigureLabelKey,
+			konfigureLabelValue,
 		)
 	}
 

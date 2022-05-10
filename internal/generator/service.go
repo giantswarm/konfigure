@@ -39,6 +39,10 @@ type Service struct {
 }
 
 func New(config Config) (*Service, error) {
+	if config.Log == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Log must not be empty", config)
+	}
+
 	if config.VaultClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.VaultClient must not be empty", config)
 	}
@@ -83,6 +87,7 @@ func New(config Config) (*Service, error) {
 		c := sopsenv.SOPSEnvConfig{
 			KeysDir:    config.SOPSKeysDir,
 			KeysSource: config.SOPSKeysSource,
+			Logger:     config.Log,
 		}
 
 		sopsEnv, err = sopsenv.NewSOPSEnv(c)

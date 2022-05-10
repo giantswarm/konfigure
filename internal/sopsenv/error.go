@@ -21,12 +21,3 @@ var pgpImportError = &microerror.Error{
 func IsPGPImportError(err error) bool {
 	return microerror.Cause(err) == pgpImportError
 }
-
-var secretNotFoundError = &microerror.Error{
-	Kind: "secretNotFoundError",
-}
-
-// IsSecretNotFound asserts secretNotFoundError.
-func IsSecretNotFound(err error) bool {
-	return microerror.Cause(err) == secretNotFoundError
-}
