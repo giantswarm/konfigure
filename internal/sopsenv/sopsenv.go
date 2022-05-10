@@ -171,6 +171,10 @@ func (s *SOPSEnv) Setup(ctx context.Context) error {
 func (s *SOPSEnv) importKeys(ctx context.Context) error {
 	var err error
 
+	if _, err := os.Stat(s.keysDir); os.IsNotExist(err) {
+		return microerror.Maskf(notFoundError, "specified keychains directory does not exist")
+	}
+
 	o := metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("%s=%s", konfigureLabelKey, konfigureLabelValue),
 	}
@@ -188,6 +192,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 			konfigureLabelKey,
 			konfigureLabelValue,
 		)
+		return nil
 	}
 
 	ageKeysMap := map[string][]byte{}

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	//"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 
+	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger/microloggertest"
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
@@ -23,8 +25,10 @@ func TestSetups(t *testing.T) {
 	testCases := []struct {
 		name          string
 		config        SOPSEnvConfig
+		dontCreateDir bool
 		expectCleanup bool
 		expectedVars  map[string]string
+		errorMatcher  func(error) bool
 	}{
 		{
 			name: "default",
@@ -84,13 +88,24 @@ func TestSetups(t *testing.T) {
 			},
 			expectCleanup: true,
 		},
+		{
+			name: "local with non existing dir",
+			config: SOPSEnvConfig{
+				K8sClient:  clientgofake.NewSimpleClientset(),
+				KeysDir:    "/non/existing/directory",
+				KeysSource: key.KeysSourceKubernetes,
+				Logger:     microloggertest.New(),
+			},
+			dontCreateDir: true,
+			errorMatcher:  IsNotFound,
+		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("case %d: %s", i, tc.name), func(t *testing.T) {
 			var err error
 
-			if tc.config.KeysDir != "" {
+			if !tc.dontCreateDir && tc.config.KeysDir != "" {
 				err = os.Mkdir(tc.config.KeysDir, 0700)
 				if err != nil {
 					panic(err)
@@ -105,7 +120,11 @@ func TestSetups(t *testing.T) {
 			}
 
 			err = se.Setup(context.TODO())
-			if err != nil {
+			if tc.errorMatcher != nil {
+				if !tc.errorMatcher(err) {
+					t.Fatalf("error not matching expected matcher, got: %s", microerror.Cause(err))
+				}
+			} else if err != nil {
 				t.Fatalf("error == %#v, want nil", err)
 			}
 			defer se.Cleanup()
