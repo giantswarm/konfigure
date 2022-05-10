@@ -14,7 +14,7 @@ workflows:
               only: /^v.*/
           pre-steps:
             - run:
-                command: "apk add --no-cach gnupg"
+                command: "apk add --no-cache gnupg"
 
       - architect/push-to-docker:
           context: "architect"
