@@ -42,7 +42,7 @@ and contain some configuration parameters in its body:
     name: ""
     === END ===
 
-## In-cluster, with Flux
+## In-cluster environment, with Flux
 
 Required environment variables:
 - KONFIGURE_MODE="kustomizepatch" has to be set to execute 'konfigure
@@ -53,13 +53,15 @@ Required environment variables:
   giantswarm/config, e.g. "flux-system/giantswarm-config"
 - KONFIGURE_SOURCE_SERVICE - K8s address of source-controller's service, e.g.
   "source-controller.flux-system.svc"
+- KONFIGURE_SOPS_KEYS_DIR - location of GnuPGP and AGE private keys for SOPS
+  decryption, e.g. "/tmp/konfigure-sops-keys"
 - VAULT_ADDR, VAULT_CAPATH, VAULT_TOKEN - required by vaultclient
 
 Cache location:
 konfigure kustomizepatch will use /tmp/konfigure-cache as its cache location.
 The directory is expected to exist and the command will fail if it doesn't.
 
-## local machine
+## Local Machine environment
 
 Required environment variables:
 - KONFIGURE_MODE="kustomizepatch" has to be set to execute 'konfigure
@@ -71,6 +73,27 @@ Required environment variables:
 - VAULT_ADDR, VAULT_CAPATH, VAULT_TOKEN - required by vaultclient
 
 Cache will not be created/used in this mode.
+
+## SOPS support
+
+By default SOPS runs against your default keychains for GnuPGP and AGE. You can tell
+konfigure to run it against arbitrary keychains, or to fetch private keys from Kubernetes
+Secrets.
+
+1. Run against non-default keychain:
+
+   export KONFIGURE_SOPS_KEYS_DIR="/tmp/konfigure-sops-keys"
+
+2. Run against non-default keychain and populate it with keys fetched from Kubernetes:
+
+	export KONFIGURE_SOPS_KEYS_DIR="/tmp/konfigure-sops-keys"
+	export KONFIGURE_SOPS_KEYS_SOURCE="kubernetes"
+
+3. Run against tmp location populated with keys fetched from Kubernetes:
+
+	export KONFIGURE_SOPS_KEYS_SOURCE="kubernetes"
+
+## Running Kustomize
 
 To build kustomization with the plugin enabled, run
 

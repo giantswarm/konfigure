@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/giantswarm/konfigure/internal/meta"
+	"github.com/giantswarm/konfigure/internal/sopsenv"
 	"github.com/giantswarm/konfigure/pkg/decrypt"
 	"github.com/giantswarm/konfigure/pkg/filesystem"
 	"github.com/giantswarm/konfigure/pkg/generator"
@@ -20,14 +21,17 @@ type Config struct {
 	Log         micrologger.Logger
 	VaultClient *vaultapi.Client
 
-	Dir          string
-	Installation string
-	Verbose      bool
+	Dir            string
+	Installation   string
+	SOPSKeysDir    string
+	SOPSKeysSource string
+	Verbose        bool
 }
 
 type Service struct {
 	log              micrologger.Logger
 	decryptTraverser generator.DecryptTraverser
+	sopsEnv          *sopsenv.SOPSEnv
 
 	dir          string
 	installation string
@@ -35,6 +39,10 @@ type Service struct {
 }
 
 func New(config Config) (*Service, error) {
+	if config.Log == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Log must not be empty", config)
+	}
+
 	if config.VaultClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.VaultClient must not be empty", config)
 	}
@@ -74,9 +82,24 @@ func New(config Config) (*Service, error) {
 
 	}
 
+	var sopsEnv *sopsenv.SOPSEnv
+	{
+		c := sopsenv.SOPSEnvConfig{
+			KeysDir:    config.SOPSKeysDir,
+			KeysSource: config.SOPSKeysSource,
+			Logger:     config.Log,
+		}
+
+		sopsEnv, err = sopsenv.NewSOPSEnv(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	s := &Service{
 		log:              config.Log,
 		decryptTraverser: decryptTraverser,
+		sopsEnv:          sopsEnv,
 
 		dir:          config.Dir,
 		installation: config.Installation,
@@ -148,6 +171,12 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 		Annotations: annotations,
 		Labels:      in.ExtraLabels,
 	}
+
+	err = s.sopsEnv.Setup(ctx)
+	if err != nil {
+		return nil, nil, microerror.Mask(err)
+	}
+	defer s.sopsEnv.Cleanup()
 
 	configMap, secret, err := gen.GenerateConfig(ctx, in.App, meta)
 	if err != nil {
