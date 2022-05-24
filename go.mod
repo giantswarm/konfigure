@@ -20,8 +20,7 @@ require (
 	github.com/hashicorp/vault/sdk v0.1.14-0.20201109203410-5e6e24692b32 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
-	github.com/mitchellh/mapstructure v1.3.3 // indirect
-	github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra v1.2.1
 	go.mozilla.org/sops/v3 v3.7.2
 	go.uber.org/config v1.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
