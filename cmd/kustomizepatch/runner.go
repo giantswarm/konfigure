@@ -172,7 +172,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 			ExtraAnnotations: map[string]string{
 				meta.Annotation.XAppInfo.Key():        meta.Annotation.XAppInfo.Val(r.config.AppCatalog, r.config.AppName, r.config.AppVersion),
-				meta.Annotation.XCreator.Key():        meta.Annotation.XCreator.Default(),
+				meta.Annotation.XCreator.Key():        "konfigure",
 				meta.Annotation.XInstallation.Key():   installation,
 				meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
 			},

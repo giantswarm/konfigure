@@ -36,7 +36,7 @@ func (XCreator) Key() string { return xCreatorAnnotation }
 
 func (XCreator) Default() string {
 	u, err := user.Current()
-	if err != nil {
+	if err == nil {
 		return u.Username
 	}
 
