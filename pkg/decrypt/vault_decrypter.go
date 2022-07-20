@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+
 	"github.com/giantswarm/microerror"
 	vaultapi "github.com/hashicorp/vault/api"
 )
