@@ -3,7 +3,7 @@ package decrypt
 import (
 	"context"
 	"encoding/base64"
-
+	"fmt"
 	"github.com/giantswarm/microerror"
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -35,29 +35,44 @@ func NewVaultDecrypter(config VaultDecrypterConfig) (*VaultDecrypter, error) {
 }
 
 func (d *VaultDecrypter) Decrypt(ctx context.Context, ciphertext []byte) ([]byte, error) {
-	req := struct {
-		Ciphertext string `json:"ciphertext"`
-	}{
-		Ciphertext: string(ciphertext),
-	}
+	//req := struct {
+	//	Ciphertext string `json:"ciphertext"`
+	//}{
+	//	Ciphertext: string(ciphertext),
+	//}
+	//
+	//resp := struct {
+	//	Data struct {
+	//		Plaintext string `json:"plaintext"`
+	//	} `json:"data"`
+	//}{}
 
-	resp := struct {
-		Data struct {
-			Plaintext string `json:"plaintext"`
-		} `json:"data"`
-	}{}
+	//err := d.vaultRequest(ctx, keyring, req, &resp)
+	data, err := d.decrypt(ciphertext)
 
-	err := d.vaultRequest(ctx, keyring, req, &resp)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	decoded, err := base64.StdEncoding.DecodeString(resp.Data.Plaintext)
+	//decoded, err := base64.StdEncoding.DecodeString(resp.Data.Plaintext)
+	decoded, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	return decoded, nil
+}
+
+func (d *VaultDecrypter) decrypt(ciphertext []byte) (string, error) {
+	secret, err := d.vaultClient.Logical().Write("transit/decrypt/config", map[string]interface{}{
+		"ciphertext": string(ciphertext),
+	})
+
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return fmt.Sprintf("%v", secret.Data["plaintext"]), nil
 }
 
 func (d *VaultDecrypter) vaultRequest(ctx context.Context, endpoint string, req, resp interface{}) error {
