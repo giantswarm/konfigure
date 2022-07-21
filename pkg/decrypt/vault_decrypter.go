@@ -3,14 +3,14 @@ package decrypt
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/valuemodifier/vault/decrypt"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
 const (
-	path = "/transit/decrypt/config"
+	key = "config"
 )
 
 type VaultDecrypterConfig struct {
@@ -36,28 +36,22 @@ func NewVaultDecrypter(config VaultDecrypterConfig) (*VaultDecrypter, error) {
 }
 
 func (d *VaultDecrypter) Decrypt(ctx context.Context, ciphertext []byte) ([]byte, error) {
-	data, err := d.decrypt(ctx, ciphertext)
+	service, err := decrypt.New(decrypt.Config{VaultClient: d.vaultClient, Key: key})
 
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	decoded, err := base64.StdEncoding.DecodeString(data)
+	plainText, err := service.Decrypt(ciphertext)
+
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(plainText)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	return decoded, nil
-}
-
-func (d *VaultDecrypter) decrypt(ctx context.Context, ciphertext []byte) (string, error) {
-	secret, err := d.vaultClient.Logical().WriteWithContext(ctx, path, map[string]interface{}{
-		"ciphertext": string(ciphertext),
-	})
-
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	return fmt.Sprintf("%v", secret.Data["plaintext"]), nil
 }
