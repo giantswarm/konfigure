@@ -4,7 +4,9 @@ go 1.16
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.0
-	github.com/fatih/color v1.10.0
+	github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5 // indirect
+	github.com/containerd/continuity v0.0.0-20200709052629-daa8e1ccc0bc // indirect
+	github.com/fatih/color v1.13.0
 	github.com/fluxcd/pkg/untar v0.1.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions-application v0.3.0
@@ -12,18 +14,16 @@ require (
 	github.com/giantswarm/k8smetadata v0.9.2
 	github.com/giantswarm/microerror v0.4.0
 	github.com/giantswarm/micrologger v0.6.0
-	github.com/giantswarm/valuemodifier v0.4.0
+	github.com/giantswarm/valuemodifier v0.5.0
 	github.com/go-test/deep v1.0.7 // indirect
 	github.com/google/go-cmp v0.5.7
-	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
-	github.com/hashicorp/vault/api v1.0.5-0.20201001211907-38d91b749c77
-	github.com/hashicorp/vault/sdk v0.1.14-0.20201109203410-5e6e24692b32 // indirect
+	github.com/hashicorp/vault/api v1.7.2
 	github.com/huandu/xstrings v1.3.2 // indirect
-	github.com/kr/pretty v0.2.1 // indirect
+	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/spf13/cobra v1.2.1
 	go.mozilla.org/sops/v3 v3.7.2
 	go.uber.org/config v1.4.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.21.4
 	k8s.io/apimachinery v0.21.4
 	k8s.io/client-go v0.21.4
