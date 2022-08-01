@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+
 	"github.com/giantswarm/konfigure/internal/vaultclient"
 
 	"github.com/giantswarm/microerror"

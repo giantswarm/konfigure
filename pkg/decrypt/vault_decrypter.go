@@ -3,6 +3,7 @@ package decrypt
 import (
 	"context"
 	"encoding/base64"
+
 	"github.com/giantswarm/konfigure/internal/vaultclient"
 
 	"github.com/giantswarm/microerror"
