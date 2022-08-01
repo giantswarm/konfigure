@@ -2,10 +2,10 @@ package generator
 
 import (
 	"context"
+	"github.com/giantswarm/konfigure/internal/vaultclient"
 
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	vaultapi "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -19,7 +19,7 @@ import (
 
 type Config struct {
 	Log         micrologger.Logger
-	VaultClient *vaultapi.Client
+	VaultClient *vaultclient.WrappedVaultClient
 
 	Dir            string
 	Installation   string
