@@ -16,7 +16,6 @@ import (
 	"github.com/giantswarm/app/v6/pkg/app"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -112,7 +111,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 		}
 
-		var vaultClient *vaultapi.Client
+		var vaultClient *vaultclient.WrappedVaultClient
 		{
 			vaultClient, err = vaultclient.NewClientUsingEnv(ctx)
 			if err != nil {

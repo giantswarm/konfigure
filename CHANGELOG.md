@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The Vault client configuration is validated when `konfigure` actually tries to decrypt something with it instead at initialisation time, so e.g. `VAULT_*` environment variables can be omitted now when Vault is not used.
+
 ## [0.10.0] - 2022-07-21
 
 ## [0.9.0] - 2022-06-27
