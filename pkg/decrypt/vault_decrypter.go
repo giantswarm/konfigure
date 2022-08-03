@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/base64"
 
+	"github.com/giantswarm/konfigure/internal/vaultclient"
+
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/valuemodifier/vault/decrypt"
-	vaultapi "github.com/hashicorp/vault/api"
 )
 
 const (
@@ -14,11 +15,11 @@ const (
 )
 
 type VaultDecrypterConfig struct {
-	VaultClient *vaultapi.Client
+	VaultClient *vaultclient.WrappedVaultClient
 }
 
 type VaultDecrypter struct {
-	vaultClient *vaultapi.Client
+	vaultClient *vaultclient.WrappedVaultClient
 }
 
 var _ Decrypter = &VaultDecrypter{}
@@ -36,7 +37,11 @@ func NewVaultDecrypter(config VaultDecrypterConfig) (*VaultDecrypter, error) {
 }
 
 func (d *VaultDecrypter) Decrypt(ctx context.Context, ciphertext []byte) ([]byte, error) {
-	service, err := decrypt.New(decrypt.Config{VaultClient: d.vaultClient, Key: key})
+	if err := d.vaultClient.ConfigurationValidator(); err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	service, err := decrypt.New(decrypt.Config{VaultClient: d.vaultClient.Wrapped, Key: key})
 
 	if err != nil {
 		return nil, microerror.Mask(err)

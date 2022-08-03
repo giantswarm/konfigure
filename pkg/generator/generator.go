@@ -512,7 +512,7 @@ func (g *Generator) decryptSecret(ctx context.Context, data []byte) ([]byte, err
 	}
 
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, microerror.Maskf(failedToDecryptError, "Failed to decrypt secret, root cause: %#v", err.Error())
 	}
 	return decryptedBytes, nil
 }
