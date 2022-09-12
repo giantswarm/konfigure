@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  architect: giantswarm/architect@4.15.0
+  architect: giantswarm/architect@4.24.0
 
 workflows:
   build:
@@ -12,6 +12,9 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+          pre-steps:
+            - run:
+                command: "apk add --no-cache gnupg"
 
       - architect/push-to-docker:
           context: "architect"

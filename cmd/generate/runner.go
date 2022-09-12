@@ -11,7 +11,6 @@ import (
 	"github.com/giantswarm/app/v6/pkg/app"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
@@ -55,7 +54,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	var configmap *corev1.ConfigMap
 	var secret *corev1.Secret
 	{
-		var vaultClient *vaultapi.Client
+		var vaultClient *vaultclient.WrappedVaultClient
 		{
 			if r.flag.VaultSecretName != "" && r.flag.VaultSecretNamespace != "" {
 				vaultClient, err = vaultclient.NewClientUsingK8sSecret(ctx, r.flag.VaultSecretNamespace, r.flag.VaultSecretName)
@@ -77,9 +76,12 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			c := generator.Config{
 				VaultClient: vaultClient,
 
-				Dir:          r.flag.Dir,
-				Installation: r.flag.Installation,
-				Verbose:      r.flag.Verbose,
+				Log:            r.logger,
+				Dir:            r.flag.Dir,
+				Installation:   r.flag.Installation,
+				SOPSKeysDir:    r.flag.SOPSKeysDir,
+				SOPSKeysSource: r.flag.SOPSKeysSource,
+				Verbose:        r.flag.Verbose,
 			}
 
 			gen, err = generator.New(c)

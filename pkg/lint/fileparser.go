@@ -161,6 +161,11 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 				continue
 			}
 
+			// skip if node contains an escape marker
+			if strings.Contains(node.String(), "{{`") {
+				continue
+			}
+
 			nodePaths := templatePathPattern.FindAllStringSubmatch(node.String(), -1)
 			for _, npSlice := range nodePaths {
 				np := npSlice[1]

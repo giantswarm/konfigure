@@ -16,7 +16,6 @@ import (
 	"github.com/giantswarm/app/v6/pkg/app"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,6 +27,7 @@ import (
 
 	"github.com/giantswarm/konfigure/internal/generator"
 	"github.com/giantswarm/konfigure/internal/meta"
+	"github.com/giantswarm/konfigure/internal/sopsenv/key"
 	"github.com/giantswarm/konfigure/internal/vaultclient"
 )
 
@@ -50,6 +50,12 @@ const (
 	// gitRepositoryEnvVar is namespace/name of GitRepository pointing to
 	// giantswarm/config, e.g. "flux-system/gs-config"
 	gitRepositoryEnvVar = "KONFIGURE_GITREPO"
+	// sopsKeysDirEnvVar tells Konfigure how to configure environment to make
+	// it possible for SOPS to find the keys
+	sopsKeysDirEnvVar = "KONFIGURE_SOPS_KEYS_DIR"
+	// sopsKeysSourceEnvVar tells Konfigure to either get keys from Kubernetes
+	// Secrets or rely on local storage when setting up environment for SOPS
+	sopsKeysSourceEnvVar = "KONFIGURE_SOPS_KEYS_SOURCE"
 	// sourceServiceEnvVar is K8s address of source-controller's service, e.g.
 	// "source-controller.flux-system.svc"
 	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
@@ -105,7 +111,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 		}
 
-		var vaultClient *vaultapi.Client
+		var vaultClient *vaultclient.WrappedVaultClient
 		{
 			vaultClient, err = vaultclient.NewClientUsingEnv(ctx)
 			if err != nil {
@@ -127,13 +133,29 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 		}
 
+		var sopsKeysSource string
+		{
+			sopsKeysSource = os.Getenv(sopsKeysSourceEnvVar)
+
+			if sopsKeysSource == "" {
+				sopsKeysSource = key.KeysSourceLocal
+			}
+
+			if sopsKeysSource != key.KeysSourceLocal && sopsKeysSource != key.KeysSourceKubernetes {
+				return nil, microerror.Maskf(invalidConfigError, "%q environment variable wrong value, must be one of: local,kubernetes\n", sopsKeysSourceEnvVar)
+			}
+		}
+
 		var gen *generator.Service
 		{
 			c := generator.Config{
 				VaultClient: vaultClient,
 
-				Dir:          dir,
-				Installation: installation,
+				Log:            r.logger,
+				Dir:            dir,
+				Installation:   installation,
+				SOPSKeysDir:    os.Getenv(sopsKeysDirEnvVar),
+				SOPSKeysSource: sopsKeysSource,
 			}
 
 			gen, err = generator.New(c)
@@ -149,7 +171,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 			ExtraAnnotations: map[string]string{
 				meta.Annotation.XAppInfo.Key():        meta.Annotation.XAppInfo.Val(r.config.AppCatalog, r.config.AppName, r.config.AppVersion),
-				meta.Annotation.XCreator.Key():        meta.Annotation.XCreator.Default(),
+				meta.Annotation.XCreator.Key():        "konfigure",
 				meta.Annotation.XInstallation.Key():   installation,
 				meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
 			},

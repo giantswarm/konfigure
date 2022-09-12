@@ -1,9 +1,6 @@
-package generator
+package sopsenv
 
 import (
-	"errors"
-	"os"
-
 	"github.com/giantswarm/microerror"
 )
 
@@ -22,18 +19,14 @@ var notFoundError = &microerror.Error{
 
 // IsNotFound asserts notFoundError.
 func IsNotFound(err error) bool {
-	if errors.Is(err, os.ErrNotExist) {
-		return true
-	}
-
 	return microerror.Cause(err) == notFoundError
 }
 
-var failedToDecryptError = &microerror.Error{
-	Kind: "failedToDecryptError",
+var pgpImportError = &microerror.Error{
+	Kind: "pgpImportError",
 }
 
-// IsFailedToDecryptError asserts failedToDecryptError.
-func IsFailedToDecryptError(err error) bool {
-	return microerror.Cause(err) == failedToDecryptError
+// isPGPImportError asserts pgpImportError.
+func IsPGPImportError(err error) bool {
+	return microerror.Cause(err) == pgpImportError
 }

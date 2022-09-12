@@ -1,4 +1,4 @@
-package decrypt
+package fetchkeys
 
 import "github.com/giantswarm/microerror"
 
