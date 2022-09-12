@@ -27,5 +27,6 @@ sonatype-2019-0890 # pkg:golang/github.com/pkg/sftp@v1.10.1
 sonatype-2020-1055 # pkg:golang/github.com/go-ldap/ldap/v3@v3.1.10
 sonatype-2021-1401 # pkg:golang/github.com/miekg/dns@v1.0.14
 
-# pkg:golang/github.com/containerd/containerd@v1.3.4
-CVE-2022-31030 until=2022-08-31
+# pkg:golang/github.com/hashicorp/vault/sdk@v0.5.3
+# pkg:golang/github.com/hashicorp/vault/api@v1.7.2
+CVE-2022-36129 until=2022-12-31
