@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2022-09-29
+
 ### Added
 
 - `konfigure lint` now handles SOPS encrypted files
@@ -185,7 +187,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/giantswarm/konfigure/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/giantswarm/konfigure/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/giantswarm/konfigure/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/giantswarm/konfigure/compare/v0.8.0...v0.9.0
