@@ -21,7 +21,7 @@ const (
 type linterFunc func(d *discovery) (messages LinterMessages)
 
 var allLinterFunctions = []linterFunc{
-	lintUnusedconfigValues,
+	lintUnusedConfigValues,
 	lintDuplicateconfigValues,
 	lintovershadowedconfigValues,
 	lintUnusedConfigPatchValues,
@@ -158,7 +158,7 @@ func lintUnusedConfigPatchValues(d *discovery) (messages LinterMessages) {
 	return messages
 }
 
-func lintUnusedconfigValues(d *discovery) (messages LinterMessages) {
+func lintUnusedConfigValues(d *discovery) (messages LinterMessages) {
 	if len(d.Installations) == 0 || len(d.Apps) == 0 {
 		return // what's the point, nothing is defined
 	}
@@ -180,7 +180,7 @@ func lintUnusedSecretValues(d *discovery) (messages LinterMessages) {
 	}
 	for _, secretFile := range d.Secrets {
 		for path, configValue := range secretFile.paths {
-			if len(configValue.usedBy) == 0 {
+			if len(configValue.usedBy) == 0 && !strings.HasPrefix(path, "sops.") {
 				messages = append(messages, newError(secretFile.filepath, path, "is unused"))
 			} else if len(configValue.usedBy) == 1 {
 				msg := newMessage(secretFile.filepath, path, "is used by just one app: %s", configValue.usedBy[0].app).
@@ -284,15 +284,19 @@ func lintUnencryptedSecretValues(d *discovery) (messages LinterMessages) {
 	}
 	for _, secretFile := range d.Secrets {
 		for path, configValue := range secretFile.paths {
+			if strings.HasPrefix(path, "sops.") && path != "sops.mac" {
+				continue
+			}
+
 			stringValue, ok := (configValue.value).(string)
 			if !ok {
 				continue
 			}
-			if !strings.HasPrefix(stringValue, "vault:v1:") {
+			if !strings.HasPrefix(stringValue, "vault:v1:") && !(strings.HasPrefix(stringValue, "ENC[AES256_GCM") && strings.HasSuffix(stringValue, "]")) {
 				messages = append(
 					messages,
 					newError(secretFile.filepath, path, "is not encrypted with Vault").
-						WithDescription("valid secret values are encrypted with installation Vault's token and start with \"vault:v1:\" prefix"),
+						WithDescription("valid secret values are encrypted with installation Vault's token and start with \"vault:v1:\" prefix, or SOPS encrypted and start with \"ENC[AES256_GCM\" then end with \"]\""),
 				)
 			}
 		}
