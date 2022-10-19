@@ -38,7 +38,6 @@ const (
 	// Secrets with SOPS keys in order to import them to a temporary location.
 	konfigureLabelKey   = "konfigure.giantswarm.io/data"
 	konfigureLabelValue = "sops-keys"
-	konfigureNamespace  = "giantswarm"
 	konfigureTmpDirName = "konfigure-sops-"
 
 	// Keys extensions supported
@@ -179,7 +178,10 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 		LabelSelector: fmt.Sprintf("%s=%s", konfigureLabelKey, konfigureLabelValue),
 	}
 
-	secrets, err := s.k8sClient.CoreV1().Secrets(konfigureNamespace).List(ctx, o)
+	// Getting keys from all namespaces poses a risk of someone presenting the konfigure something
+	// that my not be a real key, resulting in crashing it upon importing this "something". Yet,
+	// crashing it, although easy, does not feel overly dangerous.
+	secrets, err := s.k8sClient.CoreV1().Secrets("").List(ctx, o)
 	if err != nil {
 		return microerror.Mask(err)
 	}
