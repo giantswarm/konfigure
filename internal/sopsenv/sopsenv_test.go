@@ -204,6 +204,23 @@ func TestImportKeys(t *testing.T) {
 				"F65B080F01DB7669363DFE31B69A68334353D9C0",
 			},
 		},
+		{
+			name: "duplicated keys",
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-gpg-keys-1", "giantswarm", true, map[string][]byte{
+					"key1.agekey": testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+					"key1.asc":    testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+				}),
+				testutils.NewSecret("sops-gpg-keys-2", "flux-giantswarm", true, map[string][]byte{
+					"key1.agekey": testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+					"key1.asc":    testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+				}),
+			},
+			expectedKeysTxt: testutils.GetFile("testdata/expected/keys2.txt"),
+			expectedPGPKeys: []string{
+				"F65B080F01DB7669363DFE31B69A68334353D9C0",
+			},
+		},
 	}
 
 	for i, tc := range testCases {

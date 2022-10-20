@@ -30,3 +30,7 @@ sonatype-2021-1401 # pkg:golang/github.com/miekg/dns@v1.0.14
 # pkg:golang/github.com/hashicorp/vault/sdk@v0.5.3
 # pkg:golang/github.com/hashicorp/vault/api@v1.7.2
 CVE-2022-36129 until=2022-12-31
+
+# x/text package older than v0.3.8 causes this. It comes indirectly from
+# https://github.com/kubernetes/apimachinery
+CVE-2022-32149 until=2022-12-31
