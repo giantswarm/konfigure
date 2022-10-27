@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -293,7 +294,6 @@ func TestImportKeys(t *testing.T) {
 }
 
 func tmpDirName(suffix string) string {
-	path := os.TempDir() + konfigureTmpDirName + suffix
-
+	path := filepath.Join(os.TempDir(), konfigureTmpDirName+suffix)
 	return path
 }
