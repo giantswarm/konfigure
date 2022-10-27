@@ -47,7 +47,9 @@ type configValue struct {
 // A simple template, like:
 // ```
 // keyA:
-//   keyB:  "{{ .get.this.from.config }}"
+//
+//	keyB:  "{{ .get.this.from.config }}"
+//
 // ```
 // would produce the following:
 // paths: {"keyA.keyB": true}

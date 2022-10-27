@@ -63,22 +63,21 @@ type SOPSEnv struct {
 // NewSOPSEnv creates SOPS environment configurator, it works according to the
 // below combinations.
 //
-// 1. User expects to run SOPS against his local default keychains for GPG and AGE:
-//      keysDir=""
-//	    keysSource="local"
+//  1. User expects to run SOPS against his local default keychains for GPG and AGE:
+//     keysDir=""
+//     keysSource="local"
 //
-// 2. User expects to run SOPS against his custom keychains located under `path`:
-//      keysDir="path"
-//      keysSource="local"
+//  2. User expects to run SOPS against his custom keychains located under `path`:
+//     keysDir="path"
+//     keysSource="local"
 //
-// 3. User expects to run SOPS against  Kubernetes-downloaded keys stored at tmp location:
-//      keysDir=""
-//      keysSource="kubernetes"
+//  3. User expects to run SOPS against  Kubernetes-downloaded keys stored at tmp location:
+//     keysDir=""
+//     keysSource="kubernetes"
 //
-// 4. User expects to run SOPS against Kubernetes-downloaded keys stored under `path`:
-//      keysDir="path"
-//      keysSource="kubernetes"
-//
+//  4. User expects to run SOPS against Kubernetes-downloaded keys stored under `path`:
+//     keysDir="path"
+//     keysSource="kubernetes"
 func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)

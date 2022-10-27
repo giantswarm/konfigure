@@ -15,8 +15,7 @@ var update = flag.Bool("update", false, "update .golden reference test files")
 
 // Test_run uses golden files.
 //
-//  go test ./pkg/output -run TestYAMLTraverser -update
-//
+//	go test ./pkg/output -run TestYAMLTraverser -update
 func TestYAMLTraverser(t *testing.T) {
 	testCases := []struct {
 		name               string

@@ -357,7 +357,7 @@ func lintIncludeFiles(d *discovery) (messages LinterMessages) {
 	return messages
 }
 
-//------ helper funcs -------
+// ------ helper funcs -------
 func getFilteredLinterFunctions(filters []string) []linterFunc {
 	if len(filters) == 0 {
 		return allLinterFunctions
