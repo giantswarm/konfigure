@@ -8,11 +8,13 @@ import "github.com/giantswarm/microerror"
 // apiVersion: generators.giantswarm.io/v1
 // kind: Konfigure
 // metadata:
-//   name: konfigure-plugin
-//   annotations:
-//     config.kubernetes.io/function: |
-//       exec:
-//         path: /plugins/konfigure
+//
+//	name: konfigure-plugin
+//	annotations:
+//	  config.kubernetes.io/function: |
+//	    exec:
+//	      path: /plugins/konfigure
+//
 // app_catalog: ""
 // app_destination_namespace: ""
 // app_disable_force_upgrade: true

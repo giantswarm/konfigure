@@ -38,7 +38,6 @@ const (
 	// Secrets with SOPS keys in order to import them to a temporary location.
 	konfigureLabelKey   = "konfigure.giantswarm.io/data"
 	konfigureLabelValue = "sops-keys"
-	konfigureNamespace  = "giantswarm"
 	konfigureTmpDirName = "konfigure-sops-"
 
 	// Keys extensions supported
@@ -64,22 +63,21 @@ type SOPSEnv struct {
 // NewSOPSEnv creates SOPS environment configurator, it works according to the
 // below combinations.
 //
-// 1. User expects to run SOPS against his local default keychains for GPG and AGE:
-//      keysDir=""
-//	    keysSource="local"
+//  1. User expects to run SOPS against his local default keychains for GPG and AGE:
+//     keysDir=""
+//     keysSource="local"
 //
-// 2. User expects to run SOPS against his custom keychains located under `path`:
-//      keysDir="path"
-//      keysSource="local"
+//  2. User expects to run SOPS against his custom keychains located under `path`:
+//     keysDir="path"
+//     keysSource="local"
 //
-// 3. User expects to run SOPS against  Kubernetes-downloaded keys stored at tmp location:
-//      keysDir=""
-//      keysSource="kubernetes"
+//  3. User expects to run SOPS against  Kubernetes-downloaded keys stored at tmp location:
+//     keysDir=""
+//     keysSource="kubernetes"
 //
-// 4. User expects to run SOPS against Kubernetes-downloaded keys stored under `path`:
-//      keysDir="path"
-//      keysSource="kubernetes"
-//
+//  4. User expects to run SOPS against Kubernetes-downloaded keys stored under `path`:
+//     keysDir="path"
+//     keysSource="kubernetes"
 func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
@@ -179,7 +177,10 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 		LabelSelector: fmt.Sprintf("%s=%s", konfigureLabelKey, konfigureLabelValue),
 	}
 
-	secrets, err := s.k8sClient.CoreV1().Secrets(konfigureNamespace).List(ctx, o)
+	// Getting keys from all namespaces poses a risk of someone presenting the konfigure something
+	// that my not be a real key, resulting in crashing it upon importing this "something". Yet,
+	// crashing it, although easy, does not feel overly dangerous.
+	secrets, err := s.k8sClient.CoreV1().Secrets("").List(ctx, o)
 	if err != nil {
 		return microerror.Mask(err)
 	}

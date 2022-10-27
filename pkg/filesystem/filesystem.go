@@ -2,7 +2,7 @@ package filesystem
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,14 +25,14 @@ func (s *Store) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(filepath.Join(s.Dir, path))
 }
 
-func (s *Store) ReadDir(path string) ([]os.FileInfo, error) {
+func (s *Store) ReadDir(path string) ([]fs.DirEntry, error) {
 	if filepath.IsAbs(path) {
 		panic(fmt.Sprintf(
 			"%q is an absolute path; expected sub-path of %q",
 			path, s.Dir,
 		))
 	}
-	return ioutil.ReadDir(filepath.Join(s.Dir, path))
+	return os.ReadDir(filepath.Join(s.Dir, path))
 }
 
 // Version returns version of config files contained in Store.Dir. The
