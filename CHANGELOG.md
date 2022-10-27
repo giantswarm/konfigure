@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update dependencies to support Flux v0.36.0.
+- Update go.mod dependencies and update Golang to v1.19.
 
 ## [0.12.1] - 2022-10-20
 
