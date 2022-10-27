@@ -2,12 +2,12 @@ package generator
 
 import (
 	"context"
-	"os"
+	"io/fs"
 )
 
 type Filesystem interface {
 	ReadFile(string) ([]byte, error)
-	ReadDir(string) ([]os.FileInfo, error)
+	ReadDir(string) ([]fs.DirEntry, error)
 }
 
 type DecryptTraverser interface {

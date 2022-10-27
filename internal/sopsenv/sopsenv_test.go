@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -268,7 +268,7 @@ func TestImportKeys(t *testing.T) {
 				t.Fatalf("wrong %s value, got %s=%s", gnuPGHomeVar, gnuPGHomeVar, oldEnvs[gnuPGHomeVar])
 			}
 
-			keysTxt, err := ioutil.ReadFile(os.Getenv(ageKeyFileVar))
+			keysTxt, err := os.ReadFile(os.Getenv(ageKeyFileVar))
 			if err != nil {
 				t.Fatalf("error == %#v, want nil", err)
 			}
@@ -293,7 +293,6 @@ func TestImportKeys(t *testing.T) {
 }
 
 func tmpDirName(suffix string) string {
-	path := os.TempDir() + konfigureTmpDirName + suffix
-
+	path := filepath.Join(os.TempDir(), konfigureTmpDirName+suffix)
 	return path
 }

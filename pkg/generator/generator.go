@@ -104,21 +104,21 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 
 // generateRawConfigUnsorted creates final configmap values and secret values
 // for helm to use by performing the following operations:
-// 1. Get configmap template data and patch it with installation-specific
-//    overrides (if available)
-// 2. Get global configmap template for the app and render it with template
-//    data (result of 1.)
-// 3. Get installation-specific configmap patch for the app template (if available)
-// 4. Patch global template (result of 2.) with installation-specific (result
-//    of 3.) app overrides
-// 5. Get installation-specific secret template data and decrypt it
-// 6. Merge config and secret values before templating app secret
-// 7. Get global secret template for the app (if available) and render it with
-//    installation secret template data (result of 5.)
-// 8. Get installation-specific secret template patch (if available) and
-//    decrypt it
-// 9. Patch secret template (result of 6.) with decrypted patch values (result
-//    of 7.)
+//  1. Get configmap template data and patch it with installation-specific
+//     overrides (if available)
+//  2. Get global configmap template for the app and render it with template
+//     data (result of 1.)
+//  3. Get installation-specific configmap patch for the app template (if available)
+//  4. Patch global template (result of 2.) with installation-specific (result
+//     of 3.) app overrides
+//  5. Get installation-specific secret template data and decrypt it
+//  6. Merge config and secret values before templating app secret
+//  7. Get global secret template for the app (if available) and render it with
+//     installation secret template data (result of 5.)
+//  8. Get installation-specific secret template patch (if available) and
+//     decrypt it
+//  9. Patch secret template (result of 6.) with decrypted patch values (result
+//     of 7.)
 func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (configmap string, secret string, err error) {
 	// Check if installation folder exists at all. If not, return a descriptive
 	// error.
@@ -492,9 +492,10 @@ func (g Generator) include(templateName string, templateData interface{}) (strin
 }
 
 // TODO: get rid of the Vault decryption eventually. For now supporting both
-//       options doesn't feel like a bad idea, having both of them opens a door
-//       for less stressfull and coordinated migration, allowing us to migrate
-//       less-critical apps first, etc.
+//
+//	options doesn't feel like a bad idea, having both of them opens a door
+//	for less stressfull and coordinated migration, allowing us to migrate
+//	less-critical apps first, etc.
 func (g *Generator) decryptSecret(ctx context.Context, data []byte) ([]byte, error) {
 	// Check if file is SOPS-encrypted
 	forSOPS, err := isSOPSEncrypted(ctx, data)
