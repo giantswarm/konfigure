@@ -11,6 +11,7 @@ import (
 	"github.com/giantswarm/app/v6/pkg/app"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	"github.com/imdario/mergo"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
@@ -139,10 +140,32 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	}
 
 	if r.flag.Raw {
-		fmt.Println("---")
-		fmt.Printf("%s\n", configmap.Data["configmap-values.yaml"])
-		fmt.Println("---")
-		fmt.Printf("%s\n", secret.Data["secret-values.yaml"])
+		var err error
+
+		var m1 map[string]interface{}
+		err = yaml.Unmarshal([]byte(configmap.Data["configmap-values.yaml"]), &m1)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		var m2 map[string]interface{}
+		err = yaml.Unmarshal([]byte(secret.Data["secret-values.yaml"]), &m2)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		err = mergo.Merge(&m1, m2)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		data, err := yaml.Marshal(m1)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		fmt.Printf("%s\n", data)
+
 		return nil
 	}
 

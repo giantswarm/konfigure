@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `konfigure generate` with `--raw` flat now generates single merged yaml document.
+- `konfigure generate` with `--raw` doesn't require `--app-destination-namespace`, `--app-catalog`, `--app-version` and `--name` flags anymore.
+
 ## [0.13.0] - 2022-10-27
 
 ### Changed

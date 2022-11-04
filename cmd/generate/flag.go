@@ -59,6 +59,13 @@ func (f *flag) Init(cmd *cobra.Command) {
 }
 
 func (f *flag) Validate() error {
+	if f.Raw {
+		f.AppDestinationNamespace = "IGNORE-AppDestinationNamespace"
+		f.AppCatalog = "IGNORE-AppCatalog"
+		f.AppVersion = "IGNORE-AppVersion"
+		f.Name = "IGNORE-Name"
+	}
+
 	if f.AppDestinationNamespace == "" {
 		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagAppDestinationNamespace)
 	}

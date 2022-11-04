@@ -15,6 +15,7 @@ require (
 	github.com/giantswarm/valuemodifier v0.5.0
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/vault/api v1.8.1
+	github.com/imdario/mergo v0.3.12
 	github.com/spf13/cobra v1.6.1
 	go.mozilla.org/sops/v3 v3.7.3
 	go.uber.org/config v1.4.0
@@ -99,7 +100,6 @@ require (
 	github.com/hashicorp/yamux v0.1.0 // indirect
 	github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
-	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
