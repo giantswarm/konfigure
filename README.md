@@ -18,3 +18,13 @@ The _kustomize_ plugin mode enables us to utilize `konfigure` with Flux's
 CRs, ConfigMaps, and Secrets.
 
 Documentation: [intranet](https://intranet.giantswarm.io/docs/dev-and-releng/configuration-management/) | [GitHub](https://github.com/giantswarm/giantswarm/blob/master/content/docs/dev-and-releng/configuration-management/_index.md)
+
+## Generating values locally
+
+Example:
+
+```
+SOPS_AGE_KEY="..." konfigure generate --raw --app-name ${APP} --installation ${INSTALLATION}
+```
+
+This will print values in YAML format ready to use in a helm release.
