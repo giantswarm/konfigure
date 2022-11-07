@@ -14,8 +14,8 @@ require (
 	github.com/giantswarm/micrologger v0.6.0
 	github.com/giantswarm/valuemodifier v0.5.0
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/vault/api v1.8.1
-	github.com/imdario/mergo v0.3.12
+	github.com/hashicorp/vault/api v1.8.2
+	github.com/imdario/mergo v0.3.13
 	github.com/spf13/cobra v1.6.1
 	go.mozilla.org/sops/v3 v3.7.3
 	go.uber.org/config v1.4.0
@@ -85,7 +85,7 @@ require (
 	github.com/hashicorp/go-hclog v1.2.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-plugin v1.4.4 // indirect
+	github.com/hashicorp/go-plugin v1.4.5 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/mlock v0.1.2 // indirect
@@ -142,7 +142,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
