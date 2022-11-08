@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix `konfigure generate` failing on `config` repo shallow copies without tags.
+
 ## [0.14.0] - 2022-11-04
 
 ### Changed

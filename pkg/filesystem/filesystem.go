@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -42,7 +43,22 @@ func (s *Store) Version() (string, error) {
 	cmd := exec.Command("git", "describe", "--tags")
 	cmd.Dir = s.Dir
 	out, err := cmd.CombinedOutput()
-	if err != nil {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitCode() == 128 {
+		// This handles the case when konfigure is being run locally on a shallow copy:
+		//
+		//    $ git describe --tags
+		//    fatal: No names found, cannot describe anything.
+		//    $ echo $?
+		//    128
+		//
+		cmd := exec.Command("git", "rev-parse", "--short=10", "HEAD")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+		return "v0.0.0-" + strings.TrimSpace(string(out)), nil
+	} else if err != nil {
 		return "", microerror.Mask(err)
 	}
 	return strings.TrimSpace(string(out)), nil
