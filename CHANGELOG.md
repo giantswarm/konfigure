@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2] - 2022-11-15
+
 ### Changed
 
 - Bump `giantswarm/valuemodifier` to `v0.5.2`
@@ -217,7 +219,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.14.1...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.14.2...HEAD
+[0.14.2]: https://github.com/giantswarm/konfigure/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/giantswarm/konfigure/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/giantswarm/konfigure/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/giantswarm/konfigure/compare/v0.12.1...v0.13.0
