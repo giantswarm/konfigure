@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bump `giantswarm/valuemodifier` to `v0.5.2`
+
 ## [0.14.1] - 2022-11-09
 
 ### Fixed
