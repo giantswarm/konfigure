@@ -8,8 +8,8 @@ require (
 	github.com/fluxcd/pkg/untar v0.2.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions-application v0.6.0
-	github.com/giantswarm/app/v6 v6.15.0
-	github.com/giantswarm/k8smetadata v0.15.0
+	github.com/giantswarm/app/v6 v6.15.1
+	github.com/giantswarm/k8smetadata v0.16.0
 	github.com/giantswarm/microerror v0.4.0
 	github.com/giantswarm/micrologger v0.6.0
 	github.com/giantswarm/valuemodifier v0.5.2
@@ -138,11 +138,11 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
-	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.3.8 // indirect
+	golang.org/x/net v0.2.0 // indirect
+	golang.org/x/oauth2 v0.2.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/term v0.2.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
@@ -150,7 +150,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220719170305-83ca9fad585f // indirect
 	google.golang.org/grpc v1.48.0 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
