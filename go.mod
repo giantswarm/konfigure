@@ -9,7 +9,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions-application v0.6.0
 	github.com/giantswarm/app/v6 v6.15.1
-	github.com/giantswarm/k8smetadata v0.16.0
+	github.com/giantswarm/k8smetadata v0.16.1
 	github.com/giantswarm/microerror v0.4.0
 	github.com/giantswarm/micrologger v0.6.0
 	github.com/giantswarm/valuemodifier v0.5.2
