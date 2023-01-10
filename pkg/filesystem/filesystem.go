@@ -53,6 +53,7 @@ func (s *Store) Version() (string, error) {
 		//    128
 		//
 		cmd := exec.Command("git", "rev-parse", "--short=10", "HEAD")
+		cmd.Dir = s.Dir
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return "", microerror.Mask(err)
