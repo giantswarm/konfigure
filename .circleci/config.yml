@@ -45,7 +45,7 @@ workflows:
       - architect/push-to-docker:
           context: "architect"
           name: push-konfigure-to-aliyun
-          image: "registry-intl.cn-shanghai.aliyuncs.com/giantswarm/konfigure"
+          image: "giantswarm-registry.cn-shanghai.cr.aliyuncs.com/giantswarm/konfigure"
           username_envar: "ALIYUN_USERNAME"
           password_envar: "ALIYUN_PASSWORD"
           requires:
