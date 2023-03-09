@@ -27,7 +27,7 @@ CVE-2021-41190
 CVE-2022-41723
 
 # pkg:golang/k8s.io/apiserver@v0.25.0
-sonatype-2022-6522 
+sonatype-2022-6522
 
 # prometheus/client_go vulnerabilities related to promhttp.InstrumentHandler*
 # middleware; not in use
