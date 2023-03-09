@@ -9,6 +9,7 @@ CVE-2021-41190
 CVE-2021-43784
 CVE-2022-23648
 CVE-2022-29162
+CVE-2023-27561
 
 # consul vulnerabilities; consul is a config backend dependency of spf13/viper;
 # not actively used
@@ -22,6 +23,12 @@ sonatype-2022-6522 until=2023-02-01
 # registries; we are not accessing OCI registries in konfigure
 CVE-2021-41190
 
+# pkg:golang/golang.org/x/net@v0.5.0
+CVE-2022-41723
+
+# pkg:golang/k8s.io/apiserver@v0.25.0
+sonatype-2022-6522 
+
 # prometheus/client_go vulnerabilities related to promhttp.InstrumentHandler*
 # middleware; not in use
 CVE-2022-21698
@@ -30,11 +37,3 @@ CVE-2022-21698
 sonatype-2019-0890 # pkg:golang/github.com/pkg/sftp@v1.10.1
 sonatype-2020-1055 # pkg:golang/github.com/go-ldap/ldap/v3@v3.1.10
 sonatype-2021-1401 # pkg:golang/github.com/miekg/dns@v1.0.14
-
-# pkg:golang/github.com/hashicorp/vault/sdk@v0.5.3
-# pkg:golang/github.com/hashicorp/vault/api@v1.7.2
-CVE-2022-36129 until=2022-12-31
-
-# x/text package older than v0.3.8 causes this. It comes indirectly from
-# https://github.com/kubernetes/apimachinery
-CVE-2022-32149 until=2022-12-31
