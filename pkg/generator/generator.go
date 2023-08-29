@@ -11,6 +11,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/giantswarm/microerror"
+	"github.com/pkg/errors"
 	"go.mozilla.org/sops/v3/decrypt"
 	uberconfig "go.uber.org/config"
 	yaml3 "gopkg.in/yaml.v3"
@@ -198,9 +199,10 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	}
 
 	// 5.
+	installationSecretPath := "installations/" + g.installation + "/secret.yaml"
 	secretContext, err := g.getWithPatchIfExists(
 		ctx,
-		"installations/"+g.installation+"/secret.yaml",
+		installationSecretPath,
 		"",
 	)
 	if err != nil {
@@ -210,7 +212,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 
 	decryptedBytes, err := g.decryptSecret(ctx, []byte(secretContext))
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", microerror.Mask(errors.Errorf("failed to decrypt secret in %q: %s", installationSecretPath, err))
 	}
 
 	secretContext = string(decryptedBytes)
@@ -261,7 +263,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 
 			decryptedBytes, err := g.decryptSecret(ctx, []byte(patch))
 			if err != nil {
-				return "", "", microerror.Mask(err)
+				return "", "", microerror.Mask(errors.Errorf("failed to decrypt app secret in %q: %s", filepath, err))
 			}
 
 			secretPatch = string(decryptedBytes)
@@ -408,7 +410,7 @@ func (g Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFile
 
 	result, err := applyPatch(ctx, base, patch)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", microerror.Mask(errors.Errorf("failed to apply patch from %q onto %q: %s", patchFilepath, filepath, err))
 	}
 	return result, nil
 }
@@ -421,7 +423,7 @@ func (g Generator) getRenderedTemplate(ctx context.Context, filepath, templateDa
 
 	result, err := g.renderTemplate(ctx, string(templateBytes), templateData)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", microerror.Mask(errors.Errorf("failed to render template from %q: %s", filepath, err))
 	}
 
 	return result, nil
@@ -472,20 +474,21 @@ func (g Generator) renderTemplate(ctx context.Context, templateText string, temp
 }
 
 func (g Generator) include(templateName string, templateData interface{}) (string, error) {
-	contents, err := g.fs.ReadFile(path.Join("include", templateName+".yaml.template"))
+	templateFilePath := path.Join("include", templateName+".yaml.template")
+	contents, err := g.fs.ReadFile(templateFilePath)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
 	t, err := template.New(templateName).Funcs(sprig.TxtFuncMap()).Option("missingkey=error").Parse(string(contents))
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", microerror.Mask(errors.Errorf("failed to parse template in file %q: %s", templateFilePath, err))
 	}
 
 	out := bytes.NewBuffer([]byte{})
 	err = t.Execute(out, templateData)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", microerror.Mask(errors.Errorf("failed to render template from %q: %s", templateFilePath, err))
 	}
 
 	return out.String(), nil
@@ -513,7 +516,7 @@ func (g *Generator) decryptSecret(ctx context.Context, data []byte) ([]byte, err
 	}
 
 	if err != nil {
-		return nil, microerror.Maskf(failedToDecryptError, "Failed to decrypt secret, root cause: %#v", err.Error())
+		return nil, microerror.Mask(err)
 	}
 	return decryptedBytes, nil
 }
