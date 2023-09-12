@@ -28,12 +28,3 @@ func IsNotFound(err error) bool {
 
 	return microerror.Cause(err) == notFoundError
 }
-
-var failedToDecryptError = &microerror.Error{
-	Kind: "failedToDecryptError",
-}
-
-// IsFailedToDecryptError asserts failedToDecryptError.
-func IsFailedToDecryptError(err error) bool {
-	return microerror.Cause(err) == failedToDecryptError
-}
