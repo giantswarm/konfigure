@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2023-09-13
+
 ### Changed
 
 - Log file paths in error messages so that flux logs tell us exactly where something went wrong
@@ -229,7 +231,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.14.4...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/giantswarm/konfigure/compare/v0.14.4...v0.15.0
 [0.14.4]: https://github.com/giantswarm/konfigure/compare/v0.14.3...v0.14.4
 [0.14.3]: https://github.com/giantswarm/konfigure/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/giantswarm/konfigure/compare/v0.14.1...v0.14.2
