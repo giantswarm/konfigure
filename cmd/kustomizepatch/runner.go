@@ -59,7 +59,7 @@ const (
 	kubernetesServicePortEnvVar = "KUBERNETES_SERVICE_PORT"
 	// kubernetesToken holds the location of the Kubernetes Service Account
 	// token mount within a Pod.
-	kubernetesToken = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	kubernetesTokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	// sopsKeysDirEnvVar tells Konfigure how to configure environment to make
 	// it possible for SOPS to find the keys
 	sopsKeysDirEnvVar = "KONFIGURE_SOPS_KEYS_DIR"
@@ -340,7 +340,7 @@ func (r *runner) updateConfig() error {
 		repoCoordinates[1],
 	)
 
-	k8sToken, err := os.ReadFile(kubernetesToken)
+	k8sToken, err := os.ReadFile(kubernetesTokenFile)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -350,6 +350,10 @@ func (r *runner) updateConfig() error {
 	// Make a GET request to the Kubernetes API server to get the GitRepository
 	// in a JSON format.
 	request, err = http.NewRequest("GET", k8sApiPath, nil)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	request.Header.Set("Authorization", bearer)
 	request.Header.Add("Accept", "application/json")
 
@@ -397,6 +401,10 @@ func (r *runner) updateConfig() error {
 	}
 
 	request, err = http.NewRequest("GET", gr.Status.Artifact.Url, nil)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	response, err = client.Do(request)
 	if err != nil {
 		return microerror.Mask(err)
