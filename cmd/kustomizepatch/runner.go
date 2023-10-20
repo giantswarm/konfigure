@@ -59,7 +59,7 @@ const (
 	kubernetesServicePortEnvVar = "KUBERNETES_SERVICE_PORT"
 	// kubernetesToken holds the location of the Kubernetes Service Account
 	// token mount within a Pod.
-	kubernetesTokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	kubernetesTokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token" //nosec G101
 	// sopsKeysDirEnvVar tells Konfigure how to configure environment to make
 	// it possible for SOPS to find the keys
 	sopsKeysDirEnvVar = "KONFIGURE_SOPS_KEYS_DIR"
