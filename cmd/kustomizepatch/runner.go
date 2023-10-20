@@ -3,11 +3,14 @@ package kustomizepatch
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,7 +41,7 @@ const (
 	// cacheDir is a directory where konfigure will keep its cache if it's
 	// running in cluster and talking to source-controller.
 	cacheDir         = "/tmp/konfigure-cache"
-	cacheLastModFile = "lastmod"
+	cacheLastArchive = "lastarchive"
 	// dirEnvVar is a directory containing giantswarm/config. If set, requests
 	// to source-controller will not be made and both sourceServiceEnvVar and
 	// gitRepositoryEnvVar will be ignored. Used only on local machine for
@@ -50,12 +53,21 @@ const (
 	// gitRepositoryEnvVar is namespace/name of GitRepository pointing to
 	// giantswarm/config, e.g. "flux-system/gs-config"
 	gitRepositoryEnvVar = "KONFIGURE_GITREPO"
+	// kubernetesServiceEnvVar is K8S host of the Kubernetes API service.
+	kubernetesServiceHostEnvVar = "KUBERNETES_SERVICE_HOST"
+	// kubernetesServicePortEnvVar is K8S port of the Kubernetes API service.
+	kubernetesServicePortEnvVar = "KUBERNETES_SERVICE_PORT"
+	// kubernetesToken holds the location of the Kubernetes Service Account
+	// token mount within a Pod.
+	kubernetesToken = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	// sopsKeysDirEnvVar tells Konfigure how to configure environment to make
 	// it possible for SOPS to find the keys
 	sopsKeysDirEnvVar = "KONFIGURE_SOPS_KEYS_DIR"
 	// sopsKeysSourceEnvVar tells Konfigure to either get keys from Kubernetes
 	// Secrets or rely on local storage when setting up environment for SOPS
 	sopsKeysSourceEnvVar = "KONFIGURE_SOPS_KEYS_SOURCE"
+	// sourceAPIGroup holds Flux Source group and version
+	sourceAPIGroup = "source.toolkit.fluxcd.io/v1"
 	// sourceServiceEnvVar is K8s address of source-controller's service, e.g.
 	// "source-controller.flux-system.svc"
 	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
@@ -246,15 +258,12 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 }
 
 // updateConfig makes sure that the giantswarm/config version we keep stashed
-// in <cacheDir>/latest is still *the* latest version out there. To do that,
-// it sends a HEAD request to source-controller to compare Last-Modified
-// timestamp of what it downloaded with the time our cache was last updated.
-// If this is the first time and there is nothing to compare yet, or cache's
-// timestamp is older than what source-controller advertises, a new version
-// will be downloaded from source-controller and untarred. It's Last-Modified
-// timestamp will be saved for later comparison.
-// Otherwise we assume we have the latest version cached, all is well and we
-// can proceed.
+// in <cacheDir>/latest is still *the* latest version out there. In order to do that,
+// it sends a HEAD request for the last known artifact to the Source Controller,
+// in order to check it is still available. If so, it then skips further processing.
+// Otherwise it contacts the GitRepository resource for the new artifact's URL.
+// The URL is then used to download a new version of the archive and untar it.
+// The archive name is being saved for later comparison.
 func (r *runner) updateConfig() error {
 	// Get source-controller's service URL and GitRepository data from
 	// environment variables. We use this data to construct an URL to
@@ -269,15 +278,82 @@ func (r *runner) updateConfig() error {
 		return microerror.Maskf(executionFailedError, "%q environment variable not set", gitRepositoryEnvVar)
 	}
 
-	// Make a HEAD request. This allows us to check if the artifact we have
-	// cached is still fresh - we will check the 'Last-Modified' header.
+	// We first get the 'lastarchive' file, because it contains the name of the artifact we have
+	// been using up until now. If the file is gone, it means we haven't populated the cache yet,
+	// hence we must do it now. If the file is present, but archive of the given name is no longer
+	// advertised by the Source Controller, we must look for a new one and re-populate the cache. If the
+	// file is present, and is still advertised by the Source Controller, all is good and we may return.
+	cachedArtifact, err := os.ReadFile(path.Join(cacheDir, cacheLastArchive))
+	if err != nil && os.IsNotExist(err) {
+		cachedArtifact = []byte("placeholder.tar.gz")
+	} else if err != nil {
+		return microerror.Mask(err)
+	}
+
+	// Make a HEAD request to the Source Controller. This allows us to check if the artifact
+	// we have cached is still offered.
 	client := &http.Client{Timeout: 60 * time.Second}
-	request, err := http.NewRequest("HEAD", fmt.Sprintf("http://%s/gitrepository/%s/latest.tar.gz", svc, repo), nil)
+	request, err := http.NewRequest("HEAD", fmt.Sprintf("http://%s/gitrepository/%s/%s", svc, repo, string(cachedArtifact)), nil)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
 	response, err := client.Do(request)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+	defer response.Body.Close()
+
+	// The artifact we were asking for is still advertised by the Source Controller, hence
+	// we may skip further processing.
+	if response.StatusCode == http.StatusOK {
+		return nil
+	}
+
+	if response.StatusCode != http.StatusNotFound {
+		return microerror.Maskf(
+			executionFailedError,
+			"error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode,
+		)
+	}
+
+	// The artifact we were asking for is gone, we must find the newly advertised one,
+	// hence we query the Kubernetes API Server for the GitRepository CR resource.
+	k8sApiHost := os.Getenv(kubernetesServiceHostEnvVar)
+	if svc == "" {
+		return microerror.Maskf(executionFailedError, "%q environment variable not set", kubernetesServiceHostEnvVar)
+	}
+
+	k8sApiPort := os.Getenv(kubernetesServicePortEnvVar)
+	if svc == "" {
+		return microerror.Maskf(executionFailedError, "%q environment variable not set", kubernetesServicePortEnvVar)
+	}
+
+	repoCoordinates := strings.Split(repo, "/")
+
+	k8sApiPath := fmt.Sprintf(
+		"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
+		k8sApiHost,
+		k8sApiPort,
+		sourceAPIGroup,
+		repoCoordinates[0],
+		repoCoordinates[1],
+	)
+
+	k8sToken, err := os.ReadFile(kubernetesToken)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	bearer := fmt.Sprintf("Bearer %s", string(k8sToken))
+
+	// Make a GET request to the Kubernetes API server to get the GitRepository
+	// in a JSON format.
+	request, err = http.NewRequest("GET", k8sApiPath, nil)
+	request.Header.Set("Authorization", bearer)
+	request.Header.Add("Accept", "application/json")
+
+	response, err = client.Do(request)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -289,58 +365,52 @@ func (r *runner) updateConfig() error {
 		)
 	}
 
-	// Figure out if the cache is still fresh. If no artifacts have been pulled
-	// yet, download it for the first time.
-	var cacheUpToDate = true // nolint: ineffassign
-
-	sourceLastModified := response.Header.Get("Last-Modified")
-	if sourceLastModified == "" {
-		return microerror.Maskf(executionFailedError, "%s does not expose Last-Modified header", request.URL.String())
-	}
-
-	cacheLastModified, err := os.ReadFile(path.Join(cacheDir, cacheLastModFile))
-	if err != nil && os.IsNotExist(err) {
-		err = os.WriteFile(path.Join(cacheDir, cacheLastModFile), []byte(sourceLastModified), 0755) // nolint:gosec
-		if err != nil {
-			return microerror.Mask(err)
-		}
-		cacheUpToDate = false // file did not exist until now
-	} else if err != nil {
-		return microerror.Mask(err)
-	} else {
-		// Compare the time source-controller advertises as Last-Modified with
-		// the time we saved last time an artifact was downloaded and cached.
-		timeSourceLastModified, err := time.Parse(time.RFC1123, sourceLastModified)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-		timeCacheLastModified, err := time.Parse(time.RFC1123, string(cacheLastModified))
-		if err != nil {
-			return microerror.Mask(err)
-		}
-		cacheUpToDate = timeCacheLastModified.Equal(timeSourceLastModified) || timeCacheLastModified.After(timeSourceLastModified)
-	}
-
-	if cacheUpToDate {
-		return nil // early exit, cache matches the file served by source-controller
-	}
-
-	// Cache is stale, pull the latest artifact.
-	request.Method = "GET" // reuse the request we used to ask for HEAD
-	getResponse, err := client.Do(request)
+	responseBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	if getResponse.StatusCode != http.StatusOK {
+
+	// We are not interested in an entire object, we are only interested in getting
+	// some of the status fields that advertise the new archive.
+	type gitRepository struct {
+		Status struct {
+			Artifact struct {
+				Url string
+			}
+		}
+	}
+
+	var gr gitRepository
+	err = json.Unmarshal(responseBytes, &gr)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	// Note: technically this does not mean an error. An empty field could be a symptom
+	// of the CR still being reconciled, or not being picked up by the Source Controller
+	// at all, in which case, we could simply skip quietly.
+	if gr.Status.Artifact.Url == "" {
 		return microerror.Maskf(
 			executionFailedError,
-			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, getResponse.StatusCode,
+			"error downloading artifact: got empty URL from GitRepository status",
 		)
 	}
-	defer getResponse.Body.Close()
+
+	request, err = http.NewRequest("GET", gr.Status.Artifact.Url, nil)
+	response, err = client.Do(request)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+	if response.StatusCode != http.StatusOK {
+		return microerror.Maskf(
+			executionFailedError,
+			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
+		)
+	}
+	defer response.Body.Close()
 
 	var buf bytes.Buffer
-	_, err = io.Copy(&buf, getResponse.Body)
+	_, err = io.Copy(&buf, response.Body)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -357,8 +427,8 @@ func (r *runner) updateConfig() error {
 		return microerror.Mask(err)
 	}
 
-	// Update the timestamp
-	err = os.WriteFile(path.Join(cacheDir, cacheLastModFile), []byte(sourceLastModified), 0755) // nolint:gosec
+	// Update the last archive name
+	err = os.WriteFile(path.Join(cacheDir, cacheLastArchive), []byte(filepath.Base(gr.Status.Artifact.Url)), 0755) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}
