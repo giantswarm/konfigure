@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Drop support for the `latest.tar.gz` and track the artifact advertised in the GitRepository .status.artifact.url.
+
 ## [0.15.0] - 2023-09-13
 
 ### Changed
