@@ -3,6 +3,7 @@ package kustomizepatch
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -264,6 +265,10 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 // The URL is then used to download a new version of the archive and untar it.
 // The archive name is being saved for later comparison.
 func (r *runner) updateConfig() error {
+	return r.updateConfigWithParams(cacheDir, kubernetesTokenFile)
+}
+
+func (r *runner) updateConfigWithParams(cache, token string) error {
 	// Get source-controller's service URL and GitRepository data from
 	// environment variables. We use this data to construct an URL to
 	// source-controller's artifact.
@@ -282,7 +287,7 @@ func (r *runner) updateConfig() error {
 	// hence we must do it now. If the file is present, but archive of the given name is no longer
 	// advertised by the Source Controller, we must look for a new one and re-populate the cache. If the
 	// file is present, and is still advertised by the Source Controller, all is good and we may return.
-	cachedArtifact, err := os.ReadFile(path.Join(cacheDir, cacheLastArchive))
+	cachedArtifact, err := os.ReadFile(path.Join(cache, cacheLastArchive))
 	if err != nil && os.IsNotExist(err) {
 		cachedArtifact = []byte("placeholder.tar.gz")
 	} else if err != nil {
@@ -292,7 +297,7 @@ func (r *runner) updateConfig() error {
 	// Make a HEAD request to the Source Controller. This allows us to check if the artifact
 	// we have cached is still offered.
 	client := &http.Client{Timeout: 60 * time.Second}
-	request, err := http.NewRequest("HEAD", fmt.Sprintf("http://%s/gitrepository/%s/%s", svc, repo, string(cachedArtifact)), nil)
+	request, err := http.NewRequest(http.MethodHead, fmt.Sprintf("http://%s/gitrepository/%s/%s", svc, repo, string(cachedArtifact)), nil)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -339,16 +344,16 @@ func (r *runner) updateConfig() error {
 		repoCoordinates[1],
 	)
 
-	k8sToken, err := os.ReadFile(kubernetesTokenFile)
+	k8sToken, err := os.ReadFile(token)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	bearer := fmt.Sprintf("Bearer %s", string(k8sToken))
+	bearer := fmt.Sprintf("Bearer %s", strings.TrimSpace(string(k8sToken)))
 
 	// Make a GET request to the Kubernetes API server to get the GitRepository
 	// in a JSON format.
-	request, err = http.NewRequest("GET", k8sApiPath, nil)
+	request, err = http.NewRequest(http.MethodGet, k8sApiPath, nil)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -356,11 +361,15 @@ func (r *runner) updateConfig() error {
 	request.Header.Set("Authorization", bearer)
 	request.Header.Add("Accept", "application/json")
 
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	client.Transport = tr
+
 	response, err = client.Do(request)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
 		return microerror.Maskf(
 			executionFailedError,
@@ -399,7 +408,7 @@ func (r *runner) updateConfig() error {
 		)
 	}
 
-	request, err = http.NewRequest("GET", gr.Status.Artifact.Url, nil)
+	request, err = http.NewRequest(http.MethodGet, gr.Status.Artifact.Url, nil)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -423,7 +432,7 @@ func (r *runner) updateConfig() error {
 	}
 
 	// Clear the old artifact's directory and untar a fresh one.
-	dir := path.Join(cacheDir, "latest")
+	dir := path.Join(cache, "latest")
 	if err := os.RemoveAll(dir); err != nil {
 		return microerror.Mask(err)
 	}
@@ -435,7 +444,7 @@ func (r *runner) updateConfig() error {
 	}
 
 	// Update the last archive name
-	err = os.WriteFile(path.Join(cacheDir, cacheLastArchive), []byte(filepath.Base(gr.Status.Artifact.Url)), 0755) // nolint:gosec
+	err = os.WriteFile(path.Join(cache, cacheLastArchive), []byte(filepath.Base(gr.Status.Artifact.Url)), 0755) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}
