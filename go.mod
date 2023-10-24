@@ -4,8 +4,8 @@ go 1.19
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/fatih/color v1.13.0
-	github.com/fluxcd/pkg/untar v0.2.0
+	github.com/fatih/color v1.15.0
+	github.com/fluxcd/pkg/untar v0.3.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions-application v0.6.0
 	github.com/giantswarm/app/v6 v6.15.4
@@ -13,12 +13,12 @@ require (
 	github.com/giantswarm/microerror v0.4.0
 	github.com/giantswarm/micrologger v0.6.0
 	github.com/giantswarm/valuemodifier v0.5.2
-	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/vault/api v1.8.2
+	github.com/google/go-cmp v0.6.0
+	github.com/hashicorp/vault/api v1.10.0
 	github.com/imdario/mergo v0.3.13
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.6.1
-	go.mozilla.org/sops/v3 v3.7.3
+	github.com/spf13/cobra v1.7.0
+	go.mozilla.org/sops/v3 v3.8.1
 	go.uber.org/config v1.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.25.0
@@ -170,14 +170,14 @@ require (
 replace (
 	github.com/coreos/etcd v3.3.10+incompatible => github.com/coreos/etcd v3.3.25+incompatible
 	github.com/coreos/etcd v3.3.13+incompatible => github.com/coreos/etcd v3.3.25+incompatible
-	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2 // CVE-2021-3121
-	github.com/googleapis/gnostic => github.com/google/gnostic v0.6.9
+	github.com/googleapis/gnostic => github.com/google/gnostic v0.7.0
 	github.com/opencontainers/runc v0.1.1 => github.com/opencontainers/runc v1.0.0-rc93
 	// CVE-2023-3978
-	golang.org/x/net => golang.org/x/net v0.14.0
+	golang.org/x/net => golang.org/x/net v0.17.0
 	// CVE-2023-32731
-	google.golang.org/grpc => google.golang.org/grpc v1.57.0
+	google.golang.org/grpc => google.golang.org/grpc v1.59.0
 	sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v0.3.10-gs
 	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.12.1
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.13.10
