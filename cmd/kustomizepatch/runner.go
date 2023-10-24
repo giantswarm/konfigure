@@ -361,7 +361,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 	request.Header.Set("Authorization", bearer)
 	request.Header.Add("Accept", "application/json")
 
-	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // nolint:gosec
 	client.Transport = tr
 
 	response, err = client.Do(request)

@@ -26,7 +26,10 @@ func TestRunner_updateConfig(t *testing.T) {
 		switch strings.TrimSpace(r.URL.Path) {
 		case "/gitrepository/flux-giantswarm/giantswarm-config/latestchecksum.tar.gz":
 			w.WriteHeader(http.StatusOK)
-			w.Write(archive)
+			_, err = w.Write(archive)
+			if err != nil {
+				panic(err)
+			}
 		default:
 			http.NotFoundHandler().ServeHTTP(w, r)
 		}
@@ -37,7 +40,10 @@ func TestRunner_updateConfig(t *testing.T) {
 		switch strings.TrimSpace(r.URL.Path) {
 		case "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-giantswarm/gitrepositories/giantswarm-config":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"status":{"artifact":{"url":"` + srcCtrlServer.URL + "/gitrepository/flux-giantswarm/giantswarm-config/latestchecksum.tar.gz" + `"}}}`))
+			_, err = w.Write([]byte(`{"status":{"artifact":{"url":"` + srcCtrlServer.URL + "/gitrepository/flux-giantswarm/giantswarm-config/latestchecksum.tar.gz" + `"}}}`))
+			if err != nil {
+				panic(err)
+			}
 		default:
 			http.NotFoundHandler().ServeHTTP(w, r)
 		}
