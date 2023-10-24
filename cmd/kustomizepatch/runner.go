@@ -66,8 +66,10 @@ const (
 	// sopsKeysSourceEnvVar tells Konfigure to either get keys from Kubernetes
 	// Secrets or rely on local storage when setting up environment for SOPS
 	sopsKeysSourceEnvVar = "KONFIGURE_SOPS_KEYS_SOURCE"
-	// sourceAPIGroup holds Flux Source group and version
-	sourceAPIGroup = "source.toolkit.fluxcd.io/v1"
+	// v1SourceAPIGroup holds Flux Source group and v1 version
+	v1SourceAPIGroup = "source.toolkit.fluxcd.io/v1"
+	// v1beta2SourceAPIGroup holds Flux Source group and v1beta2 version
+	v1beta2SourceAPIGroup = "source.toolkit.fluxcd.io/v1beta2"
 	// sourceServiceEnvVar is K8s address of source-controller's service, e.g.
 	// "source-controller.flux-system.svc"
 	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
@@ -335,14 +337,24 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 
 	repoCoordinates := strings.Split(repo, "/")
 
-	k8sApiPath := fmt.Sprintf(
-		"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
-		k8sApiHost,
-		k8sApiPort,
-		sourceAPIGroup,
-		repoCoordinates[0],
-		repoCoordinates[1],
-	)
+	k8sApiPath := []string{
+		fmt.Sprintf(
+			"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
+			k8sApiHost,
+			k8sApiPort,
+			v1SourceAPIGroup,
+			repoCoordinates[0],
+			repoCoordinates[1],
+		),
+		fmt.Sprintf(
+			"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
+			k8sApiHost,
+			k8sApiPort,
+			v1beta2SourceAPIGroup,
+			repoCoordinates[0],
+			repoCoordinates[1],
+		),
+	}
 
 	k8sToken, err := os.ReadFile(token)
 	if err != nil {
@@ -353,27 +365,42 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 
 	// Make a GET request to the Kubernetes API server to get the GitRepository
 	// in a JSON format.
-	request, err = http.NewRequest(http.MethodGet, k8sApiPath, nil)
-	if err != nil {
-		return microerror.Mask(err)
+	for _, p := range k8sApiPath {
+		request, err = http.NewRequest(http.MethodGet, p, nil)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		request.Header.Set("Authorization", bearer)
+		request.Header.Add("Accept", "application/json")
+
+		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // nolint:gosec
+		client.Transport = tr
+
+		response, err = client.Do(request)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		defer response.Body.Close()
+
+		if response.StatusCode == http.StatusOK {
+			break
+		}
+
+		if response.StatusCode == http.StatusNotFound {
+			continue
+		}
+
+		return microerror.Maskf(
+			executionFailedError,
+			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
+		)
 	}
-
-	request.Header.Set("Authorization", bearer)
-	request.Header.Add("Accept", "application/json")
-
-	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // nolint:gosec
-	client.Transport = tr
-
-	response, err = client.Do(request)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		return microerror.Maskf(
 			executionFailedError,
-			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
+			"error getting '%s' GitRepository CR", repo,
 		)
 	}
 
