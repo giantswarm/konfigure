@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/vault/api v1.8.2
 	github.com/imdario/mergo v0.3.13
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.7.0
 	go.mozilla.org/sops/v3 v3.7.3
 	go.uber.org/config v1.4.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -104,7 +104,7 @@ require (
 	github.com/hashicorp/yamux v0.1.0 // indirect
 	github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
