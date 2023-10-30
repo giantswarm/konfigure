@@ -8,10 +8,10 @@ require (
 	github.com/fluxcd/pkg/untar v0.2.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions-application v0.6.0
-	github.com/giantswarm/app/v6 v6.15.4
+	github.com/giantswarm/app/v7 v7.0.0
 	github.com/giantswarm/k8smetadata v0.20.0
 	github.com/giantswarm/microerror v0.4.0
-	github.com/giantswarm/micrologger v0.6.0
+	github.com/giantswarm/micrologger v1.0.0
 	github.com/giantswarm/valuemodifier v0.5.2
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/vault/api v1.8.2
@@ -178,7 +178,7 @@ replace (
 	golang.org/x/net => golang.org/x/net v0.14.0
 	// CVE-2023-32731
 	google.golang.org/grpc => google.golang.org/grpc v1.57.0
-	sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v0.3.10-gs
+	sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v1.5.0
 	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.12.1
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.13.10
 )
