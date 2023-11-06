@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/imdario/mergo v0.3.13
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	go.mozilla.org/sops/v3 v3.7.3
 	go.uber.org/config v1.4.0
 	gopkg.in/yaml.v3 v3.0.1
