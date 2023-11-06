@@ -237,18 +237,21 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 		"",
 	)
 	if IsNotFound(err) {
-		g.logMessage(ctx, "secret-values template not found, generated configmap")
-		return configmap, "", nil
+		g.logMessage(ctx, "secret-values template not found")
+		secretTemplate = ""
+		//return configmap, "", nil
 	} else if err != nil {
 		return "", "", microerror.Mask(err)
 	}
 	g.logMessage(ctx, "loaded secret-values template")
 
-	secret, err = g.renderTemplate(ctx, secretTemplate, secretContextFinal)
-	if err != nil {
-		return "", "", microerror.Mask(err)
+	if secretTemplate != "" {
+		secret, err = g.renderTemplate(ctx, secretTemplate, secretContextFinal)
+		if err != nil {
+			return "", "", microerror.Mask(err)
+		}
+		g.logMessage(ctx, "rendered secret-values")
 	}
-	g.logMessage(ctx, "rendered secret-values")
 
 	// 8.
 	var secretPatch string
