@@ -135,13 +135,11 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 		}
 	}
 	// Check if app folder exists at all. If not, return a descriptive error.
+	missingAppDefaults := false
 	if _, err := g.fs.ReadDir("default/apps/" + app); err != nil {
 		if IsNotFound(err) {
-			return "", "", microerror.Maskf(
-				notFoundError,
-				"cannot generate config for app %s, because \"default/apps/%s\" does not exist",
-				app, app,
-			)
+			g.logMessage(ctx, "default/apps/"+app+" not found, considering defaults as empty")
+			missingAppDefaults = true
 		} else {
 			return "", "", microerror.Mask(err)
 		}
@@ -160,13 +158,16 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 
 	// 2.
 	g.logMessage(ctx, "rendering configmap-values")
-	configmapBase, err := g.getRenderedTemplate(
-		ctx,
-		"default/apps/"+app+"/configmap-values.yaml.template",
-		configmapContext,
-	)
-	if err != nil {
-		return "", "", microerror.Mask(err)
+	configmapBase := ""
+	if !missingAppDefaults {
+		configmapBase, err = g.getRenderedTemplate(
+			ctx,
+			"default/apps/"+app+"/configmap-values.yaml.template",
+			configmapContext,
+		)
+		if err != nil {
+			return "", "", microerror.Mask(err)
+		}
 	}
 	g.logMessage(ctx, "rendered configmap-values template")
 	// 3.
