@@ -441,6 +441,11 @@ func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
 	}
 
 	value := patcher.Get(uberconfig.Root).Value() // nolint:staticcheck
+
+	if value == nil {
+		return "", nil
+	}
+
 	output, err := yaml3.Marshal(value)
 	if err != nil {
 		return "", microerror.Mask(err)
