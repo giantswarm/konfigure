@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.1] - 2023-10-24
+
+### Changed
+
+- Drop support for the `latest.tar.gz` and track the artifact advertised in the GitRepository .status.artifact.url.
+
 ## [0.15.0] - 2023-09-13
 
 ### Changed
@@ -231,7 +237,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/giantswarm/konfigure/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/giantswarm/konfigure/compare/v0.14.4...v0.15.0
 [0.14.4]: https://github.com/giantswarm/konfigure/compare/v0.14.3...v0.14.4
 [0.14.3]: https://github.com/giantswarm/konfigure/compare/v0.14.2...v0.14.3
