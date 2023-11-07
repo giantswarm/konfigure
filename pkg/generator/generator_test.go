@@ -221,6 +221,15 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			installation:     "puma",
 			decryptTraverser: &noopTraverser{},
 		},
+
+		{
+			name:     "case 17 - include self",
+			caseFile: "testdata/cases/case15.yaml",
+
+			app:              "operator",
+			installation:     "puma",
+			decryptTraverser: &noopTraverser{},
+		},
 	}
 
 	for _, tc := range testCases {
