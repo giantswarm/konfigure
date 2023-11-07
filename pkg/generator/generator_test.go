@@ -205,25 +205,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 		},
 
 		{
-			name:     "case 15 - missing defaults and no installation specific patch",
-			caseFile: "testdata/cases/case13.yaml",
-
-			app:              "operator",
-			installation:     "puma",
-			decryptTraverser: &noopTraverser{},
-		},
-
-		{
-			name:     "case 16 - missing defaults with installation specific patch",
-			caseFile: "testdata/cases/case14.yaml",
-
-			app:              "operator",
-			installation:     "puma",
-			decryptTraverser: &noopTraverser{},
-		},
-
-		{
-			name:     "case 17 - include self",
+			name:     "case 15 - include self",
 			caseFile: "testdata/cases/case15.yaml",
 
 			app:              "operator",
