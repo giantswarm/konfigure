@@ -164,7 +164,7 @@ replace (
 	// CVE-2023-3978
 	golang.org/x/net => golang.org/x/net v0.19.0
 	// CVE-2023-32731
-	google.golang.org/grpc => google.golang.org/grpc v1.60.0
+	google.golang.org/grpc => google.golang.org/grpc v1.60.1
 	sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v0.3.10-gs
 	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.12.1
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.13.10
