@@ -18,7 +18,7 @@ require (
 	github.com/imdario/mergo v0.3.13
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
-	go.mozilla.org/sops/v3 v3.7.3
+	go.mozilla.org/sops/v3 v3.8.1
 	go.uber.org/config v1.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.25.0
