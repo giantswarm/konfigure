@@ -10,9 +10,9 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/getsops/sops/v3/decrypt"
 	"github.com/giantswarm/microerror"
 	"github.com/pkg/errors"
-	"go.mozilla.org/sops/v3/decrypt"
 	uberconfig "go.uber.org/config"
 	yaml3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -46,6 +46,11 @@ import (
 						configmap-values.yaml.patch
 						secret-values.yaml.patch
 */
+
+const (
+	appsDefaultPath   = "default/apps/"
+	installationsPath = "installations/"
+)
 
 type Config struct {
 	Fs               Filesystem
@@ -123,7 +128,7 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (configmap string, secret string, err error) {
 	// Check if installation folder exists at all. If not, return a descriptive
 	// error.
-	if _, err := g.fs.ReadDir("installations/" + g.installation); err != nil {
+	if _, err := g.fs.ReadDir(installationsPath + g.installation); err != nil {
 		if IsNotFound(err) {
 			return "", "", microerror.Maskf(
 				notFoundError,
@@ -135,7 +140,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 		}
 	}
 	// Check if app folder exists at all. If not, return a descriptive error.
-	if _, err := g.fs.ReadDir("default/apps/" + app); err != nil {
+	if _, err := g.fs.ReadDir(appsDefaultPath + app); err != nil {
 		if IsNotFound(err) {
 			return "", "", microerror.Maskf(
 				notFoundError,
@@ -151,7 +156,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	configmapContext, err := g.getWithPatchIfExists(
 		ctx,
 		"default/config.yaml",
-		"installations/"+g.installation+"/config.yaml.patch",
+		installationsPath+g.installation+"/config.yaml.patch",
 	)
 	if err != nil {
 		return "", "", microerror.Mask(err)
@@ -162,7 +167,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	g.logMessage(ctx, "rendering configmap-values")
 	configmapBase, err := g.getRenderedTemplate(
 		ctx,
-		"default/apps/"+app+"/configmap-values.yaml.template",
+		appsDefaultPath+app+"/configmap-values.yaml.template",
 		configmapContext,
 	)
 	if err != nil {
@@ -174,7 +179,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	var configmapPatch string
 	{
 		g.logMessage(ctx, "rendering configmap-values patch (if it exists)")
-		filepath := "installations/" + g.installation + "/apps/" + app + "/configmap-values.yaml.patch"
+		filepath := installationsPath + g.installation + "/apps/" + app + "/configmap-values.yaml.patch"
 		patch, err := g.getRenderedTemplate(ctx, filepath, configmapContext)
 		if IsNotFound(err) {
 			configmapPatch = ""
@@ -200,7 +205,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	}
 
 	// 5.
-	installationSecretPath := "installations/" + g.installation + "/secret.yaml"
+	installationSecretPath := installationsPath + g.installation + "/secret.yaml"
 	secretContext, err := g.getWithPatchIfExists(
 		ctx,
 		installationSecretPath,
@@ -233,7 +238,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	// 7.
 	secretTemplate, err := g.getWithPatchIfExists(
 		ctx,
-		"default/apps/"+app+"/secret-values.yaml.template",
+		appsDefaultPath+app+"/secret-values.yaml.template",
 		"",
 	)
 	if IsNotFound(err) {
@@ -253,7 +258,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	// 8.
 	var secretPatch string
 	{
-		filepath := "installations/" + g.installation + "/apps/" + app + "/secret-values.yaml.patch"
+		filepath := installationsPath + g.installation + "/apps/" + app + "/secret-values.yaml.patch"
 		patch, err := g.getRenderedTemplate(ctx, filepath, secretContext)
 		if IsNotFound(err) {
 			secretPatch = ""

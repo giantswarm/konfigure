@@ -2,13 +2,13 @@
 
 # DO NOT EDIT. Generated with:
 #
-#    devctl@6.15.1
+#    devctl@6.20.0
 #
 
 APPLICATION=$1
 VERSION=$2
 
-SIGNCODE_UTIL=quay.io/giantswarm/signcode-util:1.1.1
+SIGNCODE_UTIL=gsoci.azurecr.io/giantswarm/signcode-util:1.1.1
 
 echo "APPLICATION=${APPLICATION}"
 echo "VERSION=${VERSION}"
