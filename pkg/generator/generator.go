@@ -10,9 +10,9 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/getsops/sops/v3/decrypt"
 	"github.com/giantswarm/microerror"
 	"github.com/pkg/errors"
-	"go.mozilla.org/sops/v3/decrypt"
 	uberconfig "go.uber.org/config"
 	yaml3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
