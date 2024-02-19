@@ -171,7 +171,6 @@ require (
 
 replace (
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2 // CVE-2021-3121
-	github.com/opencontainers/runc v0.1.1 => github.com/opencontainers/runc v1.0.0-rc93
 	// CVE-2023-3978
 	golang.org/x/net => golang.org/x/net v0.21.0
 	// CVE-2023-32731
