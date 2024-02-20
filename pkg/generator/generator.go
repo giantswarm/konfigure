@@ -173,6 +173,7 @@ func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (c
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
+
 	g.logMessage(ctx, "rendered configmap-values template")
 	// 3.
 	var configmapPatch string
@@ -445,6 +446,7 @@ func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
 	}
 
 	value := patcher.Get(uberconfig.Root).Value() // nolint:staticcheck
+
 	output, err := yaml3.Marshal(value)
 	if err != nil {
 		return "", microerror.Mask(err)
@@ -462,6 +464,7 @@ func (g Generator) renderTemplate(ctx context.Context, templateText string, temp
 
 	funcMap := sprig.TxtFuncMap()
 	funcMap["include"] = g.include
+	funcMap["includeSelf"] = g.includeSelf
 
 	t, err := template.New("main").Funcs(funcMap).Option("missingkey=error").Parse(templateText)
 	if err != nil {
@@ -479,7 +482,15 @@ func (g Generator) renderTemplate(ctx context.Context, templateText string, temp
 }
 
 func (g Generator) include(templateName string, templateData interface{}) (string, error) {
-	templateFilePath := path.Join("include", templateName+".yaml.template")
+	return g.includeFromRoot("include", templateName, templateData)
+}
+
+func (g Generator) includeSelf(templateName string, templateData interface{}) (string, error) {
+	return g.includeFromRoot("include-self", templateName, templateData)
+}
+
+func (g Generator) includeFromRoot(root string, templateName string, templateData interface{}) (string, error) {
+	templateFilePath := path.Join(root, templateName+".yaml.template")
 	contents, err := g.fs.ReadFile(templateFilePath)
 	if err != nil {
 		return "", microerror.Mask(err)

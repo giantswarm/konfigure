@@ -203,6 +203,15 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 			expectedErrorMessage: `Error getting data key: 0 successful groups required, got 0`,
 		},
+
+		{
+			name:     "case 15 - include self",
+			caseFile: "testdata/cases/case15.yaml",
+
+			app:              "operator",
+			installation:     "puma",
+			decryptTraverser: &noopTraverser{},
+		},
 	}
 
 	for _, tc := range testCases {

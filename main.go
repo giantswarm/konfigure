@@ -89,7 +89,11 @@ func mainE(ctx context.Context) error {
 			cmd.SilenceUsage = true
 			err = cmd.Execute()
 			if err != nil {
-				return microerror.Mask(err)
+				_, err := fmt.Fprint(os.Stderr, microerror.Pretty(err, false))
+				if err != nil {
+					return err
+				}
+				os.Exit(1)
 			}
 			return nil
 		}
