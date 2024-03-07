@@ -15,6 +15,8 @@ import (
 	"github.com/giantswarm/micrologger/microloggertest"
 )
 
+const advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
+
 func TestRunner_updateConfig(t *testing.T) {
 	archive, err := os.ReadFile("testdata/latestchecksum.tar.gz")
 	if err != nil {
@@ -25,6 +27,7 @@ func TestRunner_updateConfig(t *testing.T) {
 	srcCtrlServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch strings.TrimSpace(r.URL.Path) {
 		case "/gitrepository/flux-giantswarm/giantswarm-config/latestchecksum.tar.gz":
+			w.Header().Add("Last-Modified", advertisedTimestamp)
 			w.WriteHeader(http.StatusOK)
 			_, err = w.Write(archive)
 			if err != nil {
@@ -68,24 +71,49 @@ func TestRunner_updateConfig(t *testing.T) {
 	t.Setenv("KUBERNETES_SERVICE_PORT", k8sUrl.Port())
 
 	testCases := []struct {
-		name              string
-		deprecatedPresent bool
-		latestPresent     bool
+		name                 string
+		deprecatedPresent    bool
+		latestPresent        bool
+		testArchiveName      []byte
+		testArchiveTimestamp []byte
+		testConfigYaml       []byte
 	}{
 		{
-			name:              "fresh, no archive loaded",
-			deprecatedPresent: false,
-			latestPresent:     false,
+			name: "fresh, no archive loaded",
 		},
 		{
-			name:              "deprecated archive loaded, but newer available",
-			deprecatedPresent: true,
-			latestPresent:     false,
+			/*
+				The archive is a composition of a customer part and shared part
+				included by Flux. When customer part changes the revision advertised
+				naturally changes as well, and hence the URL the Source Controller
+				serves the archive at. This test covers this scenario. The timestamp
+				is irrelevant in this case.
+			*/
+			name:                 "deprecated archive loaded, but newer available",
+			testArchiveName:      []byte(`deprecatedchecksum.tar.gz`),
+			testArchiveTimestamp: []byte(`Thu, 28 Feb 2024 00:00:00 GMT`),
+			testConfigYaml:       []byte(`oldvalue`),
 		},
 		{
-			name:              "deprecated archive loaded, but newer available",
-			deprecatedPresent: true,
-			latestPresent:     false,
+			/*
+				When the shared configs part changes, and the customer base does not,
+				the revision stays the same. But the Last-Modified timestamp should
+				change informing the archive has been updated. If so, it must be
+				reloaded. This test covers this scenario.
+			*/
+			name:                 "latest archive loaded",
+			testArchiveName:      []byte(`latestchecksum.tar.gz`),
+			testArchiveTimestamp: []byte(`Thu, 01 Mar 2024 00:00:00 GMT`),
+			testConfigYaml:       []byte(`oldvalue`),
+		},
+		{
+			/*
+				Neither revision nor timestamp has changed
+			*/
+			name:                 "latest archive loaded",
+			testArchiveName:      []byte(`latestchecksum.tar.gz`),
+			testArchiveTimestamp: []byte(advertisedTimestamp),
+			testConfigYaml:       []byte(`newvalue`),
 		},
 	}
 
@@ -98,26 +126,14 @@ func TestRunner_updateConfig(t *testing.T) {
 			}
 			defer os.RemoveAll(tmpCacheDir)
 
-			if tc.latestPresent && !tc.deprecatedPresent {
-				err = prePopulateCache(
-					tmpCacheDir,
-					[]byte(`latestchecksum.tar.gz`),
-					[]byte(`newvalue`),
-				)
-				if err != nil {
-					t.Fatalf("want nil, got error: %s", err.Error())
-				}
-			} else if !tc.latestPresent && tc.deprecatedPresent {
-				err = prePopulateCache(
-					tmpCacheDir,
-					[]byte(`deprecatedchecksum.tar.gz`),
-					[]byte(`oldvalue`),
-				)
-				if err != nil {
-					t.Fatalf("want nil, got error: %s", err.Error())
-				}
-			} else if tc.latestPresent && tc.deprecatedPresent {
-				t.Fatalf("bad input, only one archive can be loaded")
+			err = prePopulateCache(
+				tmpCacheDir,
+				tc.testArchiveName,
+				tc.testConfigYaml,
+				tc.testArchiveTimestamp,
+			)
+			if err != nil {
+				t.Fatalf("want nil, got error: %s", err.Error())
 			}
 
 			r := &runner{
@@ -145,22 +161,45 @@ func TestRunner_updateConfig(t *testing.T) {
 			if strings.TrimSpace(string(config)) != "newvalue" {
 				t.Fatalf("want '%s', got '%s'", "newvalue", string(config))
 			}
+
+			timestamp, err := os.ReadFile(path.Join(tmpCacheDir, cacheLastArchiveTimestamp))
+			if err != nil {
+				t.Fatalf("want nil, got error: %s", err.Error())
+			}
+
+			if strings.TrimSpace(string(timestamp)) != advertisedTimestamp {
+				t.Fatalf("want '%s', got '%s'", advertisedTimestamp, string(timestamp))
+			}
 		})
 	}
 }
 
-func prePopulateCache(cache string, archive, config []byte) error {
-	err := os.WriteFile(path.Join(cache, cacheLastArchive), archive, 0755) // nolint:gosec
-	if err != nil {
-		return microerror.Mask(err)
+func prePopulateCache(cache string, archive, config, timestamp []byte) error {
+	var err error
+	if len(timestamp) > 0 {
+		err = os.WriteFile(path.Join(cache, cacheLastArchive), archive, 0755) // nolint:gosec
+		if err != nil {
+			return microerror.Mask(err)
+		}
 	}
+
 	dir := path.Join(cache, "latest")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return microerror.Mask(err)
 	}
-	err = os.WriteFile(path.Join(dir, "config.yaml"), config, 0755) // nolint:gosec
-	if err != nil {
-		return microerror.Mask(err)
+
+	if len(timestamp) > 0 {
+		err = os.WriteFile(path.Join(dir, "config.yaml"), config, 0755) // nolint:gosec
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	if len(timestamp) > 0 {
+		err = os.WriteFile(path.Join(cache, cacheLastArchiveTimestamp), timestamp, 0755) // nolint:gosec
+		if err != nil {
+			return microerror.Mask(err)
+		}
 	}
 
 	return nil

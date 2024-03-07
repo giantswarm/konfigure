@@ -40,8 +40,9 @@ const (
 
 	// cacheDir is a directory where konfigure will keep its cache if it's
 	// running in cluster and talking to source-controller.
-	cacheDir         = "/tmp/konfigure-cache"
-	cacheLastArchive = "lastarchive"
+	cacheDir                  = "/tmp/konfigure-cache"
+	cacheLastArchive          = "lastarchive"
+	cacheLastArchiveTimestamp = "lastarchivetimestamp"
 	// dirEnvVar is a directory containing giantswarm/config. If set, requests
 	// to source-controller will not be made and both sourceServiceEnvVar and
 	// gitRepositoryEnvVar will be ignored. Used only on local machine for
@@ -296,6 +297,18 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 		return microerror.Mask(err)
 	}
 
+	cachedArtifactTimestampByte, err := os.ReadFile(path.Join(cache, cacheLastArchiveTimestamp))
+	if err != nil && os.IsNotExist(err) {
+		cachedArtifactTimestampByte = []byte(time.Time{}.Format(http.TimeFormat))
+	} else if err != nil {
+		return microerror.Mask(err)
+	}
+
+	cachedArtifactTimestamp, err := time.Parse(http.TimeFormat, string(cachedArtifactTimestampByte))
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	// Make a HEAD request to the Source Controller. This allows us to check if the artifact
 	// we have cached is still offered.
 	client := &http.Client{Timeout: 60 * time.Second}
@@ -310,13 +323,20 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 	}
 	defer response.Body.Close()
 
-	// The artifact we were asking for is still advertised by the Source Controller, hence
-	// we may skip further processing.
+	// The artifact we were asking for is still advertised by the Source Controller,
+	// and has not changed since the last time, hence we may skip further processing.
 	if response.StatusCode == http.StatusOK {
-		return nil
-	}
+		// The artifact we are asking for is still available, we need to check its
+		// last modification date
+		artifactTimestamp, err := time.Parse(http.TimeFormat, response.Header.Get("Last-Modified"))
+		if err != nil {
+			return microerror.Mask(err)
+		}
 
-	if response.StatusCode != http.StatusNotFound {
+		if cachedArtifactTimestamp.After(artifactTimestamp) || cachedArtifactTimestamp.Equal(artifactTimestamp) {
+			return nil
+		}
+	} else if response.StatusCode != http.StatusNotFound {
 		return microerror.Maskf(
 			executionFailedError,
 			"error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode,
@@ -470,8 +490,13 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 		return microerror.Mask(err)
 	}
 
-	// Update the last archive name
+	// Update the last archive name and timestamp
 	err = os.WriteFile(path.Join(cache, cacheLastArchive), []byte(filepath.Base(gr.Status.Artifact.Url)), 0755) // nolint:gosec
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	err = os.WriteFile(path.Join(cache, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0755) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}
