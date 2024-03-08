@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Skip calling API Server when known revision is still the latest advertised.
 - Use `Last-Modified` header as indicator the archive has changed.
 
 ## [0.16.0] - 2024-02-20
