@@ -309,10 +309,11 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 		return microerror.Mask(err)
 	}
 
+	url := fmt.Sprintf("http://%s/gitrepository/%s/%s", svc, repo, string(cachedArtifact))
 	// Make a HEAD request to the Source Controller. This allows us to check if the artifact
 	// we have cached is still offered.
 	client := &http.Client{Timeout: 60 * time.Second}
-	request, err := http.NewRequest(http.MethodHead, fmt.Sprintf("http://%s/gitrepository/%s/%s", svc, repo, string(cachedArtifact)), nil)
+	request, err := http.NewRequest(http.MethodHead, url, nil)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -336,126 +337,136 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 		if cachedArtifactTimestamp.After(artifactTimestamp) || cachedArtifactTimestamp.Equal(artifactTimestamp) {
 			return nil
 		}
-	} else if response.StatusCode != http.StatusNotFound {
-		return microerror.Maskf(
-			executionFailedError,
-			"error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode,
-		)
+	} else {
+		if response.StatusCode != http.StatusNotFound {
+			return microerror.Maskf(
+				executionFailedError,
+				"error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode,
+			)
+		} else {
+			url = ""
+		}
 	}
 
-	// The artifact we were asking for is gone, we must find the newly advertised one,
-	// hence we query the Kubernetes API Server for the GitRepository CR resource.
-	k8sApiHost := os.Getenv(kubernetesServiceHostEnvVar)
-	if svc == "" {
-		return microerror.Maskf(executionFailedError, "%q environment variable not set", kubernetesServiceHostEnvVar)
-	}
+	// When latest known revision is still available, there is no need to query the API Server
+	// for the GitRepository, it saves us one call.
+	if url == "" {
+		// The artifact we were asking for is gone, we must find the newly advertised one,
+		// hence we query the Kubernetes API Server for the GitRepository CR resource.
+		k8sApiHost := os.Getenv(kubernetesServiceHostEnvVar)
+		if svc == "" {
+			return microerror.Maskf(executionFailedError, "%q environment variable not set", kubernetesServiceHostEnvVar)
+		}
 
-	k8sApiPort := os.Getenv(kubernetesServicePortEnvVar)
-	if svc == "" {
-		return microerror.Maskf(executionFailedError, "%q environment variable not set", kubernetesServicePortEnvVar)
-	}
+		k8sApiPort := os.Getenv(kubernetesServicePortEnvVar)
+		if svc == "" {
+			return microerror.Maskf(executionFailedError, "%q environment variable not set", kubernetesServicePortEnvVar)
+		}
 
-	repoCoordinates := strings.Split(repo, "/")
+		repoCoordinates := strings.Split(repo, "/")
 
-	k8sApiPath := []string{
-		fmt.Sprintf(
-			"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
-			k8sApiHost,
-			k8sApiPort,
-			v1SourceAPIGroup,
-			repoCoordinates[0],
-			repoCoordinates[1],
-		),
-		fmt.Sprintf(
-			"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
-			k8sApiHost,
-			k8sApiPort,
-			v1beta2SourceAPIGroup,
-			repoCoordinates[0],
-			repoCoordinates[1],
-		),
-	}
+		k8sApiPath := []string{
+			fmt.Sprintf(
+				"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
+				k8sApiHost,
+				k8sApiPort,
+				v1SourceAPIGroup,
+				repoCoordinates[0],
+				repoCoordinates[1],
+			),
+			fmt.Sprintf(
+				"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
+				k8sApiHost,
+				k8sApiPort,
+				v1beta2SourceAPIGroup,
+				repoCoordinates[0],
+				repoCoordinates[1],
+			),
+		}
 
-	k8sToken, err := os.ReadFile(token)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	bearer := fmt.Sprintf("Bearer %s", strings.TrimSpace(string(k8sToken)))
-
-	// Make a GET request to the Kubernetes API server to get the GitRepository
-	// in a JSON format.
-	for _, p := range k8sApiPath {
-		request, err = http.NewRequest(http.MethodGet, p, nil)
+		k8sToken, err := os.ReadFile(token)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		request.Header.Set("Authorization", bearer)
-		request.Header.Add("Accept", "application/json")
+		bearer := fmt.Sprintf("Bearer %s", strings.TrimSpace(string(k8sToken)))
 
-		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // nolint:gosec
-		client.Transport = tr
+		// Make a GET request to the Kubernetes API server to get the GitRepository
+		// in a JSON format.
+		for _, p := range k8sApiPath {
+			request, err = http.NewRequest(http.MethodGet, p, nil)
+			if err != nil {
+				return microerror.Mask(err)
+			}
 
-		response, err = client.Do(request)
+			request.Header.Set("Authorization", bearer)
+			request.Header.Add("Accept", "application/json")
+
+			tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // nolint:gosec
+			client.Transport = tr
+
+			response, err = client.Do(request)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+			defer response.Body.Close()
+
+			if response.StatusCode == http.StatusOK {
+				break
+			}
+
+			if response.StatusCode == http.StatusNotFound {
+				continue
+			}
+
+			return microerror.Maskf(
+				executionFailedError,
+				"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
+			)
+		}
+
+		if response.StatusCode != http.StatusOK {
+			return microerror.Maskf(
+				executionFailedError,
+				"error getting '%s' GitRepository CR", repo,
+			)
+		}
+
+		responseBytes, err := io.ReadAll(response.Body)
 		if err != nil {
 			return microerror.Mask(err)
 		}
-		defer response.Body.Close()
 
-		if response.StatusCode == http.StatusOK {
-			break
-		}
-
-		if response.StatusCode == http.StatusNotFound {
-			continue
-		}
-
-		return microerror.Maskf(
-			executionFailedError,
-			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
-		)
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return microerror.Maskf(
-			executionFailedError,
-			"error getting '%s' GitRepository CR", repo,
-		)
-	}
-
-	responseBytes, err := io.ReadAll(response.Body)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	// We are not interested in an entire object, we are only interested in getting
-	// some of the status fields that advertise the new archive.
-	type gitRepository struct {
-		Status struct {
-			Artifact struct {
-				Url string
+		// We are not interested in an entire object, we are only interested in getting
+		// some of the status fields that advertise the new archive.
+		type gitRepository struct {
+			Status struct {
+				Artifact struct {
+					Url string
+				}
 			}
 		}
+
+		var gr gitRepository
+		err = json.Unmarshal(responseBytes, &gr)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		// Note: technically this does not mean an error. An empty field could be a symptom
+		// of the CR still being reconciled, or not being picked up by the Source Controller
+		// at all, in which case, we could simply skip quietly.
+		if gr.Status.Artifact.Url == "" {
+			return microerror.Maskf(
+				executionFailedError,
+				"error downloading artifact: got empty URL from GitRepository status",
+			)
+		}
+
+		url = gr.Status.Artifact.Url
 	}
 
-	var gr gitRepository
-	err = json.Unmarshal(responseBytes, &gr)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	// Note: technically this does not mean an error. An empty field could be a symptom
-	// of the CR still being reconciled, or not being picked up by the Source Controller
-	// at all, in which case, we could simply skip quietly.
-	if gr.Status.Artifact.Url == "" {
-		return microerror.Maskf(
-			executionFailedError,
-			"error downloading artifact: got empty URL from GitRepository status",
-		)
-	}
-
-	request, err = http.NewRequest(http.MethodGet, gr.Status.Artifact.Url, nil)
+	request, err = http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -491,7 +502,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 	}
 
 	// Update the last archive name and timestamp
-	err = os.WriteFile(path.Join(cache, cacheLastArchive), []byte(filepath.Base(gr.Status.Artifact.Url)), 0755) // nolint:gosec
+	err = os.WriteFile(path.Join(cache, cacheLastArchive), []byte(filepath.Base(url)), 0755) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}
