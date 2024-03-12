@@ -18,7 +18,7 @@ import (
 const advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
 
 func TestRunner_updateConfig(t *testing.T) {
-	archive, err := os.ReadFile("testdata/latestchecksum.tar.gz")
+	archive, err := os.ReadFile("testdata/latestrevision.tar.gz")
 	if err != nil {
 		panic(err)
 	}
@@ -26,7 +26,7 @@ func TestRunner_updateConfig(t *testing.T) {
 	// Create HTTP servers for Source Controller and Kubernetes API
 	srcCtrlServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch strings.TrimSpace(r.URL.Path) {
-		case "/gitrepository/flux-giantswarm/giantswarm-config/latestchecksum.tar.gz":
+		case "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz":
 			w.Header().Add("Last-Modified", advertisedTimestamp)
 			w.WriteHeader(http.StatusOK)
 			_, err = w.Write(archive)
@@ -43,7 +43,7 @@ func TestRunner_updateConfig(t *testing.T) {
 		switch strings.TrimSpace(r.URL.Path) {
 		case "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-giantswarm/gitrepositories/giantswarm-config":
 			w.WriteHeader(http.StatusOK)
-			_, err = w.Write([]byte(`{"status":{"artifact":{"url":"` + srcCtrlServer.URL + "/gitrepository/flux-giantswarm/giantswarm-config/latestchecksum.tar.gz" + `"}}}`))
+			_, err = w.Write([]byte(`{"status":{"artifact":{"url":"` + srcCtrlServer.URL + "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz" + `"}}}`))
 			if err != nil {
 				panic(err)
 			}
@@ -71,15 +71,17 @@ func TestRunner_updateConfig(t *testing.T) {
 	t.Setenv("KUBERNETES_SERVICE_PORT", k8sUrl.Port())
 
 	testCases := []struct {
-		name                 string
-		deprecatedPresent    bool
-		latestPresent        bool
-		testArchiveName      []byte
-		testArchiveTimestamp []byte
-		testConfigYaml       []byte
+		name                    string
+		deprecatedPresent       bool
+		expectedConfigYamlValue string
+		latestPresent           bool
+		testArchiveName         []byte
+		testArchiveTimestamp    []byte
+		testConfigYaml          []byte
 	}{
 		{
-			name: "fresh, no archive loaded",
+			expectedConfigYamlValue: "newvalue",
+			name:                    "fresh, no archive loaded",
 		},
 		{
 			/*
@@ -89,10 +91,11 @@ func TestRunner_updateConfig(t *testing.T) {
 				serves the archive at. This test covers this scenario. The timestamp
 				is irrelevant in this case.
 			*/
-			name:                 "deprecated archive loaded, but newer available",
-			testArchiveName:      []byte(`deprecatedchecksum.tar.gz`),
-			testArchiveTimestamp: []byte(`Thu, 28 Feb 2024 00:00:00 GMT`),
-			testConfigYaml:       []byte(`oldvalue`),
+			expectedConfigYamlValue: "newvalue",
+			name:                    "old revision archive loaded, newer available",
+			testArchiveName:         []byte(`deprecatedrevision.tar.gz`),
+			testArchiveTimestamp:    []byte(`Thu, 28 Feb 2024 00:00:00 GMT`),
+			testConfigYaml:          []byte(`oldvalue`),
 		},
 		{
 			/*
@@ -101,19 +104,21 @@ func TestRunner_updateConfig(t *testing.T) {
 				change informing the archive has been updated. If so, it must be
 				reloaded. This test covers this scenario.
 			*/
-			name:                 "latest archive loaded",
-			testArchiveName:      []byte(`latestchecksum.tar.gz`),
-			testArchiveTimestamp: []byte(`Thu, 01 Mar 2024 00:00:00 GMT`),
-			testConfigYaml:       []byte(`oldvalue`),
+			expectedConfigYamlValue: "newvalue",
+			name:                    "latest revision loaded, modified since last time",
+			testArchiveName:         []byte(`latestrevision.tar.gz`),
+			testArchiveTimestamp:    []byte(`Thu, 01 Mar 2024 00:00:00 GMT`),
+			testConfigYaml:          []byte(`oldvalue`),
 		},
 		{
 			/*
 				Neither revision nor timestamp has changed
 			*/
-			name:                 "latest archive loaded",
-			testArchiveName:      []byte(`latestchecksum.tar.gz`),
-			testArchiveTimestamp: []byte(advertisedTimestamp),
-			testConfigYaml:       []byte(`newvalue`),
+			expectedConfigYamlValue: "somevalue",
+			name:                    "latest archive loaded",
+			testArchiveName:         []byte(`latestrevision.tar.gz`),
+			testArchiveTimestamp:    []byte(advertisedTimestamp),
+			testConfigYaml:          []byte(`somevalue`),
 		},
 	}
 
@@ -158,8 +163,8 @@ func TestRunner_updateConfig(t *testing.T) {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
 
-			if strings.TrimSpace(string(config)) != "newvalue" {
-				t.Fatalf("want '%s', got '%s'", "newvalue", string(config))
+			if strings.TrimSpace(string(config)) != tc.expectedConfigYamlValue {
+				t.Fatalf("want '%s', got '%s'", tc.expectedConfigYamlValue, string(config))
 			}
 
 			timestamp, err := os.ReadFile(path.Join(tmpCacheDir, cacheLastArchiveTimestamp))
