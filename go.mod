@@ -15,7 +15,7 @@ require (
 	github.com/giantswarm/micrologger v1.1.1
 	github.com/giantswarm/valuemodifier v0.5.2
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/vault/api v1.12.0
+	github.com/hashicorp/vault/api v1.12.1
 	github.com/imdario/mergo v0.3.16
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
