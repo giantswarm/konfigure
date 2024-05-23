@@ -6,7 +6,7 @@ toolchain go1.22.3
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.17.0
 	github.com/fluxcd/pkg/untar v0.3.0
 	github.com/getsops/sops/v3 v3.8.1
 	github.com/ghodss/yaml v1.0.0
