@@ -1462,8 +1462,9 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/cyphar/filepath-securejoin v0.2.3 h1:YX6ebbZCZP7VkM3scTTokDgBL2TY741X51MTk3ycuNI=
 github.com/cyphar/filepath-securejoin v0.2.3/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
+github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dnaeon/go-vcr v1.2.0 h1:zHCHvJYTMh1N7xnV7zf1m1GPBF9Ad0Jk/whtQ1663qI=
 github.com/dnaeon/go-vcr v1.2.0/go.mod h1:R4UdLID7HZT3taECzJs4YgbbH6PIGXB6W/sc5OLb6RQ=
 github.com/docker/cli v20.10.17+incompatible h1:eO2KS7ZFeov5UJeaDmIs1NFEDRf32PaqRpvoEkKBy5M=
@@ -1526,12 +1527,12 @@ github.com/getsops/sops/v3 v3.8.1 h1:3A6KZEHAolxfXtlgRjncCotTGRiNaQFhSDOB2CUCojY
 github.com/getsops/sops/v3 v3.8.1/go.mod h1:qyVOmSwvNRUzspJ7X/mh/J8HmDV81OQ5PgDoGSmvvHM=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
-github.com/giantswarm/apiextensions-application v0.6.0 h1:ZPIiq27zJ2VatrWH21/dK6jR9rJrr4VJUP/Fo0GvsPE=
-github.com/giantswarm/apiextensions-application v0.6.0/go.mod h1:O6mg+EdXC9CyTLgi0d3rf6QTXrQX/79iw4kjMJRinig=
-github.com/giantswarm/app/v7 v7.0.0 h1:C6gQeX43/DAVAtnskTzpffikpZn+F2e51uRJ244T4ZE=
-github.com/giantswarm/app/v7 v7.0.0/go.mod h1:0vDsI3MHr2cj0IzK6er1BT9hSEeoVeUdw3oGEMUy0C8=
-github.com/giantswarm/k8smetadata v0.20.0 h1:wvKD2SkFsNxQkbnvRbq/e2DHVqoQVeNxehGOmcIdTL8=
-github.com/giantswarm/k8smetadata v0.20.0/go.mod h1:QiQAyaZnwco1U0lENLF0Kp4bSN4dIPwIlHWEvUo3ES8=
+github.com/giantswarm/apiextensions-application v0.6.1 h1:X1uzWBSrF4QsyyzaV46QkPJa+rXKBr9e0p+6nd8aw3A=
+github.com/giantswarm/apiextensions-application v0.6.1/go.mod h1:O6mg+EdXC9CyTLgi0d3rf6QTXrQX/79iw4kjMJRinig=
+github.com/giantswarm/app/v7 v7.0.1 h1:17WeHLroqYoWdcBjncjvBB9kumbo6xZlputgsKtnAeo=
+github.com/giantswarm/app/v7 v7.0.1/go.mod h1:/4BNdqZPXqjb7v1p4I92E6fzTLz0LswTCDCYVIP446M=
+github.com/giantswarm/k8smetadata v0.24.0 h1:mAIgH4W06qx8X5rV9QEtJhCJLn8DMXfTfNVZi5ROp4c=
+github.com/giantswarm/k8smetadata v0.24.0/go.mod h1:QiQAyaZnwco1U0lENLF0Kp4bSN4dIPwIlHWEvUo3ES8=
 github.com/giantswarm/microerror v0.4.0/go.mod h1:Ju1YdC6TX/8witv7fIlkgiRr5FQUNyq3f4TX2QYnO7c=
 github.com/giantswarm/microerror v0.4.1 h1:WMiD7HQASoUA9lZzPlPK+erCEOJ0uT4cyo18VfCXHD0=
 github.com/giantswarm/microerror v0.4.1/go.mod h1:URFj0gFCmZihjya6saQCXxslBrgctXb4NsXYHB5JdrI=
@@ -2261,8 +2262,9 @@ golang.org/x/oauth2 v0.14.0/go.mod h1:lAtNWgaWfL4cm7j2OV8TxGi9Qb7ECORx8DktCY74Ow
 golang.org/x/oauth2 v0.15.0/go.mod h1:q48ptWNTY5XWf+JNten23lcvHpLJ0ZSxF5ttTHKVCAM=
 golang.org/x/oauth2 v0.16.0/go.mod h1:hqZ+0LWXsiVoZpeld6jVt06P3adbS2Uu911W1SsJv2o=
 golang.org/x/oauth2 v0.17.0/go.mod h1:OzPDGQiuQMguemayvdylqddI7qcD9lnSDb+1FiwQ5HA=
-golang.org/x/oauth2 v0.18.0 h1:09qnuIAgzdx1XplqJvW6CQqMCtGZykZWcXzPMPUusvI=
 golang.org/x/oauth2 v0.18.0/go.mod h1:Wf7knwG0MPoWIMMBgFlEaSUDaKskp0dCfrlJRJXbBi8=
+golang.org/x/oauth2 v0.19.0 h1:9+E/EZBCbTLNrbN35fHv/a/d/mOBatymz1zbtQrXpIg=
+golang.org/x/oauth2 v0.19.0/go.mod h1:vYi7skDa1x015PmRRYZ7+s1cWyPgrPiSYRe4rnsexc8=
 golang.org/x/sync v0.0.0-20181108010431-42b317875d0f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
@@ -2599,7 +2601,6 @@ google.golang.org/appengine v1.6.1/go.mod h1:i06prIuMbXzDqacNJfV5OdTW448YApPu5ww
 google.golang.org/appengine v1.6.5/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=
 google.golang.org/appengine v1.6.6/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=
 google.golang.org/appengine v1.6.7/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=
-google.golang.org/appengine v1.6.8 h1:IhEN5q69dyKagZPYMSdIjS2HqprW324FRQZJcGqPAsM=
 google.golang.org/appengine v1.6.8/go.mod h1:1jJ3jBArFh5pcgW8gCtRJnepW8FzD1V44FJffLiz/Ds=
 google.golang.org/genproto v0.0.0-20170818010345-ee236bd376b0/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
 google.golang.org/genproto v0.0.0-20190307195333-5fe7a883aa19/go.mod h1:VzzqZJRnGkLBvHegQrXjBqPurQTc5/KpmUdxsrq26oE=
@@ -2984,5 +2985,5 @@ sigs.k8s.io/kustomize/kyaml v0.13.10 h1:htPMvrk7ZDfTDyrgXIm/2mfmcYJHEmRb6s+yCLgt
 sigs.k8s.io/kustomize/kyaml v0.13.10/go.mod h1:PzDV8gSaY8mwdd7nR9zg7Pw5yh9fu8G+ElAXoQVzBq8=
 sigs.k8s.io/structured-merge-diff/v4 v4.2.3 h1:PRbqxJClWWYMNV1dhaG4NsibJbArud9kFxnAMREiWFE=
 sigs.k8s.io/structured-merge-diff/v4 v4.2.3/go.mod h1:qjx8mGObPmV2aSZepjQjbmb2ihdVs8cGKBraizNC69E=
-sigs.k8s.io/yaml v1.3.0 h1:a2VclLzOGrwOHDiV8EfBGhvjHvP46CtW5j6POvhYGGo=
-sigs.k8s.io/yaml v1.3.0/go.mod h1:GeOyir5tyXNByN85N/dRIT9es5UQNerPYEKK56eTBm8=
+sigs.k8s.io/yaml v1.4.0 h1:Mk1wCc2gy/F0THH0TAp1QYyJNzRm2KCLy3o5ASXVI5E=
+sigs.k8s.io/yaml v1.4.0/go.mod h1:Ejl7/uTz7PSA4eKMyQCUTnhZYNmLIl+5c2lQPGR2BPY=
