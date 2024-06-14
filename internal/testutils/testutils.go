@@ -50,8 +50,7 @@ func UntarFile(path, name string) error {
 			return microerror.Mask(err)
 		}
 
-		//#nosec G110
-		if _, err := io.Copy(file, tr); err != nil {
+		if _, err := io.Copy(file, tr); err != nil { //nolint:gosec
 			return microerror.Mask(err)
 		}
 
