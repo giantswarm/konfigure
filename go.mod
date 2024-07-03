@@ -76,7 +76,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.3.9 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
@@ -194,5 +194,5 @@ replace (
 	// CVE-2023-3978
 	golang.org/x/net => golang.org/x/net v0.26.0
 	// CVE-2023-32731
-	google.golang.org/grpc => google.golang.org/grpc v1.64.0
+	google.golang.org/grpc => google.golang.org/grpc v1.65.0
 )
