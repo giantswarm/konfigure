@@ -193,5 +193,5 @@ replace (
 	// CVE-2023-3978
 	golang.org/x/net => golang.org/x/net v0.28.0
 	// CVE-2023-32731
-	google.golang.org/grpc => google.golang.org/grpc v1.65.0
+	google.golang.org/grpc => google.golang.org/grpc v1.66.0
 )
