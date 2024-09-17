@@ -17,7 +17,7 @@ require (
 	github.com/giantswarm/micrologger v1.1.1
 	github.com/giantswarm/valuemodifier v0.5.2
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/vault/api v1.14.0
+	github.com/hashicorp/vault/api v1.15.0
 	github.com/imdario/mergo v0.3.16
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
@@ -74,7 +74,7 @@ require (
 	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.3.9 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
