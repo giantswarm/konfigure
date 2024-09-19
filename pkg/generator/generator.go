@@ -516,6 +516,12 @@ func (g Generator) includeFromRoot(root string, templateName string, templateDat
 //	for less stressfull and coordinated migration, allowing us to migrate
 //	less-critical apps first, etc.
 func (g *Generator) decryptSecret(ctx context.Context, data []byte) ([]byte, error) {
+	// The secret.yaml may happen to be empty in which case we do not need
+	// to decrypt it at all.
+	if len(data) == 0 {
+		return data, nil
+	}
+
 	// Check if file is SOPS-encrypted
 	forSOPS, err := isSOPSEncrypted(ctx, data)
 	if err != nil {
