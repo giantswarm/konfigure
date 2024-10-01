@@ -1,6 +1,6 @@
 module github.com/giantswarm/konfigure
 
-go 1.22.0
+go 1.22.7
 
 toolchain go1.23.1
 
@@ -27,7 +27,7 @@ require (
 	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.1
 	sigs.k8s.io/controller-runtime v0.19.0
-	sigs.k8s.io/kustomize/kyaml v0.17.2
+	sigs.k8s.io/kustomize/kyaml v0.18.0
 	sigs.k8s.io/yaml v1.4.0
 )
 
