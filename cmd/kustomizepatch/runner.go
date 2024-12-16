@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluxcd/pkg/untar"
+	"github.com/fluxcd/pkg/tar"
 	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/app/v7/pkg/app"
 	"github.com/giantswarm/microerror"
@@ -497,7 +497,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return microerror.Mask(err)
 	}
-	if _, err = untar.Untar(&buf, dir); err != nil {
+	if err = tar.Untar(&buf, dir); err != nil {
 		return microerror.Mask(err)
 	}
 
