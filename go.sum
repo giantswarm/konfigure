@@ -936,8 +936,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.5/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/cpuguy83/go-md2man/v2 v2.0.6 h1:XJtiaUW6dEEqVuZiMTn1ldk455QWwEIsMIJlo5vtkx0=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/cyphar/filepath-securejoin v0.2.3 h1:YX6ebbZCZP7VkM3scTTokDgBL2TY741X51MTk3ycuNI=
-github.com/cyphar/filepath-securejoin v0.2.3/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
+github.com/cyphar/filepath-securejoin v0.3.5 h1:L81NHjquoQmcPgXcttUS9qTSR/+bXry6pbSINQGpjj4=
+github.com/cyphar/filepath-securejoin v0.3.5/go.mod h1:edhVd3c6OXKjUmSrVa/tGJRS9joFTxlslFCAyaxigkE=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
@@ -982,10 +982,8 @@ github.com/fatih/color v1.18.0/go.mod h1:4FelSpRwEGDpQ12mAdzqdOukCy4u8WUtOY6lkT/
 github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/fluxcd/pkg/tar v0.2.0 h1:HEUHgONQYsJGeZZ4x6h5nQU9Aox1I4T3bOp1faWTqf8=
-github.com/fluxcd/pkg/tar v0.2.0/go.mod h1:w0/TOC7kwBJhnSJn7TCABkc/I7ib1f2Yz6vOsbLBnhw=
-github.com/fluxcd/pkg/untar v0.3.0 h1:FOGc69nBvasLjFu5Imdc7Kl/U/gRdIyyF2ZkD9gKuXI=
-github.com/fluxcd/pkg/untar v0.3.0/go.mod h1:ClGpWYeDidYETkl048vCgHlsNtn5BHYHvMmQdadRGKs=
+github.com/fluxcd/pkg/tar v0.10.0 h1:QWT/wou50jTrNp2YIMsT1MY/wbkT2OULbfFxAB9Ieao=
+github.com/fluxcd/pkg/tar v0.10.0/go.mod h1:5DSdnavY6AvCdKLk6UHUcYBaTJHaEHlytSzrOECqKhI=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fogleman/gg v1.3.0/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/frankban/quicktest v1.10.0/go.mod h1:ui7WezCLWMWxVWr1GETZY3smRy0G4KWq9vcPtJmFl7Y=
