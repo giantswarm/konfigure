@@ -14,7 +14,7 @@ require (
 	github.com/giantswarm/app/v7 v7.0.2
 	github.com/giantswarm/k8smetadata v0.25.0
 	github.com/giantswarm/microerror v0.4.1
-	github.com/giantswarm/micrologger v1.1.1
+	github.com/giantswarm/micrologger v1.1.2
 	github.com/giantswarm/valuemodifier v0.5.2
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/vault/api v1.15.0
