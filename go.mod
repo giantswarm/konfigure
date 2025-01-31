@@ -11,7 +11,7 @@ require (
 	github.com/getsops/sops/v3 v3.9.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/app/v7 v7.0.3
+	github.com/giantswarm/app/v7 v7.0.4
 	github.com/giantswarm/k8smetadata v0.25.0
 	github.com/giantswarm/microerror v0.4.1
 	github.com/giantswarm/micrologger v1.1.2
