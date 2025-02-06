@@ -1,7 +1,6 @@
-package kustomizepatch
+package config
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger/microloggertest"
 )
 
 const advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
@@ -141,13 +139,8 @@ func TestRunner_updateConfig(t *testing.T) {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
 
-			r := &runner{
-				logger: microloggertest.New(),
-				stdout: new(bytes.Buffer),
-			}
-
 			// run updateConfigWithParams
-			err = r.updateConfigWithParams(tmpCacheDir, "testdata/token")
+			err = UpdateConfigWithParams(tmpCacheDir, "testdata/token")
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
