@@ -90,8 +90,8 @@ func New(config Config) (*Generator, error) {
 	return &g, nil
 }
 
-func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap string, secret string, err error) {
-	configmap, secret, err = g.generateRawConfigUnsorted(ctx, app)
+func (g *Generator) GenerateRawConfig(ctx context.Context, app string) (configmap string, secret string, err error) {
+	configmap, secret, err = g.GenerateRawConfigUnsorted(ctx, app)
 	if err != nil {
 		return "", "", microerror.Mask(err)
 	}
@@ -108,7 +108,7 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 	return
 }
 
-// generateRawConfigUnsorted creates final configmap values and secret values
+// GenerateRawConfigUnsorted creates final configmap values and secret values
 // for helm to use by performing the following operations:
 //  1. Get configmap template data and patch it with installation-specific
 //     overrides (if available)
@@ -125,7 +125,7 @@ func (g Generator) generateRawConfig(ctx context.Context, app string) (configmap
 //     decrypt it
 //  9. Patch secret template (result of 6.) with decrypted patch values (result
 //     of 7.)
-func (g Generator) generateRawConfigUnsorted(ctx context.Context, app string) (configmap string, secret string, err error) {
+func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (configmap string, secret string, err error) {
 	// Check if installation folder exists at all. If not, return a descriptive
 	// error.
 	if _, err := g.fs.ReadDir(installationsPath + g.installation); err != nil {
@@ -353,8 +353,8 @@ func sortYAMLKeysNode(node *yaml3.Node) {
 
 // GenerateConfig generates ConfigMap and Secret for a given App. The generated
 // CM and Secret metadata are configured with the provided value.
-func (g Generator) GenerateConfig(ctx context.Context, app string, meta metav1.ObjectMeta) (*corev1.ConfigMap, *corev1.Secret, error) {
-	cm, s, err := g.generateRawConfig(ctx, app)
+func (g *Generator) GenerateConfig(ctx context.Context, app string, meta metav1.ObjectMeta) (*corev1.ConfigMap, *corev1.Secret, error) {
+	cm, s, err := g.GenerateRawConfig(ctx, app)
 	if err != nil {
 		return nil, nil, microerror.Mask(err)
 	}
@@ -387,7 +387,7 @@ func (g Generator) GenerateConfig(ctx context.Context, app string, meta metav1.O
 // getWithPatchIfExists provides contents of filepath overwritten by patch at
 // patchFilepath. File at patchFilepath may be non-existent, resulting in pure
 // file at filepath being returned.
-func (g Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFilepath string) (string, error) {
+func (g *Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFilepath string) (string, error) {
 	var err error
 
 	var base []byte
@@ -421,7 +421,7 @@ func (g Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFile
 	return result, nil
 }
 
-func (g Generator) getRenderedTemplate(ctx context.Context, filepath, templateData string) (string, error) {
+func (g *Generator) getRenderedTemplate(ctx context.Context, filepath, templateData string) (string, error) {
 	templateBytes, err := g.fs.ReadFile(filepath)
 	if err != nil {
 		return "", microerror.Mask(err)
@@ -455,7 +455,7 @@ func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
 	return string(output), nil
 }
 
-func (g Generator) renderTemplate(ctx context.Context, templateText string, templateData string) (string, error) {
+func (g *Generator) renderTemplate(ctx context.Context, templateText string, templateData string) (string, error) {
 	c := map[string]interface{}{}
 	err := yaml.Unmarshal([]byte(templateData), &c)
 	if err != nil {
@@ -481,15 +481,15 @@ func (g Generator) renderTemplate(ctx context.Context, templateText string, temp
 	return out.String(), nil
 }
 
-func (g Generator) include(templateName string, templateData interface{}) (string, error) {
+func (g *Generator) include(templateName string, templateData interface{}) (string, error) {
 	return g.includeFromRoot("include", templateName, templateData)
 }
 
-func (g Generator) includeSelf(templateName string, templateData interface{}) (string, error) {
+func (g *Generator) includeSelf(templateName string, templateData interface{}) (string, error) {
 	return g.includeFromRoot("include-self", templateName, templateData)
 }
 
-func (g Generator) includeFromRoot(root string, templateName string, templateData interface{}) (string, error) {
+func (g *Generator) includeFromRoot(root string, templateName string, templateData interface{}) (string, error) {
 	templateFilePath := path.Join(root, templateName+".yaml.template")
 	contents, err := g.fs.ReadFile(templateFilePath)
 	if err != nil {
@@ -558,7 +558,7 @@ func isSOPSEncrypted(ctx context.Context, data []byte) (bool, error) {
 	return ok, nil
 }
 
-func (g Generator) logMessage(ctx context.Context, format string, params ...interface{}) {
+func (g *Generator) logMessage(ctx context.Context, format string, params ...interface{}) {
 	if g.verbose {
 		fmt.Fprintf(os.Stderr, "generator: "+format+"\n", params...)
 	}

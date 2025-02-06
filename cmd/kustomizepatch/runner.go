@@ -21,7 +21,7 @@ import (
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/yaml"
 
-	cfg "github.com/giantswarm/konfigure/pkg/config"
+	"github.com/giantswarm/konfigure/pkg/configupdater"
 	"github.com/giantswarm/konfigure/pkg/meta"
 	"github.com/giantswarm/konfigure/pkg/service"
 	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
@@ -38,16 +38,30 @@ const (
 
 	// dirEnvVar is a directory containing giantswarm/config. If set, requests
 	// to source-controller will not be made and both sourceServiceEnvVar and
-	// gitRepositoryEnvVar will be ignored. Used only on local machine for
-	// debugging.
 	dirEnvVar = "KONFIGURE_DIR"
+
 	// installationEnvVar tells konfigure which installation it's running in,
 	// e.g. "ginger"
 	installationEnvVar = "KONFIGURE_INSTALLATION"
 
+	// gitRepositoryEnvVar is namespace/name of GitRepository pointing to
+	// giantswarm/config, e.g. "flux-system/gs-config"
+	gitRepositoryEnvVar = "KONFIGURE_GITREPO"
+
+	// kubernetesServiceEnvVar is K8S host of the Kubernetes API service.
+	kubernetesServiceHostEnvVar = "KUBERNETES_SERVICE_HOST"
+
+	// kubernetesServicePortEnvVar is K8S port of the Kubernetes API service.
+	kubernetesServicePortEnvVar = "KUBERNETES_SERVICE_PORT"
+
+	// sourceServiceEnvVar is K8s address of source-controller's service, e.g.
+	// "source-controller.flux-system.svc"
+	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
+
 	// sopsKeysDirEnvVar tells Konfigure how to configure environment to make
 	// it possible for SOPS to find the keys
 	sopsKeysDirEnvVar = "KONFIGURE_SOPS_KEYS_DIR"
+
 	// sopsKeysSourceEnvVar tells Konfigure to either get keys from Kubernetes
 	// Secrets or rely on local storage when setting up environment for SOPS
 	sopsKeysSourceEnvVar = "KONFIGURE_SOPS_KEYS_SOURCE"
@@ -118,7 +132,19 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			dir = os.Getenv(dirEnvVar)
 			// Else, we download the packaged config from source-controller.
 			if dir == "" {
-				if err := cfg.UpdateConfig(cacheDir); err != nil {
+				fluxUpdaterConfig := configupdater.Config{
+					CacheDir:                cacheDir,
+					ApiServerHost:           os.Getenv(kubernetesServiceHostEnvVar),
+					ApiServerPort:           os.Getenv(kubernetesServicePortEnvVar),
+					SourceControllerService: os.Getenv(sourceServiceEnvVar),
+					GitRepository:           os.Getenv(gitRepositoryEnvVar),
+				}
+				fluxUpdater, err := configupdater.New(fluxUpdaterConfig)
+				if err != nil {
+					return nil, microerror.Mask(err)
+				}
+
+				if err := fluxUpdater.UpdateConfig(); err != nil {
 					return nil, microerror.Mask(err)
 				}
 				dir = path.Join(cacheDir, "latest")

@@ -267,7 +267,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}
-			configmap, secret, err := g.generateRawConfig(context.Background(), tc.app)
+			configmap, secret, err := g.GenerateRawConfig(context.Background(), tc.app)
 			if tc.expectedErrorMessage == "" {
 				if err != nil {
 					t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
@@ -318,7 +318,7 @@ func Test_sortYAMLKeys(t *testing.T) {
 	// to see if there is any difference in the keys order.
 	var firstConfigMap string
 	for i := 0; i < 100; i++ {
-		configmap, _, err := g.generateRawConfig(context.Background(), "operator")
+		configmap, _, err := g.GenerateRawConfig(context.Background(), "operator")
 		if err != nil {
 			t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
 		}

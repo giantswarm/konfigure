@@ -1,4 +1,4 @@
-package config
+package configupdater
 
 import (
 	"fmt"
@@ -62,12 +62,6 @@ func TestRunner_updateConfig(t *testing.T) {
 		panic(err)
 	}
 
-	// Export appropriate environment variables to configure the runner
-	t.Setenv("KONFIGURE_SOURCE_SERVICE", fmt.Sprintf("%s:%s", srcCtrlUrl.Hostname(), srcCtrlUrl.Port()))
-	t.Setenv("KONFIGURE_GITREPO", "flux-giantswarm/giantswarm-config")
-	t.Setenv("KUBERNETES_SERVICE_HOST", k8sUrl.Hostname())
-	t.Setenv("KUBERNETES_SERVICE_PORT", k8sUrl.Port())
-
 	testCases := []struct {
 		name                    string
 		deprecatedPresent       bool
@@ -127,7 +121,12 @@ func TestRunner_updateConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
-			defer os.RemoveAll(tmpCacheDir)
+			defer func(path string) {
+				err := os.RemoveAll(path)
+				if err != nil {
+					t.Fatalf("want nil, got error: %s", err.Error())
+				}
+			}(tmpCacheDir)
 
 			err = prePopulateCache(
 				tmpCacheDir,
@@ -139,8 +138,22 @@ func TestRunner_updateConfig(t *testing.T) {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
 
+			fluxUpdaterConfig := Config{
+				CacheDir:                tmpCacheDir,
+				ApiServerHost:           k8sUrl.Hostname(),
+				ApiServerPort:           k8sUrl.Port(),
+				KubernetesTokenFile:     "testdata/token",
+				SourceControllerService: fmt.Sprintf("%s:%s", srcCtrlUrl.Hostname(), srcCtrlUrl.Port()),
+				GitRepository:           "flux-giantswarm/giantswarm-config",
+			}
+
+			fluxUpdater, err := New(fluxUpdaterConfig)
+			if err != nil {
+				t.Fatalf("want nil, got error: %s", err.Error())
+			}
+
 			// run updateConfigWithParams
-			err = UpdateConfigWithParams(tmpCacheDir, "testdata/token")
+			err = fluxUpdater.UpdateConfig()
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}

@@ -1,4 +1,4 @@
-package config
+package configupdater
 
 import (
 	"bytes"
@@ -20,63 +20,104 @@ import (
 const (
 	cacheLastArchive          = "lastarchive"
 	cacheLastArchiveTimestamp = "lastarchivetimestamp"
-	// gitRepositoryEnvVar is namespace/name of GitRepository pointing to
-	// giantswarm/config, e.g. "flux-system/gs-config"
-	gitRepositoryEnvVar = "KONFIGURE_GITREPO"
-	// kubernetesServiceEnvVar is K8S host of the Kubernetes API service.
-	kubernetesServiceHostEnvVar = "KUBERNETES_SERVICE_HOST"
-	// kubernetesServicePortEnvVar is K8S port of the Kubernetes API service.
-	kubernetesServicePortEnvVar = "KUBERNETES_SERVICE_PORT"
-	// kubernetesToken holds the location of the Kubernetes Service Account
-	// token mount within a Pod.
-	kubernetesTokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101
+
 	// v1SourceAPIGroup holds Flux Source group and v1 version
 	v1SourceAPIGroup = "source.toolkit.fluxcd.io/v1"
 	// v1beta2SourceAPIGroup holds Flux Source group and v1beta2 version
 	v1beta2SourceAPIGroup = "source.toolkit.fluxcd.io/v1beta2"
-	// sourceServiceEnvVar is K8s address of source-controller's service, e.g.
-	// "source-controller.flux-system.svc"
-	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
+
+	// defaultKubernetesTokenFile holds the location of the Kubernetes Service Account
+	// token mount within a Pod.
+	defaultKubernetesTokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101
 )
 
-// UpdateConfig makes sure that the giantswarm/config version we keep stashed
+type Config struct {
+	CacheDir string
+
+	ApiServerHost       string
+	ApiServerPort       string
+	KubernetesTokenFile string
+
+	SourceControllerService string
+
+	GitRepository string
+}
+
+type FluxUpdater struct {
+	CacheDir string
+
+	ApiServerHost       string
+	ApiServerPort       string
+	KubernetesTokenFile string
+
+	SourceControllerService string
+
+	GitRepository string
+}
+
+func New(config Config) (*FluxUpdater, error) {
+	if config.CacheDir == "" {
+		return nil, microerror.Maskf(invalidConfigError, "cacheDir must not be empty")
+	}
+
+	if config.ApiServerHost == "" {
+		return nil, microerror.Maskf(invalidConfigError, "apiServerHost must not be empty")
+	}
+
+	if config.ApiServerPort == "" {
+		return nil, microerror.Maskf(invalidConfigError, "apiServerPort must not be empty")
+	}
+
+	var kubernetesTokenFile string
+	if config.KubernetesTokenFile == "" {
+		kubernetesTokenFile = defaultKubernetesTokenFile
+	} else {
+		kubernetesTokenFile = config.KubernetesTokenFile
+	}
+
+	if config.SourceControllerService == "" {
+		return nil, microerror.Maskf(invalidConfigError, "sourceControllerService must not be empty")
+	}
+
+	if config.GitRepository == "" {
+		return nil, microerror.Maskf(invalidConfigError, "gitRepository must not be empty")
+	}
+
+	if kubernetesTokenFile == "" {
+		kubernetesTokenFile = defaultKubernetesTokenFile
+	}
+
+	return &FluxUpdater{
+		CacheDir:                config.CacheDir,
+		ApiServerHost:           config.ApiServerHost,
+		ApiServerPort:           config.ApiServerPort,
+		KubernetesTokenFile:     kubernetesTokenFile,
+		SourceControllerService: config.SourceControllerService,
+		GitRepository:           config.GitRepository,
+	}, nil
+}
+
+// UpdateConfig makes sure that the assembled CCR version we keep stashed
 // in <cacheDir>/latest is still *the* latest version out there. In order to do that,
 // it sends a HEAD request for the last known artifact to the Source Controller,
 // in order to check it is still available. If so, it then skips further processing.
-// Otherwise it contacts the GitRepository resource for the new artifact's URL.
+// Otherwise, it contacts the GitRepository resource for the new artifact's URL.
 // The URL is then used to download a new version of the archive and untar it.
 // The archive name is being saved for later comparison.
-func UpdateConfig(cacheDir string) error {
-	return UpdateConfigWithParams(cacheDir, kubernetesTokenFile)
-}
-
-func UpdateConfigWithParams(cache, token string) error {
-	// Get source-controller's service URL and GitRepository data from
-	// environment variables. We use this data to construct an URL to
-	// source-controller's artifact.
-	svc := os.Getenv(sourceServiceEnvVar)
-	if svc == "" {
-		return microerror.Maskf(executionFailedError, "%q environment variable not set", sourceServiceEnvVar)
-	}
-
-	repo := os.Getenv(gitRepositoryEnvVar)
-	if repo == "" {
-		return microerror.Maskf(executionFailedError, "%q environment variable not set", gitRepositoryEnvVar)
-	}
-
+func (u *FluxUpdater) UpdateConfig() error {
 	// We first get the 'lastarchive' file, because it contains the name of the artifact we have
 	// been using up until now. If the file is gone, it means we haven't populated the cache yet,
 	// hence we must do it now. If the file is present, but archive of the given name is no longer
 	// advertised by the Source Controller, we must look for a new one and re-populate the cache. If the
 	// file is present, and is still advertised by the Source Controller, all is good and we may return.
-	cachedArtifact, err := os.ReadFile(path.Join(cache, cacheLastArchive))
+	cachedArtifact, err := os.ReadFile(path.Join(u.CacheDir, cacheLastArchive))
 	if err != nil && os.IsNotExist(err) {
 		cachedArtifact = []byte("placeholder.tar.gz")
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
 
-	cachedArtifactTimestampByte, err := os.ReadFile(path.Join(cache, cacheLastArchiveTimestamp))
+	cachedArtifactTimestampByte, err := os.ReadFile(path.Join(u.CacheDir, cacheLastArchiveTimestamp))
 	if err != nil && os.IsNotExist(err) {
 		cachedArtifactTimestampByte = []byte(time.Time{}.Format(http.TimeFormat))
 	} else if err != nil {
@@ -88,7 +129,7 @@ func UpdateConfigWithParams(cache, token string) error {
 		return microerror.Mask(err)
 	}
 
-	url := fmt.Sprintf("http://%s/gitrepository/%s/%s", svc, repo, string(cachedArtifact))
+	url := fmt.Sprintf("http://%s/gitrepository/%s/%s", u.SourceControllerService, u.GitRepository, string(cachedArtifact))
 	// Make a HEAD request to the Source Controller. This allows us to check if the artifact
 	// we have cached is still offered.
 	client := &http.Client{Timeout: 60 * time.Second}
@@ -130,40 +171,28 @@ func UpdateConfigWithParams(cache, token string) error {
 	// When latest known revision is still available, there is no need to query the API Server
 	// for the GitRepository, it saves us one call.
 	if url == "" {
-		// The artifact we were asking for is gone, we must find the newly advertised one,
-		// hence we query the Kubernetes API Server for the GitRepository CR resource.
-		k8sApiHost := os.Getenv(kubernetesServiceHostEnvVar)
-		if svc == "" {
-			return microerror.Maskf(executionFailedError, "%q environment variable not set", kubernetesServiceHostEnvVar)
-		}
-
-		k8sApiPort := os.Getenv(kubernetesServicePortEnvVar)
-		if svc == "" {
-			return microerror.Maskf(executionFailedError, "%q environment variable not set", kubernetesServicePortEnvVar)
-		}
-
-		repoCoordinates := strings.Split(repo, "/")
+		repoCoordinates := strings.Split(u.GitRepository, "/")
 
 		k8sApiPath := []string{
 			fmt.Sprintf(
 				"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
-				k8sApiHost,
-				k8sApiPort,
+				u.ApiServerHost,
+				u.ApiServerPort,
 				v1SourceAPIGroup,
 				repoCoordinates[0],
 				repoCoordinates[1],
 			),
 			fmt.Sprintf(
 				"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
-				k8sApiHost,
-				k8sApiPort,
+				u.ApiServerHost,
+				u.ApiServerPort,
 				v1beta2SourceAPIGroup,
 				repoCoordinates[0],
 				repoCoordinates[1],
 			),
 		}
 
-		k8sToken, err := os.ReadFile(token)
+		k8sToken, err := os.ReadFile(u.KubernetesTokenFile)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -207,7 +236,7 @@ func UpdateConfigWithParams(cache, token string) error {
 		if response.StatusCode != http.StatusOK {
 			return microerror.Maskf(
 				executionFailedError,
-				"error getting '%s' GitRepository CR", repo,
+				"error getting '%s' GitRepository CR", u.GitRepository,
 			)
 		}
 
@@ -269,7 +298,7 @@ func UpdateConfigWithParams(cache, token string) error {
 	}
 
 	// Clear the old artifact's directory and untar a fresh one.
-	dir := path.Join(cache, "latest")
+	dir := path.Join(u.CacheDir, "latest")
 	if err := os.RemoveAll(dir); err != nil {
 		return microerror.Mask(err)
 	}
@@ -281,12 +310,12 @@ func UpdateConfigWithParams(cache, token string) error {
 	}
 
 	// Update the last archive name and timestamp
-	err = os.WriteFile(path.Join(cache, cacheLastArchive), []byte(filepath.Base(url)), 0755) // nolint:gosec
+	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchive), []byte(filepath.Base(url)), 0755) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = os.WriteFile(path.Join(cache, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0755) // nolint:gosec
+	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0755) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}

@@ -1,4 +1,4 @@
-package config
+package configupdater
 
 import "github.com/giantswarm/microerror"
 
