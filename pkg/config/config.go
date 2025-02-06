@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/fluxcd/pkg/tar"
-	"github.com/giantswarm/microerror"
 	"io"
 	"net/http"
 	"os"
@@ -14,6 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/fluxcd/pkg/tar"
+	"github.com/giantswarm/microerror"
 )
 
 const (
