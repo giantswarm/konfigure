@@ -16,9 +16,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
-	"github.com/giantswarm/konfigure/internal/generator"
-	"github.com/giantswarm/konfigure/internal/meta"
-	"github.com/giantswarm/konfigure/internal/vaultclient"
+	"github.com/giantswarm/konfigure/pkg/meta"
+	"github.com/giantswarm/konfigure/pkg/service"
+	"github.com/giantswarm/konfigure/pkg/vaultclient"
 )
 
 const (
@@ -72,9 +72,9 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			}
 		}
 
-		var gen *generator.Service
+		var gen *service.Service
 		{
-			c := generator.Config{
+			c := service.Config{
 				VaultClient: vaultClient,
 
 				Log:            r.logger,
@@ -85,13 +85,13 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 				Verbose:        r.flag.Verbose,
 			}
 
-			gen, err = generator.New(c)
+			gen, err = service.New(c)
 			if err != nil {
 				return microerror.Mask(err)
 			}
 		}
 
-		in := generator.GenerateInput{
+		in := service.GenerateInput{
 			App:       r.flag.AppName,
 			Name:      addNameSuffix(r.flag.Name),
 			Namespace: giantswarmNamespace,

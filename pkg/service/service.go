@@ -1,20 +1,20 @@
-package generator
+package service
 
 import (
 	"context"
 
-	"github.com/giantswarm/konfigure/internal/vaultclient"
+	"github.com/giantswarm/konfigure/pkg/vaultclient"
 
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/konfigure/internal/meta"
-	"github.com/giantswarm/konfigure/internal/sopsenv"
 	"github.com/giantswarm/konfigure/pkg/decrypt"
 	"github.com/giantswarm/konfigure/pkg/filesystem"
 	"github.com/giantswarm/konfigure/pkg/generator"
+	"github.com/giantswarm/konfigure/pkg/meta"
+	"github.com/giantswarm/konfigure/pkg/sopsenv"
 	"github.com/giantswarm/konfigure/pkg/xstrings"
 )
 

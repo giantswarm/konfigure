@@ -4,7 +4,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/konfigure/internal/sopsenv/key"
+	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
 )
 
 const (

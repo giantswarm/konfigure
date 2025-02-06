@@ -9,8 +9,8 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/konfigure/internal/sopsenv"
-	"github.com/giantswarm/konfigure/internal/sopsenv/key"
+	"github.com/giantswarm/konfigure/pkg/sopsenv"
+	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
 )
 
 type runner struct {

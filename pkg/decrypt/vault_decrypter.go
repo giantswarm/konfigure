@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 
-	"github.com/giantswarm/konfigure/internal/vaultclient"
+	"github.com/giantswarm/konfigure/pkg/vaultclient"
 
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/valuemodifier/vault/decrypt"

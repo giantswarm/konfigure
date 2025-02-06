@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/giantswarm/konfigure/internal/sopsenv/key"
+	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
 
 	// GS stuff uses `kgs`-generated kubeconfigs that use
 	// `oidc` auth provider. This import makes is possible to

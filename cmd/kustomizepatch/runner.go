@@ -28,10 +28,10 @@ import (
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/yaml"
 
-	"github.com/giantswarm/konfigure/internal/generator"
-	"github.com/giantswarm/konfigure/internal/meta"
-	"github.com/giantswarm/konfigure/internal/sopsenv/key"
-	"github.com/giantswarm/konfigure/internal/vaultclient"
+	"github.com/giantswarm/konfigure/pkg/meta"
+	"github.com/giantswarm/konfigure/pkg/service"
+	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
+	"github.com/giantswarm/konfigure/pkg/vaultclient"
 )
 
 const (
@@ -161,9 +161,9 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 		}
 
-		var gen *generator.Service
+		var gen *service.Service
 		{
-			c := generator.Config{
+			c := service.Config{
 				VaultClient: vaultClient,
 
 				Log:            r.logger,
@@ -173,13 +173,13 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				SOPSKeysSource: sopsKeysSource,
 			}
 
-			gen, err = generator.New(c)
+			gen, err = service.New(c)
 			if err != nil {
 				return nil, microerror.Mask(err)
 			}
 		}
 
-		in := generator.GenerateInput{
+		in := service.GenerateInput{
 			App:       r.config.AppName,
 			Name:      addNameSuffix(r.config.Name),
 			Namespace: giantswarmNamespace,

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/konfigure/internal/sopsenv"
-	"github.com/giantswarm/konfigure/internal/sopsenv/key"
-	"github.com/giantswarm/konfigure/internal/testutils"
+	"github.com/giantswarm/konfigure/pkg/sopsenv"
+	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
+	"github.com/giantswarm/konfigure/pkg/testutils"
 
 	"github.com/ghodss/yaml"
 	"github.com/giantswarm/microerror"
