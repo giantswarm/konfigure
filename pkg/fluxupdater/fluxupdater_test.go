@@ -1,4 +1,4 @@
-package configupdater
+package fluxupdater
 
 import (
 	"fmt"

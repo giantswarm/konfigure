@@ -21,7 +21,7 @@ import (
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/yaml"
 
-	"github.com/giantswarm/konfigure/pkg/configupdater"
+	"github.com/giantswarm/konfigure/pkg/fluxupdater"
 	"github.com/giantswarm/konfigure/pkg/meta"
 	"github.com/giantswarm/konfigure/pkg/service"
 	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
@@ -132,14 +132,14 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			dir = os.Getenv(dirEnvVar)
 			// Else, we download the packaged config from source-controller.
 			if dir == "" {
-				fluxUpdaterConfig := configupdater.Config{
+				fluxUpdaterConfig := fluxupdater.Config{
 					CacheDir:                cacheDir,
 					ApiServerHost:           os.Getenv(kubernetesServiceHostEnvVar),
 					ApiServerPort:           os.Getenv(kubernetesServicePortEnvVar),
 					SourceControllerService: os.Getenv(sourceServiceEnvVar),
 					GitRepository:           os.Getenv(gitRepositoryEnvVar),
 				}
-				fluxUpdater, err := configupdater.New(fluxUpdaterConfig)
+				fluxUpdater, err := fluxupdater.New(fluxUpdaterConfig)
 				if err != nil {
 					return nil, microerror.Mask(err)
 				}
