@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/zapr"
+	"go.uber.org/zap"
 	"os"
-
-	"github.com/go-logr/logr"
 
 	"github.com/spf13/cobra"
 
@@ -31,10 +31,12 @@ func main() {
 func mainE(ctx context.Context) error {
 	var err error
 
-	logger, err := logr.FromContext(ctx)
+	zapLogger, err := zap.NewDevelopment()
 	if err != nil {
 		return err
 	}
+
+	logger := zapr.NewLogger(zapLogger)
 
 	newCommand := &cobra.Command{
 		Use:     project.Name(),
