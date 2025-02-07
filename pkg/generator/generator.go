@@ -419,6 +419,10 @@ func (g *Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFil
 func (g *Generator) getRenderedTemplate(ctx context.Context, filepath, templateData string) (string, error) {
 	templateBytes, err := g.fs.ReadFile(filepath)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", &NotFoundError{message: fmt.Sprintf("Template not found: %q: %s", filepath, err)}
+		}
+
 		return "", err
 	}
 

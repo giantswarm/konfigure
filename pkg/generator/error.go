@@ -1,6 +1,8 @@
 package generator
 
 import (
+	"errors"
+	"os"
 	"reflect"
 )
 
@@ -25,5 +27,5 @@ func (e *NotFoundError) Error() string {
 }
 
 func (e *NotFoundError) Is(target error) bool {
-	return reflect.TypeOf(target) == reflect.TypeOf(e)
+	return reflect.TypeOf(target) == reflect.TypeOf(e) || errors.Is(target, os.ErrNotExist)
 }
