@@ -36,15 +36,10 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 }
 
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
-	logger, err := logr.FromContext(ctx)
-	if err != nil {
-		return err
-	}
-
 	cfg := sopsenv.SOPSEnvConfig{
 		KeysDir:    r.flag.SOPSKeysDir,
 		KeysSource: key.KeysSourceKubernetes,
-		Logger:     logger,
+		Logger:     r.logger,
 	}
 
 	sopsEnv, err := sopsenv.NewSOPSEnv(cfg)
