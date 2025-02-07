@@ -1,11 +1,10 @@
 package lint
 
 import (
+	"github.com/go-logr/logr"
 	"io"
 	"os"
 
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 )
 
@@ -15,15 +14,12 @@ const (
 )
 
 type Config struct {
-	Logger micrologger.Logger
+	Logger logr.Logger
 	Stderr io.Writer
 	Stdout io.Writer
 }
 
 func New(config Config) (*cobra.Command, error) {
-	if config.Logger == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
-	}
 	if config.Stderr == nil {
 		config.Stderr = os.Stderr
 	}

@@ -3,6 +3,7 @@ package kustomizepatch
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	"io"
 	"os"
 	"path"
@@ -10,8 +11,6 @@ import (
 
 	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/app/v7/pkg/app"
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -68,7 +67,7 @@ const (
 )
 
 type runner struct {
-	logger micrologger.Logger
+	logger logr.Logger
 	stdout io.Writer
 	stderr io.Writer
 
@@ -87,7 +86,7 @@ func (r *runner) Run(_ *cobra.Command, _ []string) error {
 	err := pluginCmd.Execute()
 	if err != nil {
 		// print pretty error for the sake of kustomize-controller logs
-		r.logger.Errorf(context.Background(), err, "konfigure encountered an error")
+		r.logger.Error(err, "konfigure encountered an error")
 		return fmt.Errorf("error %w\noccurred with konfigure input: %+v", err, r.config)
 	}
 
@@ -102,18 +101,18 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	var err error
 	{
 		if r.config == nil {
-			return nil, microerror.Maskf(invalidConfigError, "r.config is required, got <nil>")
+			return nil, &InvalidFlagError{message: fmt.Sprintf("r.config is required, got <nil>")}
 		}
 
 		if err := r.config.Validate(); err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 		var installation string
 		{
 			installation = os.Getenv(installationEnvVar)
 			if installation == "" {
-				return nil, microerror.Maskf(invalidConfigError, "%q environment variable is required", installationEnvVar)
+				return nil, &InvalidFlagError{message: fmt.Sprintf("%q environment variable is required", installationEnvVar)}
 			}
 		}
 
@@ -121,7 +120,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		{
 			vaultClient, err = vaultclient.NewClientUsingEnv(ctx)
 			if err != nil {
-				return nil, microerror.Mask(err)
+				return nil, err
 			}
 		}
 
@@ -141,11 +140,11 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				}
 				fluxUpdater, err := fluxupdater.New(fluxUpdaterConfig)
 				if err != nil {
-					return nil, microerror.Mask(err)
+					return nil, err
 				}
 
 				if err := fluxUpdater.UpdateConfig(); err != nil {
-					return nil, microerror.Mask(err)
+					return nil, err
 				}
 				dir = path.Join(cacheDir, "latest")
 			}
@@ -160,7 +159,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 
 			if sopsKeysSource != key.KeysSourceLocal && sopsKeysSource != key.KeysSourceKubernetes {
-				return nil, microerror.Maskf(invalidConfigError, "%q environment variable wrong value, must be one of: local,kubernetes\n", sopsKeysSourceEnvVar)
+				return nil, &InvalidFlagError{message: fmt.Sprintf("%q environment variable wrong value, must be one of: local,kubernetes\n", sopsKeysSourceEnvVar)}
 			}
 		}
 
@@ -178,7 +177,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 			gen, err = service.New(c)
 			if err != nil {
-				return nil, microerror.Mask(err)
+				return nil, err
 			}
 		}
 
@@ -199,7 +198,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 		configmap, secret, err = gen.Generate(ctx, in)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 	}
 
@@ -235,26 +234,26 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	for _, item := range []runtime.Object{configmap, secret, appCR} {
 		b, err := yaml.Marshal(item)
 		if err != nil {
-			return nil, microerror.Maskf(
-				executionFailedError,
-				"error marshalling %s/%s %s: %s",
-				item.GetObjectKind().GroupVersionKind().Group,
-				item.GetObjectKind().GroupVersionKind().Version,
-				item.GetObjectKind().GroupVersionKind().Kind,
-				err,
-			)
+			return nil, &ExecutionFailedError{
+				message: fmt.Sprintf("error marshalling %s/%s %s: %s",
+					item.GetObjectKind().GroupVersionKind().Group,
+					item.GetObjectKind().GroupVersionKind().Version,
+					item.GetObjectKind().GroupVersionKind().Kind,
+					err,
+				),
+			}
 		}
 
 		rnode, err := kyaml.Parse(string(b))
 		if err != nil {
-			return nil, microerror.Maskf(
-				executionFailedError,
-				"error parsing %s/%s %s: %s",
-				item.GetObjectKind().GroupVersionKind().Group,
-				item.GetObjectKind().GroupVersionKind().Version,
-				item.GetObjectKind().GroupVersionKind().Kind,
-				err,
-			)
+			return nil, &ExecutionFailedError{
+				message: fmt.Sprintf("error parsing %s/%s %s: %s",
+					item.GetObjectKind().GroupVersionKind().Group,
+					item.GetObjectKind().GroupVersionKind().Version,
+					item.GetObjectKind().GroupVersionKind().Kind,
+					err,
+				),
+			}
 		}
 
 		output = append(output, rnode)

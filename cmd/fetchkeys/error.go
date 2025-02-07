@@ -1,12 +1,17 @@
 package fetchkeys
 
-import "github.com/giantswarm/microerror"
+import (
+	"reflect"
+)
 
-var invalidConfigError = &microerror.Error{
-	Kind: "invalidConfigError",
+type InvalidConfigError struct {
+	message string
 }
 
-// IsInvalidConfig asserts invalidConfigError.
-func IsInvalidConfig(err error) bool {
-	return microerror.Cause(err) == invalidConfigError
+func (e *InvalidConfigError) Error() string {
+	return "InvalidConfigError: " + e.message
+}
+
+func (e *InvalidConfigError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }

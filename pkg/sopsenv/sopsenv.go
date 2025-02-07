@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,7 +48,7 @@ type SOPSEnvConfig struct {
 	K8sClient  kubernetes.Interface
 	KeysDir    string
 	KeysSource string
-	Logger     micrologger.Logger
+	Logger     logr.Logger
 }
 
 type SOPSEnv struct {
@@ -57,7 +56,7 @@ type SOPSEnv struct {
 	k8sClient  kubernetes.Interface
 	keysDir    string
 	keysSource string
-	logger     micrologger.Logger
+	logger     logr.Logger
 }
 
 // NewSOPSEnv creates SOPS environment configurator, it works according to the
@@ -79,10 +78,6 @@ type SOPSEnv struct {
 //     keysDir="path"
 //     keysSource="kubernetes"
 func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
-	if config.Logger == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
-	}
-
 	s := &SOPSEnv{
 		keysDir:    config.KeysDir,
 		keysSource: config.KeysSource,
@@ -96,7 +91,7 @@ func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
 	if config.KeysDir == "" {
 		keysDir, err := os.MkdirTemp("", konfigureTmpDirName)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 		s.keysDir = keysDir
@@ -110,12 +105,12 @@ func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
 
 	cfg, err := ctrl.GetConfig()
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	k8sClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	s.k8sClient = k8sClient
@@ -137,7 +132,7 @@ func (s *SOPSEnv) GetKeysDir() string {
 func (s *SOPSEnv) Setup(ctx context.Context) error {
 	var err error
 
-	// Empty keysDir means we running against user / system default
+	// Empty keysDir means we are running against user / system default
 	// keychains, no need to point SOPS to a custom ones. In this mode
 	// we also do not import keys from K8s
 	if s.keysDir == "" {
@@ -146,10 +141,10 @@ func (s *SOPSEnv) Setup(ctx context.Context) error {
 
 	err = s.setEnv()
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
-	// `local` keysSource means we running against local directory and
+	// `local` keysSource means we are running against local directory and
 	// do not want to download keys from Kubernetes Secrets
 	if s.k8sClient == nil {
 		return nil
@@ -157,7 +152,7 @@ func (s *SOPSEnv) Setup(ctx context.Context) error {
 
 	err = s.importKeys(ctx)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil
@@ -170,7 +165,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 	var err error
 
 	if _, err := os.Stat(s.keysDir); os.IsNotExist(err) {
-		return microerror.Maskf(notFoundError, "specified keychains directory does not exist")
+		return &NotFoundError{message: "specified keychains directory does not exist"}
 	}
 
 	o := metav1.ListOptions{
@@ -182,17 +177,12 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 	// crashing it, although easy, does not feel overly dangerous.
 	secrets, err := s.k8sClient.CoreV1().Secrets("").List(ctx, o)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	// Let user know no Secrets have been found using selector.
 	if len(secrets.Items) == 0 {
-		s.logger.Debugf(
-			ctx,
-			"no Kubernetes Secrets found matching selector: %s=%s",
-			konfigureLabelKey,
-			konfigureLabelValue,
-		)
+		s.logger.Info(fmt.Sprintf("no Kubernetes Secrets found matching selector: %s=%s", konfigureLabelKey, konfigureLabelValue))
 		return nil
 	}
 
@@ -209,11 +199,11 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 
 				err, _, stderr := s.runGPGCmd(ctx, bytes.NewReader(v), args)
 				if err != nil {
-					return microerror.Maskf(pgpImportError, "failed to import key GnuPG keyring: \n %s", stderr.String())
+					return &PgpImportError{message: fmt.Sprintf("failed to import key GnuPG keyring: \n %s", stderr.String())}
 				}
 			case secretAgeExt:
 				// Put keys into map to filter out duplicates and thus avoid
-				// writting the same key multiple times into the keys.txt file
+				// writing the same key multiple times into the keys.txt file
 				ageKeysMap[string(v)] = v
 			}
 		}
@@ -221,7 +211,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 
 	err = s.writeKeysTxt(ctx, ageKeysMap)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil
@@ -245,11 +235,11 @@ func (s *SOPSEnv) setEnv() error {
 
 	err = os.Setenv(gnuPGHomeVar, s.keysDir)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 	err = os.Setenv(ageKeyFileVar, fmt.Sprintf("%s/%s", s.keysDir, "keys.txt"))
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil
@@ -260,7 +250,7 @@ func (s *SOPSEnv) setEnv() error {
 func (s *SOPSEnv) writeKeysTxt(ctx context.Context, keys map[string][]byte) error {
 	ageKeys := [][]byte{}
 	{
-		// Lets sort the keys
+		// Let's sort the keys
 		keysStr := make([]string, 0, len(keys))
 		for k := range keys {
 			keysStr = append(keysStr, k)
@@ -274,15 +264,15 @@ func (s *SOPSEnv) writeKeysTxt(ctx context.Context, keys map[string][]byte) erro
 
 	keysTxt, err := os.OpenFile(fmt.Sprintf("%s/%s", s.keysDir, "keys.txt"), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	if _, err := keysTxt.Write(bytes.Join(ageKeys, []byte("\n"))); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	if err := keysTxt.Close(); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil

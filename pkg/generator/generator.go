@@ -11,7 +11,6 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/getsops/sops/v3/decrypt"
-	"github.com/giantswarm/microerror"
 	"github.com/pkg/errors"
 	uberconfig "go.uber.org/config"
 	yaml3 "gopkg.in/yaml.v3"
@@ -70,13 +69,13 @@ type Generator struct {
 
 func New(config Config) (*Generator, error) {
 	if config.Fs == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Fs must not be empty", config)
+		return nil, &InvalidConfigError{message: fmt.Sprintf("%T.Fs must not be empty", config)}
 	}
 	if config.DecryptTraverser == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.DecryptTraverser must not be empty", config)
+		return nil, &InvalidConfigError{message: fmt.Sprintf("%T.DecryptTraverser must not be empty", config)}
 	}
 	if config.Installation == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Installation must not be empty", config)
+		return nil, &InvalidConfigError{message: fmt.Sprintf("%T.Installation must not be empty", config)}
 	}
 
 	g := Generator{
@@ -93,16 +92,16 @@ func New(config Config) (*Generator, error) {
 func (g *Generator) GenerateRawConfig(ctx context.Context, app string) (configmap string, secret string, err error) {
 	configmap, secret, err = g.GenerateRawConfigUnsorted(ctx, app)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 
 	configmap, err = sortYAMLKeys(configmap)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 	secret, err = sortYAMLKeys(secret)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 
 	return
@@ -129,26 +128,22 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 	// Check if installation folder exists at all. If not, return a descriptive
 	// error.
 	if _, err := g.fs.ReadDir(installationsPath + g.installation); err != nil {
-		if IsNotFound(err) {
-			return "", "", microerror.Maskf(
-				notFoundError,
-				"cannot generate config for installation %s, because \"installations/%s\" does not exist",
-				g.installation, g.installation,
-			)
+		if errors.Is(err, &NotFoundError{}) {
+			return "", "", &NotFoundError{
+				message: fmt.Sprintf("cannot generate config for installation %s, because \"installations/%s\" does not exist", g.installation, g.installation),
+			}
 		} else {
-			return "", "", microerror.Mask(err)
+			return "", "", err
 		}
 	}
 	// Check if app folder exists at all. If not, return a descriptive error.
 	if _, err := g.fs.ReadDir(appsDefaultPath + app); err != nil {
-		if IsNotFound(err) {
-			return "", "", microerror.Maskf(
-				notFoundError,
-				"cannot generate config for app %s, because \"default/apps/%s\" does not exist",
-				app, app,
-			)
+		if errors.Is(err, &NotFoundError{}) {
+			return "", "", &NotFoundError{
+				message: fmt.Sprintf("cannot generate config for app %s, because \"default/apps/%s\" does not exist", app, app),
+			}
 		} else {
-			return "", "", microerror.Mask(err)
+			return "", "", err
 		}
 	}
 
@@ -159,7 +154,7 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 		installationsPath+g.installation+"/config.yaml.patch",
 	)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 	g.logMessage(ctx, "loaded patched config values")
 
@@ -171,7 +166,7 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 		configmapContext,
 	)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 
 	g.logMessage(ctx, "rendered configmap-values template")
@@ -181,10 +176,10 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 		g.logMessage(ctx, "rendering configmap-values patch (if it exists)")
 		filepath := installationsPath + g.installation + "/apps/" + app + "/configmap-values.yaml.patch"
 		patch, err := g.getRenderedTemplate(ctx, filepath, configmapContext)
-		if IsNotFound(err) {
+		if errors.Is(err, &NotFoundError{}) {
 			configmapPatch = ""
 		} else if err != nil {
-			return "", "", microerror.Mask(err)
+			return "", "", err
 		} else {
 			configmapPatch = patch
 			g.logMessage(ctx, "rendered configmap-values patch")
@@ -198,7 +193,7 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 		[]byte(configmapPatch),
 	)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 	if configmapPatch != "" {
 		g.logMessage(ctx, "patched configmap-values")
@@ -212,13 +207,13 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 		"",
 	)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 	g.logMessage(ctx, "loaded installation secret")
 
 	decryptedBytes, err := g.decryptSecret(ctx, []byte(secretContext))
 	if err != nil {
-		return "", "", microerror.Mask(errors.Errorf("failed to decrypt secret in %q: %s", installationSecretPath, err))
+		return "", "", errors.Errorf("failed to decrypt secret in %q: %s", installationSecretPath, err)
 	}
 
 	secretContext = string(decryptedBytes)
@@ -231,7 +226,7 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 		[]byte(secretContext),
 	)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 	g.logMessage(ctx, "merged config and secret values")
 
@@ -241,17 +236,17 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 		appsDefaultPath+app+"/secret-values.yaml.template",
 		"",
 	)
-	if IsNotFound(err) {
+	if errors.Is(err, &NotFoundError{}) {
 		g.logMessage(ctx, "secret-values template not found, generated configmap")
 		return configmap, "", nil
 	} else if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 	g.logMessage(ctx, "loaded secret-values template")
 
 	secret, err = g.renderTemplate(ctx, secretTemplate, secretContextFinal)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 	g.logMessage(ctx, "rendered secret-values")
 
@@ -260,16 +255,16 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 	{
 		filepath := installationsPath + g.installation + "/apps/" + app + "/secret-values.yaml.patch"
 		patch, err := g.getRenderedTemplate(ctx, filepath, secretContext)
-		if IsNotFound(err) {
+		if errors.Is(err, &NotFoundError{}) {
 			secretPatch = ""
 		} else if err != nil {
-			return "", "", microerror.Mask(err)
+			return "", "", err
 		} else {
 			g.logMessage(ctx, "loaded secret-values patch")
 
 			decryptedBytes, err := g.decryptSecret(ctx, []byte(patch))
 			if err != nil {
-				return "", "", microerror.Mask(errors.Errorf("failed to decrypt app secret in %q: %s", filepath, err))
+				return "", "", errors.Errorf("failed to decrypt app secret in %q: %s", filepath, err)
 			}
 
 			secretPatch = string(decryptedBytes)
@@ -288,7 +283,7 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 		[]byte(secretPatch),
 	)
 	if err != nil {
-		return "", "", microerror.Mask(err)
+		return "", "", err
 	}
 	g.logMessage(ctx, "patched secret-values, generated configmap and secret")
 
@@ -303,7 +298,7 @@ func sortYAMLKeys(yamlString string) (string, error) {
 	n := new(yaml3.Node)
 	err := yaml3.Unmarshal([]byte(yamlString), n)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 	sortYAMLKeysNode(n)
 	buf := new(bytes.Buffer)
@@ -311,7 +306,7 @@ func sortYAMLKeys(yamlString string) (string, error) {
 	enc.SetIndent(2)
 	err = enc.Encode(n)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 	return buf.String(), nil
 }
@@ -356,7 +351,7 @@ func sortYAMLKeysNode(node *yaml3.Node) {
 func (g *Generator) GenerateConfig(ctx context.Context, app string, meta metav1.ObjectMeta) (*corev1.ConfigMap, *corev1.Secret, error) {
 	cm, s, err := g.GenerateRawConfig(ctx, app)
 	if err != nil {
-		return nil, nil, microerror.Mask(err)
+		return nil, nil, err
 	}
 
 	configmap := &corev1.ConfigMap{
@@ -394,7 +389,7 @@ func (g *Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFil
 	{
 		base, err = g.fs.ReadFile(filepath)
 		if err != nil {
-			return "", microerror.Mask(err)
+			return "", err
 		}
 	}
 
@@ -407,16 +402,16 @@ func (g *Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFil
 	{
 		patch, err = g.fs.ReadFile(patchFilepath)
 		if err != nil {
-			if IsNotFound(err) {
+			if errors.Is(err, &NotFoundError{}) {
 				return string(base), nil
 			}
-			return "", microerror.Mask(err)
+			return "", err
 		}
 	}
 
 	result, err := applyPatch(ctx, base, patch)
 	if err != nil {
-		return "", microerror.Mask(errors.Errorf("failed to apply patch from %q onto %q: %s", patchFilepath, filepath, err))
+		return "", errors.Errorf("failed to apply patch from %q onto %q: %s", patchFilepath, filepath, err)
 	}
 	return result, nil
 }
@@ -424,12 +419,12 @@ func (g *Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFil
 func (g *Generator) getRenderedTemplate(ctx context.Context, filepath, templateData string) (string, error) {
 	templateBytes, err := g.fs.ReadFile(filepath)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	result, err := g.renderTemplate(ctx, string(templateBytes), templateData)
 	if err != nil {
-		return "", microerror.Mask(errors.Errorf("failed to render template from %q: %s", filepath, err))
+		return "", errors.Errorf("failed to render template from %q: %s", filepath, err)
 	}
 
 	return result, nil
@@ -442,14 +437,14 @@ func applyPatch(ctx context.Context, base, patch []byte) (string, error) {
 		uberconfig.Source(bytes.NewBuffer(patch)),
 	)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	value := patcher.Get(uberconfig.Root).Value() // nolint:staticcheck
 
 	output, err := yaml3.Marshal(value)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	return string(output), nil
@@ -459,7 +454,7 @@ func (g *Generator) renderTemplate(ctx context.Context, templateText string, tem
 	c := map[string]interface{}{}
 	err := yaml.Unmarshal([]byte(templateData), &c)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	funcMap := sprig.TxtFuncMap()
@@ -468,14 +463,14 @@ func (g *Generator) renderTemplate(ctx context.Context, templateText string, tem
 
 	t, err := template.New("main").Funcs(funcMap).Option("missingkey=error").Parse(templateText)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	// render final template
 	out := bytes.NewBuffer([]byte{})
 	err = t.Execute(out, c)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	return out.String(), nil
@@ -493,18 +488,18 @@ func (g *Generator) includeFromRoot(root string, templateName string, templateDa
 	templateFilePath := path.Join(root, templateName+".yaml.template")
 	contents, err := g.fs.ReadFile(templateFilePath)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	t, err := template.New(templateName).Funcs(sprig.TxtFuncMap()).Option("missingkey=error").Parse(string(contents))
 	if err != nil {
-		return "", microerror.Mask(errors.Errorf("failed to parse template in file %q: %s", templateFilePath, err))
+		return "", errors.Errorf("failed to parse template in file %q: %s", templateFilePath, err)
 	}
 
 	out := bytes.NewBuffer([]byte{})
 	err = t.Execute(out, templateData)
 	if err != nil {
-		return "", microerror.Mask(errors.Errorf("failed to render template from %q: %s", templateFilePath, err))
+		return "", errors.Errorf("failed to render template from %q: %s", templateFilePath, err)
 	}
 
 	return out.String(), nil
@@ -525,7 +520,7 @@ func (g *Generator) decryptSecret(ctx context.Context, data []byte) ([]byte, err
 	// Check if file is SOPS-encrypted
 	forSOPS, err := isSOPSEncrypted(ctx, data)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	// If SOPS-encrypted decrypt with SOPS API, otherwise fallback to the
@@ -538,7 +533,7 @@ func (g *Generator) decryptSecret(ctx context.Context, data []byte) ([]byte, err
 	}
 
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 	return decryptedBytes, nil
 }
@@ -551,7 +546,7 @@ func isSOPSEncrypted(ctx context.Context, data []byte) (bool, error) {
 
 	err := yaml3.Unmarshal([]byte(data), &values)
 	if err != nil {
-		return false, microerror.Mask(err)
+		return false, err
 	}
 
 	_, ok := values["sops"]

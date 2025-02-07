@@ -9,8 +9,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-
-	"github.com/giantswarm/microerror"
 )
 
 const advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
@@ -190,26 +188,26 @@ func prePopulateCache(cache string, archive, config, timestamp []byte) error {
 	if len(timestamp) > 0 {
 		err = os.WriteFile(path.Join(cache, cacheLastArchive), archive, 0755) // nolint:gosec
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 	}
 
 	dir := path.Join(cache, "latest")
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	if len(timestamp) > 0 {
 		err = os.WriteFile(path.Join(dir, "config.yaml"), config, 0755) // nolint:gosec
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 	}
 
 	if len(timestamp) > 0 {
 		err = os.WriteFile(path.Join(cache, cacheLastArchiveTimestamp), timestamp, 0755) // nolint:gosec
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 	}
 

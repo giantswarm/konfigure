@@ -2,8 +2,6 @@ package decrypt
 
 import (
 	"context"
-
-	"github.com/giantswarm/microerror"
 )
 
 type valueModifier struct {
@@ -23,7 +21,7 @@ func newValueModifier(ctx context.Context, d Decrypter) *valueModifier {
 func (m *valueModifier) Modify(bs []byte) ([]byte, error) {
 	bs, err := m.decrypter.Decrypt(m.ctx, bs)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	return bs, nil

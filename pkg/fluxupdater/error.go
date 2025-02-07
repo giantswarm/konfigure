@@ -1,29 +1,29 @@
 package fluxupdater
 
-import "github.com/giantswarm/microerror"
+import (
+	"reflect"
+)
 
-// executionFailedError should never be matched against and therefore there is
-// no matcher implement. For further information see:
-//
-//	https://github.com/giantswarm/fmt/blob/master/go/errors.md#matching-errors
-var executionFailedError = &microerror.Error{
-	Kind: "executionFailedError",
+type ExecutionFailedError struct {
+	message string
 }
 
-var invalidConfigError = &microerror.Error{
-	Kind: "invalidConfigError",
+func (e *ExecutionFailedError) Error() string {
+	return "ExecutionFailedError: " + e.message
 }
 
-// IsInvalidConfig asserts invalidConfigError.
-func IsInvalidConfig(err error) bool {
-	return microerror.Cause(err) == invalidConfigError
+func (e *ExecutionFailedError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-var invalidFlagError = &microerror.Error{
-	Kind: "invalidFlagError",
+type InvalidConfigError struct {
+	message string
 }
 
-// IsInvalidFlag asserts invalidFlagError.
-func IsInvalidFlag(err error) bool {
-	return microerror.Cause(err) == invalidFlagError
+func (e *InvalidConfigError) Error() string {
+	return "InvalidConfigError: " + e.message
+}
+
+func (e *InvalidConfigError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }

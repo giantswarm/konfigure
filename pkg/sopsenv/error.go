@@ -1,32 +1,41 @@
 package sopsenv
 
 import (
-	"github.com/giantswarm/microerror"
+	"reflect"
 )
 
-var invalidConfigError = &microerror.Error{
-	Kind: "invalidConfigError",
+type InvalidConfigError struct {
+	message string
 }
 
-// IsInvalidConfig asserts invalidConfigError.
-func IsInvalidConfig(err error) bool {
-	return microerror.Cause(err) == invalidConfigError
+func (e *InvalidConfigError) Error() string {
+	return "InvalidConfigError: " + e.message
 }
 
-var notFoundError = &microerror.Error{
-	Kind: "notFoundError",
+func (e *InvalidConfigError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-// IsNotFound asserts notFoundError.
-func IsNotFound(err error) bool {
-	return microerror.Cause(err) == notFoundError
+type NotFoundError struct {
+	message string
 }
 
-var pgpImportError = &microerror.Error{
-	Kind: "pgpImportError",
+func (e *NotFoundError) Error() string {
+	return "NotFoundError: " + e.message
 }
 
-// isPGPImportError asserts pgpImportError.
-func IsPGPImportError(err error) bool {
-	return microerror.Cause(err) == pgpImportError
+func (e *NotFoundError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
+}
+
+type PgpImportError struct {
+	message string
+}
+
+func (e *PgpImportError) Error() string {
+	return "PgpImportError: " + e.message
+}
+
+func (e *PgpImportError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }

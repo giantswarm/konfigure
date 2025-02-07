@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/fluxcd/pkg/tar"
-	"github.com/giantswarm/microerror"
 )
 
 const (
@@ -57,15 +56,15 @@ type FluxUpdater struct {
 
 func New(config Config) (*FluxUpdater, error) {
 	if config.CacheDir == "" {
-		return nil, microerror.Maskf(invalidConfigError, "cacheDir must not be empty")
+		return nil, &InvalidConfigError{message: "cacheDir must not be empty"}
 	}
 
 	if config.ApiServerHost == "" {
-		return nil, microerror.Maskf(invalidConfigError, "apiServerHost must not be empty")
+		return nil, &InvalidConfigError{message: "apiServerHost must not be empty"}
 	}
 
 	if config.ApiServerPort == "" {
-		return nil, microerror.Maskf(invalidConfigError, "apiServerPort must not be empty")
+		return nil, &InvalidConfigError{message: "apiServerPort must not be empty"}
 	}
 
 	var kubernetesTokenFile string
@@ -76,11 +75,11 @@ func New(config Config) (*FluxUpdater, error) {
 	}
 
 	if config.SourceControllerService == "" {
-		return nil, microerror.Maskf(invalidConfigError, "sourceControllerService must not be empty")
+		return nil, &InvalidConfigError{message: "sourceControllerService must not be empty"}
 	}
 
 	if config.GitRepository == "" {
-		return nil, microerror.Maskf(invalidConfigError, "gitRepository must not be empty")
+		return nil, &InvalidConfigError{message: "gitRepository must not be empty"}
 	}
 
 	if kubernetesTokenFile == "" {
@@ -114,19 +113,19 @@ func (u *FluxUpdater) UpdateConfig() error {
 	if err != nil && os.IsNotExist(err) {
 		cachedArtifact = []byte("placeholder.tar.gz")
 	} else if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	cachedArtifactTimestampByte, err := os.ReadFile(path.Join(u.CacheDir, cacheLastArchiveTimestamp))
 	if err != nil && os.IsNotExist(err) {
 		cachedArtifactTimestampByte = []byte(time.Time{}.Format(http.TimeFormat))
 	} else if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	cachedArtifactTimestamp, err := time.Parse(http.TimeFormat, string(cachedArtifactTimestampByte))
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	url := fmt.Sprintf("http://%s/gitrepository/%s/%s", u.SourceControllerService, u.GitRepository, string(cachedArtifact))
@@ -135,12 +134,12 @@ func (u *FluxUpdater) UpdateConfig() error {
 	client := &http.Client{Timeout: 60 * time.Second}
 	request, err := http.NewRequest(http.MethodHead, url, nil)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	response, err := client.Do(request)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 	defer response.Body.Close()
 
@@ -151,7 +150,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 		// last modification date
 		artifactTimestamp, err := time.Parse(http.TimeFormat, response.Header.Get("Last-Modified"))
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		if cachedArtifactTimestamp.After(artifactTimestamp) || cachedArtifactTimestamp.Equal(artifactTimestamp) {
@@ -159,10 +158,9 @@ func (u *FluxUpdater) UpdateConfig() error {
 		}
 	} else {
 		if response.StatusCode != http.StatusNotFound {
-			return microerror.Maskf(
-				executionFailedError,
-				"error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode,
-			)
+			return &ExecutionFailedError{
+				message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode),
+			}
 		} else {
 			url = ""
 		}
@@ -194,7 +192,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 
 		k8sToken, err := os.ReadFile(u.KubernetesTokenFile)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		bearer := fmt.Sprintf("Bearer %s", strings.TrimSpace(string(k8sToken)))
@@ -204,7 +202,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 		for _, p := range k8sApiPath {
 			request, err = http.NewRequest(http.MethodGet, p, nil)
 			if err != nil {
-				return microerror.Mask(err)
+				return err
 			}
 
 			request.Header.Set("Authorization", bearer)
@@ -215,7 +213,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 
 			response, err = client.Do(request)
 			if err != nil {
-				return microerror.Mask(err)
+				return err
 			}
 			defer response.Body.Close()
 
@@ -227,22 +225,20 @@ func (u *FluxUpdater) UpdateConfig() error {
 				continue
 			}
 
-			return microerror.Maskf(
-				executionFailedError,
-				"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
-			)
+			return &ExecutionFailedError{
+				message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode),
+			}
 		}
 
 		if response.StatusCode != http.StatusOK {
-			return microerror.Maskf(
-				executionFailedError,
-				"error getting '%s' GitRepository CR", u.GitRepository,
-			)
+			return &ExecutionFailedError{
+				message: fmt.Sprintf("error getting '%s' GitRepository CR", u.GitRepository),
+			}
 		}
 
 		responseBytes, err := io.ReadAll(response.Body)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		// We are not interested in an entire object, we are only interested in getting
@@ -258,17 +254,16 @@ func (u *FluxUpdater) UpdateConfig() error {
 		var gr gitRepository
 		err = json.Unmarshal(responseBytes, &gr)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		// Note: technically this does not mean an error. An empty field could be a symptom
 		// of the CR still being reconciled, or not being picked up by the Source Controller
 		// at all, in which case, we could simply skip quietly.
 		if gr.Status.Artifact.Url == "" {
-			return microerror.Maskf(
-				executionFailedError,
-				"error downloading artifact: got empty URL from GitRepository status",
-			)
+			return &ExecutionFailedError{
+				message: fmt.Sprintf("error downloading artifact: got empty URL from GitRepository status"),
+			}
 		}
 
 		url = gr.Status.Artifact.Url
@@ -276,48 +271,47 @@ func (u *FluxUpdater) UpdateConfig() error {
 
 	request, err = http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	response, err = client.Do(request)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		return microerror.Maskf(
-			executionFailedError,
-			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
-		)
+		return &ExecutionFailedError{
+			message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode),
+		}
 	}
 	defer response.Body.Close()
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, response.Body)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	// Clear the old artifact's directory and untar a fresh one.
 	dir := path.Join(u.CacheDir, "latest")
 	if err := os.RemoveAll(dir); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 	if err = tar.Untar(&buf, dir); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	// Update the last archive name and timestamp
 	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchive), []byte(filepath.Base(url)), 0755) // nolint:gosec
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0755) // nolint:gosec
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil

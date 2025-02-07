@@ -1,11 +1,17 @@
 package vaultclient
 
-import "github.com/giantswarm/microerror"
+import (
+	"reflect"
+)
 
-// executionFailedError should never be matched against and therefore there is
-// no matcher implement. For further information see:
-//
-//	https://github.com/giantswarm/fmt/blob/master/go/errors.md#matching-errors
-var executionFailedError = &microerror.Error{
-	Kind: "executionFailedError",
+type ExecutionFailedError struct {
+	message string
+}
+
+func (e *ExecutionFailedError) Error() string {
+	return "ExecutionFailedError: " + e.message
+}
+
+func (e *ExecutionFailedError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }

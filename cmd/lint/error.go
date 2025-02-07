@@ -1,30 +1,41 @@
 package lint
 
-import "github.com/giantswarm/microerror"
+import (
+	"reflect"
+)
 
-var invalidConfigError = &microerror.Error{
-	Kind: "invalidConfigError",
+type InvalidConfigError struct {
+	message string
 }
 
-// IsInvalidConfig asserts invalidConfigError.
-func IsInvalidConfig(err error) bool {
-	return microerror.Cause(err) == invalidConfigError
+func (e *InvalidConfigError) Error() string {
+	return "InvalidConfigError: " + e.message
 }
 
-var invalidFlagError = &microerror.Error{
-	Kind: "invalidFlagError",
+func (e *InvalidConfigError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-// IsInvalidFlag asserts invalidFlagError.
-func IsInvalidFlag(err error) bool {
-	return microerror.Cause(err) == invalidFlagError
+type InvalidFlagError struct {
+	message string
 }
 
-var linterFoundIssuesError = &microerror.Error{
-	Kind: "linterFoundIssuesError",
+func (e *InvalidFlagError) Error() string {
+	return "InvalidFlagError: " + e.message
 }
 
-// IsLinterFoundIssues asserts linterFoundIssuesError.
-func IsLinterFoundIssues(err error) bool {
-	return microerror.Cause(err) == linterFoundIssuesError
+func (e *InvalidFlagError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
+}
+
+type LinterFoundIssuesError struct {
+	message string
+}
+
+func (e *LinterFoundIssuesError) Error() string {
+	return "LinterFoundIssuesError: " + e.message
+}
+
+func (e *LinterFoundIssuesError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }

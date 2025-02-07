@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-logr/logr"
 	"io"
 	"strings"
 
 	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/app/v7/pkg/app"
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger"
 	"github.com/imdario/mergo"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +27,7 @@ const (
 
 type runner struct {
 	flag   *flag
-	logger micrologger.Logger
+	logger logr.Logger
 	stdout io.Writer
 	stderr io.Writer
 }
@@ -38,12 +37,12 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 
 	err := r.flag.Validate()
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	err = r.run(ctx, cmd, args)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil
@@ -60,14 +59,14 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			if r.flag.VaultSecretName != "" && r.flag.VaultSecretNamespace != "" {
 				vaultClient, err = vaultclient.NewClientUsingK8sSecret(ctx, r.flag.VaultSecretNamespace, r.flag.VaultSecretName)
 				if err != nil {
-					return microerror.Mask(err)
+					return err
 				}
 			}
 
 			if vaultClient == nil {
 				vaultClient, err = vaultclient.NewClientUsingEnv(ctx)
 				if err != nil {
-					return microerror.Mask(err)
+					return err
 				}
 			}
 		}
@@ -87,7 +86,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 			gen, err = service.New(c)
 			if err != nil {
-				return microerror.Mask(err)
+				return err
 			}
 		}
 
@@ -107,7 +106,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 		configmap, secret, err = gen.Generate(ctx, in)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 	}
 
@@ -145,23 +144,23 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		var m1 map[string]interface{}
 		err = yaml.Unmarshal([]byte(configmap.Data["configmap-values.yaml"]), &m1)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		var m2 map[string]interface{}
 		err = yaml.Unmarshal([]byte(secret.Data["secret-values.yaml"]), &m2)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		err = mergo.Merge(&m1, m2)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		data, err := yaml.Marshal(m1)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		fmt.Printf("%s\n", data)
@@ -170,15 +169,15 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	}
 
 	if err := prettyPrint(configmap, false); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	if err := prettyPrint(secret, false); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	if err := prettyPrint(appCR, true); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil
@@ -196,13 +195,13 @@ func prettyPrint(in interface{}, purgeStatus bool) error {
 	if purgeStatus {
 		bytes, err := json.Marshal(in)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		var m map[string]interface{}
 		err = json.Unmarshal(bytes, &m)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		delete(m, "status")
@@ -210,7 +209,7 @@ func prettyPrint(in interface{}, purgeStatus bool) error {
 	}
 	out, err := yaml.Marshal(in)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	fmt.Println("---")

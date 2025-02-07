@@ -1,6 +1,8 @@
 package kustomizepatch
 
-import "github.com/giantswarm/microerror"
+import (
+	"fmt"
+)
 
 // config is required configuration passed by the generator
 // Example:
@@ -39,19 +41,19 @@ type config struct {
 
 func (c *config) Validate() error {
 	if c.AppCatalog == "" {
-		return microerror.Maskf(invalidConfigError, "%T.AppCatalog is required", c)
+		return &InvalidFlagError{message: fmt.Sprintf("%T.AppCatalog is required", c)}
 	}
 	if c.AppDestinationNamespace == "" {
-		return microerror.Maskf(invalidConfigError, "%T.AppDestinationNamespace is required", c)
+		return &InvalidFlagError{message: fmt.Sprintf("%T.AppDestinationNamespace is required", c)}
 	}
 	if c.AppName == "" {
-		return microerror.Maskf(invalidConfigError, "%T.AppName is required", c)
+		return &InvalidFlagError{message: fmt.Sprintf("%T.AppName is required", c)}
 	}
 	if c.AppVersion == "" {
-		return microerror.Maskf(invalidConfigError, "%T.AppVersion is required", c)
+		return &InvalidFlagError{message: fmt.Sprintf("%T.AppVersion is required", c)}
 	}
 	if c.Name == "" {
-		return microerror.Maskf(invalidConfigError, "%T.Name is required", c)
+		return &InvalidFlagError{message: fmt.Sprintf("%T.Name is required", c)}
 	}
 	return nil
 }

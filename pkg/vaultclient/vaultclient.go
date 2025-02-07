@@ -2,9 +2,9 @@ package vaultclient
 
 import (
 	"context"
+	"fmt"
 	"os"
 
-	"github.com/giantswarm/microerror"
 	vaultapi "github.com/hashicorp/vault/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -36,12 +36,12 @@ func NewClient(config Config) (*vaultapi.Client, error) {
 		CAPath: config.CAPath,
 	})
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	vaultClient, err := vaultapi.NewClient(c)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	vaultClient.SetToken(config.Token)
@@ -52,17 +52,17 @@ func NewClient(config Config) (*vaultapi.Client, error) {
 func NewClientUsingK8sSecret(ctx context.Context, namespace, name string) (*WrappedVaultClient, error) {
 	c, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	client, err := kubernetes.NewForConfig(c)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	vaultClient, err := NewClient(Config{
@@ -71,7 +71,7 @@ func NewClientUsingK8sSecret(ctx context.Context, namespace, name string) (*Wrap
 		CAPath:  string(secret.Data[vaultCAPath]),
 	})
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	return &WrappedVaultClient{
@@ -79,7 +79,7 @@ func NewClientUsingK8sSecret(ctx context.Context, namespace, name string) (*Wrap
 		ConfigurationValidator: func() error {
 			for _, varName := range []string{vaultAddress, vaultToken, vaultCAPath} {
 				if value, ok := secret.Data[varName]; !ok || string(value) == "" {
-					return microerror.Maskf(executionFailedError, "secret.Data must contain %q", varName)
+					return &ExecutionFailedError{message: fmt.Sprintf("secret.Data must contain %q", varName)}
 				}
 			}
 
@@ -95,7 +95,7 @@ func NewClientUsingEnv(ctx context.Context) (*WrappedVaultClient, error) {
 		CAPath:  os.Getenv(vaultCAPath),
 	})
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	return &WrappedVaultClient{
@@ -103,7 +103,7 @@ func NewClientUsingEnv(ctx context.Context) (*WrappedVaultClient, error) {
 		ConfigurationValidator: func() error {
 			for _, varName := range []string{vaultAddress, vaultToken, vaultCAPath} {
 				if value, ok := os.LookupEnv(varName); !ok || value == "" {
-					return microerror.Maskf(executionFailedError, "%s environment variable must be set", varName)
+					return &ExecutionFailedError{message: fmt.Sprintf("%s environment variable must be set", varName)}
 				}
 			}
 

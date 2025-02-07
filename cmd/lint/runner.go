@@ -3,11 +3,10 @@ package lint
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	"io"
 	"strings"
 
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/konfigure/pkg/filesystem"
@@ -16,7 +15,7 @@ import (
 
 type runner struct {
 	flag   *flag
-	logger micrologger.Logger
+	logger logr.Logger
 	stdout io.Writer
 	stderr io.Writer
 }
@@ -26,12 +25,12 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 
 	err := r.flag.Validate()
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	err = r.run(ctx, cmd, args)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil
@@ -54,7 +53,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 		l, err := lint.New(c)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 		linter = l
 	}
@@ -69,12 +68,12 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		fmt.Println("-------------------------")
 		fmt.Println("Too many messages, skipping the rest of checks")
 		fmt.Printf("Run linter with '--%s 0' to see all the errors\n", flagMaxMessages)
-		return microerror.Mask(linterFoundIssuesError)
+		return &LinterFoundIssuesError{message: fmt.Sprintf("Found %d issues", len(messages))}
 	}
 
 	fmt.Printf("-------------------------\nFound %d issues\n", len(messages))
 	if len(messages) > 0 {
-		return microerror.Mask(linterFoundIssuesError)
+		return &LinterFoundIssuesError{message: fmt.Sprintf("Found %d issues", len(messages))}
 	}
 
 	return nil

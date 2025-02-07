@@ -1,30 +1,29 @@
 package generator
 
 import (
-	"errors"
-	"os"
-
-	"github.com/giantswarm/microerror"
+	"reflect"
 )
 
-var invalidConfigError = &microerror.Error{
-	Kind: "invalidConfigError",
+type InvalidConfigError struct {
+	message string
 }
 
-// IsInvalidConfig asserts invalidConfigError.
-func IsInvalidConfig(err error) bool {
-	return microerror.Cause(err) == invalidConfigError
+func (e *InvalidConfigError) Error() string {
+	return "InvalidConfigError: " + e.message
 }
 
-var notFoundError = &microerror.Error{
-	Kind: "notFoundError",
+func (e *InvalidConfigError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-// IsNotFound asserts notFoundError.
-func IsNotFound(err error) bool {
-	if errors.Is(err, os.ErrNotExist) {
-		return true
-	}
+type NotFoundError struct {
+	message string
+}
 
-	return microerror.Cause(err) == notFoundError
+func (e *NotFoundError) Error() string {
+	return "NotFoundError: " + e.message
+}
+
+func (e *NotFoundError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
