@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/go-logr/zapr"
 	"go.uber.org/zap"
-	"os"
 
 	"github.com/spf13/cobra"
 
