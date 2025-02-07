@@ -1,9 +1,10 @@
 package fetchkeys
 
 import (
-	"github.com/go-logr/logr"
 	"io"
 	"os"
+
+	"github.com/go-logr/logr"
 
 	"github.com/spf13/cobra"
 )

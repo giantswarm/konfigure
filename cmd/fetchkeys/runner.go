@@ -3,9 +3,10 @@ package fetchkeys
 import (
 	"context"
 	"fmt"
+	"io"
+
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
-	"io"
 
 	"github.com/giantswarm/konfigure/pkg/sopsenv"
 	"github.com/giantswarm/konfigure/pkg/sopsenv/key"

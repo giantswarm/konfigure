@@ -3,7 +3,6 @@ package generator
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -11,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/go-logr/logr"
 
 	"github.com/giantswarm/konfigure/pkg/sopsenv"
 	"github.com/giantswarm/konfigure/pkg/sopsenv/key"

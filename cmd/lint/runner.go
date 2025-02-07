@@ -3,9 +3,10 @@ package lint
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	"io"
 	"strings"
+
+	"github.com/go-logr/logr"
 
 	"github.com/spf13/cobra"
 

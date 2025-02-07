@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-logr/logr"
 	"io"
 	"strings"
+
+	"github.com/go-logr/logr"
 
 	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/app/v7/pkg/app"

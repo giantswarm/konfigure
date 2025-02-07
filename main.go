@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	"os"
+
+	"github.com/go-logr/logr"
 
 	"github.com/spf13/cobra"
 

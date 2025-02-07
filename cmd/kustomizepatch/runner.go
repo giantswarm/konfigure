@@ -3,11 +3,12 @@ package kustomizepatch
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	"io"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/go-logr/logr"
 
 	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/app/v7/pkg/app"
@@ -101,7 +102,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	var err error
 	{
 		if r.config == nil {
-			return nil, &InvalidFlagError{message: fmt.Sprintf("r.config is required, got <nil>")}
+			return nil, &InvalidFlagError{message: "r.config is required, got <nil>"}
 		}
 
 		if err := r.config.Validate(); err != nil {

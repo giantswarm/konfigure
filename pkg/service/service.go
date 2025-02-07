@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/giantswarm/konfigure/pkg/vaultclient"
+
 	"github.com/go-logr/logr"
+
+	"github.com/giantswarm/konfigure/pkg/vaultclient"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

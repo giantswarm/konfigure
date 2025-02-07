@@ -262,7 +262,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 		// at all, in which case, we could simply skip quietly.
 		if gr.Status.Artifact.Url == "" {
 			return &ExecutionFailedError{
-				message: fmt.Sprintf("error downloading artifact: got empty URL from GitRepository status"),
+				message: "error downloading artifact: got empty URL from GitRepository status",
 			}
 		}
 
