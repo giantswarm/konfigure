@@ -128,7 +128,7 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 	// Check if installation folder exists at all. If not, return a descriptive
 	// error.
 	if _, err := g.fs.ReadDir(installationsPath + g.installation); err != nil {
-		if errors.Is(err, &NotFoundError{}) {
+		if errors.Is(err, os.ErrNotExist) {
 			return "", "", &NotFoundError{
 				message: fmt.Sprintf("cannot generate config for installation %s, because \"installations/%s\" does not exist", g.installation, g.installation),
 			}
@@ -138,7 +138,7 @@ func (g *Generator) GenerateRawConfigUnsorted(ctx context.Context, app string) (
 	}
 	// Check if app folder exists at all. If not, return a descriptive error.
 	if _, err := g.fs.ReadDir(appsDefaultPath + app); err != nil {
-		if errors.Is(err, &NotFoundError{}) {
+		if errors.Is(err, os.ErrNotExist) {
 			return "", "", &NotFoundError{
 				message: fmt.Sprintf("cannot generate config for app %s, because \"default/apps/%s\" does not exist", app, app),
 			}
@@ -389,6 +389,10 @@ func (g *Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFil
 	{
 		base, err = g.fs.ReadFile(filepath)
 		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return "", &NotFoundError{message: fmt.Sprintf("File not found: %q: %s", filepath, err)}
+			}
+
 			return "", err
 		}
 	}
@@ -402,7 +406,7 @@ func (g *Generator) getWithPatchIfExists(ctx context.Context, filepath, patchFil
 	{
 		patch, err = g.fs.ReadFile(patchFilepath)
 		if err != nil {
-			if errors.Is(err, &NotFoundError{}) {
+			if errors.Is(err, os.ErrNotExist) {
 				return string(base), nil
 			}
 			return "", err
