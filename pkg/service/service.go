@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 
 	"github.com/giantswarm/konfigure/pkg/vaultclient"
