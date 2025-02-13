@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-
 	"github.com/go-logr/logr"
 
 	"github.com/giantswarm/konfigure/pkg/vaultclient"
@@ -125,6 +124,14 @@ type GenerateInput struct {
 	ExtraLabels map[string]string
 	// VersionOverride allows user to set version manually.
 	VersionOverride string
+}
+
+func (s *Service) GetDir() string {
+	return s.dir
+}
+
+func (s *Service) GetInstallation() string {
+	return s.installation
 }
 
 func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
