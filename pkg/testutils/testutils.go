@@ -44,7 +44,7 @@ func UntarFile(path, name string) error {
 		}
 
 		key := filepath.Join(path, header.Name) //#nosec G305
-		modeInt32 := int32(header.Mode)         //#nosec G115
+		modeInt32 := uint32(header.Mode)        //#nosec G115
 		file, err := os.OpenFile(key, os.O_CREATE|os.O_RDWR, os.FileMode(modeInt32))
 		if err != nil {
 			return err
