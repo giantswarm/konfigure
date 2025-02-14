@@ -2,8 +2,8 @@ package decrypt
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/valuemodifier"
 )
 
@@ -17,7 +17,7 @@ type YAMLTraverser struct {
 
 func NewYAMLTraverser(config YAMLTraverserConfig) (*YAMLTraverser, error) {
 	if config.Decrypter == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Decrypter must not be empty", config)
+		return nil, &InvalidConfigError{message: fmt.Sprintf("%T.Decrypter must not be empty", config)}
 	}
 
 	t := &YAMLTraverser{
@@ -39,13 +39,13 @@ func (t *YAMLTraverser) Traverse(ctx context.Context, yamlData []byte) ([]byte, 
 
 		modifier, err = valuemodifier.New(c)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 	}
 
 	decrypted, err := modifier.Traverse(yamlData)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	return decrypted, nil

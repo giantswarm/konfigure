@@ -8,8 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/giantswarm/microerror"
 )
 
 type Store struct {
@@ -56,11 +54,11 @@ func (s *Store) Version() (string, error) {
 		cmd.Dir = s.Dir
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return "", microerror.Mask(err)
+			return "", err
 		}
 		return "v0.0.0-" + strings.TrimSpace(string(out)), nil
 	} else if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil
 }

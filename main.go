@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger"
+	"github.com/go-logr/zapr"
+	"go.uber.org/zap"
+
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/konfigure/cmd/fetchkeys"
@@ -23,7 +24,7 @@ const (
 func main() {
 	err := mainE(context.Background())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", microerror.Pretty(microerror.Mask(err), true))
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 		os.Exit(1)
 	}
 }
@@ -31,17 +32,13 @@ func main() {
 func mainE(ctx context.Context) error {
 	var err error
 
-	var logger micrologger.Logger
-	{
-		c := micrologger.Config{}
-
-		logger, err = micrologger.New(c)
-		if err != nil {
-			return microerror.Mask(err)
-		}
+	zapLogger, err := zap.NewDevelopment()
+	if err != nil {
+		return err
 	}
 
-	// Create a new microkit command which manages our custom microservice.
+	logger := zapr.NewLogger(zapLogger)
+
 	newCommand := &cobra.Command{
 		Use:     project.Name(),
 		Long:    project.Description(),
@@ -56,7 +53,7 @@ func mainE(ctx context.Context) error {
 		}
 		cmd, err := fetchkeys.New(c)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 		subcommands = append(subcommands, cmd)
 	}
@@ -66,7 +63,7 @@ func mainE(ctx context.Context) error {
 		}
 		cmd, err := generate.New(c)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 		subcommands = append(subcommands, cmd)
 	}
@@ -76,7 +73,7 @@ func mainE(ctx context.Context) error {
 		}
 		cmd, err := kustomizepatch.New(c)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 		subcommands = append(subcommands, cmd)
 
@@ -89,7 +86,7 @@ func mainE(ctx context.Context) error {
 			cmd.SilenceUsage = true
 			err = cmd.Execute()
 			if err != nil {
-				_, err := fmt.Fprint(os.Stderr, microerror.Pretty(err, false))
+				_, err := fmt.Fprint(os.Stderr, err)
 				if err != nil {
 					return err
 				}
@@ -104,7 +101,7 @@ func mainE(ctx context.Context) error {
 		}
 		cmd, err := lint.New(c)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 		subcommands = append(subcommands, cmd)
 	}
@@ -126,7 +123,7 @@ func mainE(ctx context.Context) error {
 
 	err = newCommand.Execute()
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil
