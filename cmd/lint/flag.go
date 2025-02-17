@@ -1,10 +1,10 @@
 package lint
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
-	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +47,7 @@ func (f *flag) Validate() error {
 	for _, re := range res {
 		_, err := regexp.Compile(re)
 		if err != nil {
-			return microerror.Maskf(invalidFlagError, "%#q must be a valid regex string", re)
+			return &InvalidFlagError{message: fmt.Sprintf("%#q must be a valid regex string", re)}
 		}
 	}
 

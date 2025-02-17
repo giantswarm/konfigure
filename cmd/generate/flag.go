@@ -1,10 +1,11 @@
 package generate
 
 import (
-	"github.com/giantswarm/microerror"
+	"fmt"
+
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/konfigure/internal/sopsenv/key"
+	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
 )
 
 const (
@@ -67,31 +68,31 @@ func (f *flag) Validate() error {
 	}
 
 	if f.AppDestinationNamespace == "" {
-		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagAppDestinationNamespace)
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagAppDestinationNamespace)}
 	}
 	if f.AppCatalog == "" {
-		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagAppCatalog)
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagAppCatalog)}
 	}
 	if f.AppName == "" {
-		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagAppName)
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagAppName)}
 	}
 	if f.AppVersion == "" {
-		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagAppVersion)
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagAppVersion)}
 	}
 	if f.Dir == "" {
-		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagDir)
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagDir)}
 	}
 	if f.Installation == "" {
-		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagInstallation)
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagInstallation)}
 	}
 	if f.Name == "" {
-		return microerror.Maskf(invalidFlagError, "--%s must not be empty", flagName)
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagName)}
 	}
 	if (f.VaultSecretName == "" || f.VaultSecretNamespace == "") && f.VaultSecretName != f.VaultSecretNamespace {
-		return microerror.Maskf(invalidFlagError, "you have to specify both or neither %q and %q", flagVaultSecretName, flagVaultSecretNamespace)
+		return &InvalidFlagError{message: fmt.Sprintf("you have to specify both or neither %q and %q", flagVaultSecretName, flagVaultSecretNamespace)}
 	}
 	if f.SOPSKeysSource != key.KeysSourceLocal && f.SOPSKeysSource != key.KeysSourceKubernetes {
-		return microerror.Maskf(invalidFlagError, "--%s must be one of: %s", flagSOPSKeysSource, "local,kubernetes")
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must be one of: %s", flagSOPSKeysSource, "local,kubernetes")}
 	}
 
 	return nil

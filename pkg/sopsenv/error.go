@@ -1,8 +1,6 @@
-package generator
+package sopsenv
 
 import (
-	"errors"
-	"os"
 	"reflect"
 )
 
@@ -27,5 +25,17 @@ func (e *NotFoundError) Error() string {
 }
 
 func (e *NotFoundError) Is(target error) bool {
-	return reflect.TypeOf(target) == reflect.TypeOf(e) || errors.Is(target, os.ErrNotExist)
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
+}
+
+type PgpImportError struct {
+	message string
+}
+
+func (e *PgpImportError) Error() string {
+	return "PgpImportError: " + e.message
+}
+
+func (e *PgpImportError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
