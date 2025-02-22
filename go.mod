@@ -16,7 +16,7 @@ require (
 	github.com/giantswarm/microerror v0.4.1
 	github.com/giantswarm/micrologger v1.1.2
 	github.com/giantswarm/valuemodifier v0.5.2
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/vault/api v1.16.0
 	github.com/imdario/mergo v0.3.16
 	github.com/pkg/errors v0.9.1
