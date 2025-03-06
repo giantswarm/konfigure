@@ -34,10 +34,10 @@ const (
 	ageKeyFileVar = "SOPS_AGE_KEY_FILE"
 	gnuPGHomeVar  = "GNUPGHOME"
 
-	// `konfigure.giantswarm.io/data=sops-key` is used to fetch Kubernetes
+	// KonfigureLabelKey `konfigure.giantswarm.io/data=sops-key` is used to fetch Kubernetes
 	// Secrets with SOPS keys in order to import them to a temporary location.
-	konfigureLabelKey   = "konfigure.giantswarm.io/data"
-	konfigureLabelValue = "sops-keys"
+	KonfigureLabelKey   = "konfigure.giantswarm.io/data"
+	KonfigureLabelValue = "sops-keys"
 	konfigureTmpDirName = "konfigure-sops-"
 
 	// Keys extensions supported
@@ -170,7 +170,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 	}
 
 	o := metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", konfigureLabelKey, konfigureLabelValue),
+		LabelSelector: fmt.Sprintf("%s=%s", KonfigureLabelKey, KonfigureLabelValue),
 	}
 
 	// Getting keys from all namespaces poses a risk of someone presenting the konfigure something
@@ -183,7 +183,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 
 	// Let user know no Secrets have been found using selector.
 	if len(secrets.Items) == 0 {
-		s.logger.Info(fmt.Sprintf("no Kubernetes Secrets found matching selector: %s=%s", konfigureLabelKey, konfigureLabelValue))
+		s.logger.Info(fmt.Sprintf("no Kubernetes Secrets found matching selector: %s=%s", KonfigureLabelKey, KonfigureLabelValue))
 		return nil
 	}
 
