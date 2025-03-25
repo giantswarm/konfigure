@@ -278,7 +278,7 @@ func TestImportKeys(t *testing.T) {
 			}
 
 			for _, fp := range tc.expectedPGPKeys {
-				err, _, stderr := se.runGPGCmd(
+				_, stderr, err := se.runGPGCmd(
 					context.TODO(),
 					bytes.NewReader([]byte{}),
 					[]string{"--list-secret-key", fp},

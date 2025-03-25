@@ -207,7 +207,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 					"--import",
 				}
 
-				err, _, stderr := s.runGPGCmd(ctx, bytes.NewReader(v), args)
+				_, stderr, err := s.runGPGCmd(ctx, bytes.NewReader(v), args)
 				if err != nil {
 					return microerror.Maskf(pgpImportError, "failed to import key GnuPG keyring: \n %s", stderr.String())
 				}
