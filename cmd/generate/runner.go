@@ -98,7 +98,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 			ExtraAnnotations: map[string]string{
 				meta.Annotation.XAppInfo.Key():        meta.Annotation.XAppInfo.Val(r.flag.AppCatalog, r.flag.AppName, r.flag.AppVersion),
-				meta.Annotation.XCreator.Key():        meta.Annotation.XCreator.Default(),
+				meta.Annotation.Key():        meta.Annotation.Default(),
 				meta.Annotation.XInstallation.Key():   r.flag.Installation,
 				meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
 			},
@@ -123,7 +123,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			Name:                r.flag.Name,
 			InCluster:           true,
 			Labels: map[string]string{
-				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
+				meta.Label.Key(): meta.Label.Default(),
 			},
 		}
 

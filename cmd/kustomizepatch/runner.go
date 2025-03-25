@@ -212,7 +212,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Name:                r.config.Name,
 			InCluster:           true,
 			Labels: map[string]string{
-				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
+				meta.Label.Key(): meta.Label.Default(),
 			},
 		}
 
@@ -322,7 +322,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	// The artifact we were asking for is still advertised by the Source Controller,
 	// and has not changed since the last time, hence we may skip further processing.
@@ -409,7 +409,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 			if err != nil {
 				return microerror.Mask(err)
 			}
-			defer response.Body.Close()
+			defer func() { _ = response.Body.Close() }()
 
 			if response.StatusCode == http.StatusOK {
 				break
@@ -481,7 +481,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
 		)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, response.Body)

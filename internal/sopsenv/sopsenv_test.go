@@ -110,7 +110,7 @@ func TestSetups(t *testing.T) {
 					panic(err)
 				}
 
-				defer os.RemoveAll(tc.config.KeysDir)
+				defer func() { _ = os.RemoveAll(tc.config.KeysDir) }()
 			}
 
 			se, err := NewSOPSEnv(tc.config)
