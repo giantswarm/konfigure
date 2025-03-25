@@ -212,7 +212,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Name:                r.config.Name,
 			InCluster:           true,
 			Labels: map[string]string{
-				meta.Label.Key(): meta.Label.Default(),
+				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
 			},
 		}
 
