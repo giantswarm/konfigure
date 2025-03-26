@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/giantswarm/konfigure/cmd/generic"
+
 	"github.com/go-logr/zapr"
 	"go.uber.org/zap"
 
@@ -62,6 +64,16 @@ func mainE(ctx context.Context) error {
 			Logger: logger,
 		}
 		cmd, err := generate.New(c)
+		if err != nil {
+			return err
+		}
+		subcommands = append(subcommands, cmd)
+	}
+	{
+		c := generic.Config{
+			Logger: logger,
+		}
+		cmd, err := generic.New(c)
 		if err != nil {
 			return err
 		}
