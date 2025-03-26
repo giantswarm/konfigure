@@ -1,6 +1,8 @@
-package lint
+package vaultclient
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type ExecutionFailedError struct {
 	message string

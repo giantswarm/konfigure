@@ -12,7 +12,6 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/ghodss/yaml"
 
-	"github.com/giantswarm/microerror"
 	pathmodifier "github.com/giantswarm/valuemodifier/path"
 )
 
@@ -76,7 +75,7 @@ type templateValue struct {
 
 func newConfigFile(filepath string, body []byte) (*configFile, error) {
 	if !strings.HasSuffix(filepath, ".yaml") && !strings.HasSuffix(filepath, ".yaml.patch") {
-		return nil, microerror.Maskf(executionFailedError, "given file is not a value file: %q", filepath)
+		return nil, &ExecutionFailedError{message: fmt.Sprintf("given file is not a value file: %q", filepath)}
 	}
 
 	// extract paths with valuemodifier path service
@@ -89,19 +88,19 @@ func newConfigFile(filepath string, body []byte) (*configFile, error) {
 		}
 		svc, err := pathmodifier.New(c)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 		pathmodifierSvc = svc
 
 		paths, err := svc.All()
 		if err != nil {
-			return nil, microerror.Maskf(executionFailedError, "error getting all paths for %q", filepath)
+			return nil, &ExecutionFailedError{message: fmt.Sprintf("error getting all paths for %q", filepath)}
 		}
 
 		for _, path := range paths {
 			value, err := svc.Get(path)
 			if err != nil {
-				return nil, microerror.Maskf(executionFailedError, "error getting %q value for %q: %s", filepath, path, err)
+				return nil, &ExecutionFailedError{message: fmt.Sprintf("error getting %q value for %q: %s", filepath, path, err)}
 			}
 
 			v := configValue{
@@ -130,7 +129,7 @@ func newConfigFile(filepath string, body []byte) (*configFile, error) {
 
 func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 	if !strings.HasSuffix(filepath, ".template") && !strings.HasSuffix(filepath, "values.yaml.patch") {
-		return nil, microerror.Maskf(executionFailedError, "given file is not a template: %q", filepath)
+		return nil, &ExecutionFailedError{message: fmt.Sprintf("given file is not a template: %q", filepath)}
 	}
 
 	tf := &templateFile{
@@ -154,7 +153,7 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 			Option("missingkey=zero").
 			Parse(string(body))
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 		// extract all values
@@ -191,7 +190,7 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 		// for bool etc.
 		err = t.Execute(output, data)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 		c := pathmodifier.Config{
@@ -206,17 +205,17 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 			yamlErr := yaml.Unmarshal(output.Bytes(), &yamlOut)
 
 			if yamlErr == nil {
-				return nil, microerror.Mask(err)
+				return nil, err
 			}
 
 			matches := yamlErrorLinePattern.FindAllStringSubmatch(yamlErr.Error(), -1)
 			if len(matches) == 0 {
-				return nil, microerror.Mask(err)
+				return nil, err
 			}
 
 			lineNo, convErr := strconv.Atoi(matches[0][1])
 			if convErr != nil {
-				return nil, microerror.Mask(err)
+				return nil, err
 			}
 
 			lines := strings.Split(output.String(), "\n")
@@ -230,12 +229,12 @@ func newTemplateFile(filepath string, body []byte) (*templateFile, error) {
 				fmt.Println("> " + lines[lineNo])
 			}
 
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 		pathList, err := svc.All()
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 		for _, p := range pathList {

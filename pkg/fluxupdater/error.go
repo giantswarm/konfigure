@@ -1,4 +1,4 @@
-package kustomizepatch
+package fluxupdater
 
 import (
 	"reflect"
@@ -25,17 +25,5 @@ func (e *InvalidConfigError) Error() string {
 }
 
 func (e *InvalidConfigError) Is(target error) bool {
-	return reflect.TypeOf(target) == reflect.TypeOf(e)
-}
-
-type InvalidFlagError struct {
-	message string
-}
-
-func (e *InvalidFlagError) Error() string {
-	return "InvalidFlagError: " + e.message
-}
-
-func (e *InvalidFlagError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }

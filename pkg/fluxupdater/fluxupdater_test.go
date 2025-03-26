@@ -1,7 +1,6 @@
-package kustomizepatch
+package fluxupdater
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,9 +9,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger/microloggertest"
 )
 
 const advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
@@ -63,12 +59,6 @@ func TestRunner_updateConfig(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-
-	// Export appropriate environment variables to configure the runner
-	t.Setenv("KONFIGURE_SOURCE_SERVICE", fmt.Sprintf("%s:%s", srcCtrlUrl.Hostname(), srcCtrlUrl.Port()))
-	t.Setenv("KONFIGURE_GITREPO", "flux-giantswarm/giantswarm-config")
-	t.Setenv("KUBERNETES_SERVICE_HOST", k8sUrl.Hostname())
-	t.Setenv("KUBERNETES_SERVICE_PORT", k8sUrl.Port())
 
 	testCases := []struct {
 		name                    string
@@ -129,7 +119,12 @@ func TestRunner_updateConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
-			defer os.RemoveAll(tmpCacheDir)
+			defer func(path string) {
+				err := os.RemoveAll(path)
+				if err != nil {
+					t.Fatalf("want nil, got error: %s", err.Error())
+				}
+			}(tmpCacheDir)
 
 			err = prePopulateCache(
 				tmpCacheDir,
@@ -141,13 +136,22 @@ func TestRunner_updateConfig(t *testing.T) {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
 
-			r := &runner{
-				logger: microloggertest.New(),
-				stdout: new(bytes.Buffer),
+			fluxUpdaterConfig := Config{
+				CacheDir:                tmpCacheDir,
+				ApiServerHost:           k8sUrl.Hostname(),
+				ApiServerPort:           k8sUrl.Port(),
+				KubernetesTokenFile:     "testdata/token",
+				SourceControllerService: fmt.Sprintf("%s:%s", srcCtrlUrl.Hostname(), srcCtrlUrl.Port()),
+				GitRepository:           "flux-giantswarm/giantswarm-config",
+			}
+
+			fluxUpdater, err := New(fluxUpdaterConfig)
+			if err != nil {
+				t.Fatalf("want nil, got error: %s", err.Error())
 			}
 
 			// run updateConfigWithParams
-			err = r.updateConfigWithParams(tmpCacheDir, "testdata/token")
+			err = fluxUpdater.UpdateConfig()
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
@@ -184,26 +188,26 @@ func prePopulateCache(cache string, archive, config, timestamp []byte) error {
 	if len(timestamp) > 0 {
 		err = os.WriteFile(path.Join(cache, cacheLastArchive), archive, 0755) // nolint:gosec
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 	}
 
 	dir := path.Join(cache, "latest")
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	if len(timestamp) > 0 {
 		err = os.WriteFile(path.Join(dir, "config.yaml"), config, 0755) // nolint:gosec
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 	}
 
 	if len(timestamp) > 0 {
 		err = os.WriteFile(path.Join(cache, cacheLastArchiveTimestamp), timestamp, 0755) // nolint:gosec
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 	}
 
