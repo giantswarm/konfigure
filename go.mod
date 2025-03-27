@@ -201,7 +201,7 @@ require (
 replace (
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2 // CVE-2021-3121
 	// CVE-2023-3978
-	golang.org/x/net => golang.org/x/net v0.37.0
+	golang.org/x/net => golang.org/x/net v0.38.0
 	// CVE-2023-32731
 	google.golang.org/grpc => google.golang.org/grpc v1.68.1
 )
