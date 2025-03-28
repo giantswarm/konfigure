@@ -24,7 +24,7 @@ func UntarFile(path, name string) error {
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	defer gzr.Close()
+	defer func() { _ = gzr.Close() }()
 
 	tr := tar.NewReader(gzr)
 
@@ -55,7 +55,7 @@ func UntarFile(path, name string) error {
 			return microerror.Mask(err)
 		}
 
-		file.Close()
+		_ = file.Close()
 	}
 }
 
@@ -74,7 +74,7 @@ func NewSecret(name, namespace string, keys bool, data map[string][]byte) *corev
 	}
 
 	if keys {
-		s.ObjectMeta.Labels["konfigure.giantswarm.io/data"] = "sops-keys"
+		s.Labels["konfigure.giantswarm.io/data"] = "sops-keys"
 	}
 
 	return s

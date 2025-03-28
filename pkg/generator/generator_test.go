@@ -221,7 +221,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}
-			defer os.RemoveAll(tmpDir)
+			defer func() { _ = os.RemoveAll(tmpDir) }()
 
 			fs := newMockFilesystem(tmpDir, tc.caseFile)
 
@@ -299,7 +299,7 @@ func Test_sortYAMLKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	fs := newMockFilesystem(tmpDir, "testdata/cases/test_instances.yaml")
 
