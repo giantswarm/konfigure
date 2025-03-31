@@ -110,7 +110,7 @@ func TestSetups(t *testing.T) {
 					panic(err)
 				}
 
-				defer os.RemoveAll(tc.config.KeysDir)
+				defer func() { _ = os.RemoveAll(tc.config.KeysDir) }()
 			}
 
 			se, err := NewSOPSEnv(tc.config)
@@ -278,7 +278,7 @@ func TestImportKeys(t *testing.T) {
 			}
 
 			for _, fp := range tc.expectedPGPKeys {
-				err, _, stderr := se.runGPGCmd(
+				_, stderr, err := se.runGPGCmd(
 					context.TODO(),
 					bytes.NewReader([]byte{}),
 					[]string{"--list-secret-key", fp},

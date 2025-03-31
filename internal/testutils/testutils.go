@@ -24,7 +24,7 @@ func UntarFile(path, name string) error {
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	defer gzr.Close()
+	defer func() { _ = gzr.Close() }()
 
 	tr := tar.NewReader(gzr)
 
@@ -45,7 +45,8 @@ func UntarFile(path, name string) error {
 		}
 
 		key := filepath.Join(path, header.Name) //#nosec G305
-		modeInt32 := uint32(header.Mode)        //#nosec G115
+		key = filepath.Clean(key)
+		modeInt32 := uint32(header.Mode) //#nosec G115
 		file, err := os.OpenFile(key, os.O_CREATE|os.O_RDWR, os.FileMode(modeInt32))
 		if err != nil {
 			return microerror.Mask(err)
@@ -55,7 +56,7 @@ func UntarFile(path, name string) error {
 			return microerror.Mask(err)
 		}
 
-		file.Close()
+		_ = file.Close()
 	}
 }
 
@@ -74,13 +75,14 @@ func NewSecret(name, namespace string, keys bool, data map[string][]byte) *corev
 	}
 
 	if keys {
-		s.ObjectMeta.Labels["konfigure.giantswarm.io/data"] = "sops-keys"
+		s.Labels["konfigure.giantswarm.io/data"] = "sops-keys"
 	}
 
 	return s
 }
 
 func GetFile(path string) []byte {
+	path = filepath.Clean(path)
 	file, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
