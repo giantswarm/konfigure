@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -129,7 +130,7 @@ func TestRunner_updateConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
-			defer os.RemoveAll(tmpCacheDir)
+			defer func() { _ = os.RemoveAll(tmpCacheDir) }()
 
 			err = prePopulateCache(
 				tmpCacheDir,
@@ -153,6 +154,7 @@ func TestRunner_updateConfig(t *testing.T) {
 			}
 
 			configPath := path.Join(tmpCacheDir, "latest/config.yaml")
+			configPath = filepath.Clean(configPath)
 			_, err = os.Stat(configPath)
 			if os.IsNotExist(err) {
 				t.Fatalf("%s not found, expected to be created", configPath)
@@ -167,7 +169,7 @@ func TestRunner_updateConfig(t *testing.T) {
 				t.Fatalf("want '%s', got '%s'", tc.expectedConfigYamlValue, string(config))
 			}
 
-			timestamp, err := os.ReadFile(path.Join(tmpCacheDir, cacheLastArchiveTimestamp))
+			timestamp, err := os.ReadFile(path.Join(tmpCacheDir, cacheLastArchiveTimestamp)) //nolint:gosec
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
@@ -189,7 +191,7 @@ func prePopulateCache(cache string, archive, config, timestamp []byte) error {
 	}
 
 	dir := path.Join(cache, "latest")
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0755); err != nil { //nolint:gosec
 		return microerror.Mask(err)
 	}
 

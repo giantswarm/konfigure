@@ -212,7 +212,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Name:                r.config.Name,
 			InCluster:           true,
 			Labels: map[string]string{
-				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
+				meta.Label.ManagedBy.Key(): meta.Label.Default(),
 			},
 		}
 
@@ -290,14 +290,18 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 	// hence we must do it now. If the file is present, but archive of the given name is no longer
 	// advertised by the Source Controller, we must look for a new one and re-populate the cache. If the
 	// file is present, and is still advertised by the Source Controller, all is good and we may return.
-	cachedArtifact, err := os.ReadFile(path.Join(cache, cacheLastArchive))
+	cachePath := path.Join(cache, cacheLastArchive)
+	cachePath = filepath.Clean(cachePath)
+	cachedArtifact, err := os.ReadFile(cachePath)
 	if err != nil && os.IsNotExist(err) {
 		cachedArtifact = []byte("placeholder.tar.gz")
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
 
-	cachedArtifactTimestampByte, err := os.ReadFile(path.Join(cache, cacheLastArchiveTimestamp))
+	timestampPath := path.Join(cache, cacheLastArchiveTimestamp)
+	timestampPath = filepath.Clean(timestampPath)
+	cachedArtifactTimestampByte, err := os.ReadFile(timestampPath)
 	if err != nil && os.IsNotExist(err) {
 		cachedArtifactTimestampByte = []byte(time.Time{}.Format(http.TimeFormat))
 	} else if err != nil {
@@ -322,7 +326,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	// The artifact we were asking for is still advertised by the Source Controller,
 	// and has not changed since the last time, hence we may skip further processing.
@@ -384,6 +388,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 			),
 		}
 
+		token = filepath.Clean(token)
 		k8sToken, err := os.ReadFile(token)
 		if err != nil {
 			return microerror.Mask(err)
@@ -409,7 +414,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 			if err != nil {
 				return microerror.Mask(err)
 			}
-			defer response.Body.Close()
+			defer func() { _ = response.Body.Close() }()
 
 			if response.StatusCode == http.StatusOK {
 				break
@@ -481,7 +486,7 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 			"error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode,
 		)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, response.Body)
@@ -491,10 +496,11 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 
 	// Clear the old artifact's directory and untar a fresh one.
 	dir := path.Join(cache, "latest")
+	dir = filepath.Clean(dir)
 	if err := os.RemoveAll(dir); err != nil {
 		return microerror.Mask(err)
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return microerror.Mask(err)
 	}
 	if err = tar.Untar(&buf, dir); err != nil {
@@ -502,12 +508,12 @@ func (r *runner) updateConfigWithParams(cache, token string) error {
 	}
 
 	// Update the last archive name and timestamp
-	err = os.WriteFile(path.Join(cache, cacheLastArchive), []byte(filepath.Base(url)), 0755) // nolint:gosec
+	err = os.WriteFile(path.Join(cache, cacheLastArchive), []byte(filepath.Base(url)), 0750) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = os.WriteFile(path.Join(cache, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0755) // nolint:gosec
+	err = os.WriteFile(path.Join(cache, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0750) // nolint:gosec
 	if err != nil {
 		return microerror.Mask(err)
 	}

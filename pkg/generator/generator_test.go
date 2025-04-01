@@ -221,7 +221,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}
-			defer os.RemoveAll(tmpDir)
+			defer func() { _ = os.RemoveAll(tmpDir) }()
 
 			fs := newMockFilesystem(tmpDir, tc.caseFile)
 
@@ -299,7 +299,7 @@ func Test_sortYAMLKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	fs := newMockFilesystem(tmpDir, "testdata/cases/test_instances.yaml")
 
@@ -336,7 +336,7 @@ func Test_sortYAMLKeys(t *testing.T) {
 					t.Fatal("error creating file", f, err)
 				}
 			}
-			cmd := exec.Command("git", "diff", "--exit-code", "--no-index", f1, f2)
+			cmd := exec.Command("git", "diff", "--exit-code", "--no-index", f1, f2) //nolint:gosec
 			diff, err := cmd.CombinedOutput()
 			if err != nil {
 				t.Fatal("error calling `git diff`", err)
@@ -376,11 +376,12 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 		tempDirPath: temporaryDirectory,
 	}
 	for _, p := range []string{"default", "installations", "include"} {
-		if err := os.MkdirAll(path.Join(temporaryDirectory, p), 0755); err != nil {
+		if err := os.MkdirAll(path.Join(temporaryDirectory, p), 0750); err != nil {
 			panic(err)
 		}
 	}
 
+	caseFile = filepath.Clean(caseFile)
 	rawData, err := os.ReadFile(caseFile)
 	if err != nil {
 		panic(err)
@@ -409,7 +410,7 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 			continue
 		}
 
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			panic(err)
 		}
 
@@ -422,10 +423,12 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 	return &fs
 }
 
-func (fs *mockFilesystem) ReadFile(filepath string) ([]byte, error) {
-	data, err := os.ReadFile(path.Join(fs.tempDirPath, filepath))
+func (fs *mockFilesystem) ReadFile(filePath string) ([]byte, error) {
+	path := filepath.Join(fs.tempDirPath, filePath)
+	path = filepath.Clean(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return []byte{}, microerror.Maskf(notFoundError, "%q not found", filepath)
+		return []byte{}, microerror.Maskf(notFoundError, "%q not found", path)
 	}
 	return data, nil
 }

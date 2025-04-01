@@ -93,8 +93,8 @@ func (m LinterMessages) Len() int {
 func (m LinterMessages) Less(i, j int) bool {
 	switch {
 	case m[i].isError == m[j].isError:
-		switch {
-		case m[i].sourceFile == m[j].sourceFile:
+		switch m[i].sourceFile {
+		case m[j].sourceFile:
 			return m[i].path <= m[j].path
 		default:
 			return m[i].sourceFile <= m[j].sourceFile
