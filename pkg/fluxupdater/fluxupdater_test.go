@@ -119,12 +119,7 @@ func TestRunner_updateConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
-			defer func(path string) {
-				err := os.RemoveAll(path)
-				if err != nil {
-					t.Fatalf("want nil, got error: %s", err.Error())
-				}
-			}(tmpCacheDir)
+			defer func() { _ = os.RemoveAll(tmpCacheDir) }()
 
 			err = prePopulateCache(
 				tmpCacheDir,
@@ -162,7 +157,7 @@ func TestRunner_updateConfig(t *testing.T) {
 				t.Fatalf("%s not found, expected to be created", configPath)
 			}
 
-			config, err := os.ReadFile(configPath)
+			config, err := os.ReadFile(path.Clean(configPath))
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
@@ -171,7 +166,7 @@ func TestRunner_updateConfig(t *testing.T) {
 				t.Fatalf("want '%s', got '%s'", tc.expectedConfigYamlValue, string(config))
 			}
 
-			timestamp, err := os.ReadFile(path.Join(tmpCacheDir, cacheLastArchiveTimestamp))
+			timestamp, err := os.ReadFile(path.Join(tmpCacheDir, cacheLastArchiveTimestamp)) //nolint:gosec
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
@@ -193,7 +188,7 @@ func prePopulateCache(cache string, archive, config, timestamp []byte) error {
 	}
 
 	dir := path.Join(cache, "latest")
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0755); err != nil { //nolint:gosec
 		return err
 	}
 

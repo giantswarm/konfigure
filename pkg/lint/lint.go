@@ -290,7 +290,7 @@ func lintUnencryptedSecretValues(d *discovery) (messages LinterMessages) {
 			if !ok {
 				continue
 			}
-			if !strings.HasPrefix(stringValue, "vault:v1:") && !(strings.HasPrefix(stringValue, "ENC[AES256_GCM") && strings.HasSuffix(stringValue, "]")) {
+			if !strings.HasPrefix(stringValue, "vault:v1:") && (!strings.HasPrefix(stringValue, "ENC[AES256_GCM") || !strings.HasSuffix(stringValue, "]")) {
 				messages = append(
 					messages,
 					newError(secretFile.filepath, path, "is not encrypted with Vault").

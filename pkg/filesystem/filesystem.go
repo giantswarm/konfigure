@@ -21,7 +21,9 @@ func (s *Store) ReadFile(path string) ([]byte, error) {
 			path, s.Dir,
 		))
 	}
-	return os.ReadFile(filepath.Join(s.Dir, path))
+	filePath := filepath.Join(s.Dir, path)
+	filePath = filepath.Clean(filePath)
+	return os.ReadFile(filePath)
 }
 
 func (s *Store) ReadDir(path string) ([]fs.DirEntry, error) {

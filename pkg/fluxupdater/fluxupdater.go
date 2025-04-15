@@ -141,7 +141,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	// The artifact we were asking for is still advertised by the Source Controller,
 	// and has not changed since the last time, hence we may skip further processing.
@@ -215,7 +215,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 			if err != nil {
 				return err
 			}
-			defer response.Body.Close()
+			defer func() { _ = response.Body.Close() }()
 
 			if response.StatusCode == http.StatusOK {
 				break
@@ -283,7 +283,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 			message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode),
 		}
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, response.Body)
@@ -296,7 +296,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 	if err := os.RemoveAll(dir); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return err
 	}
 	if err = tar.Untar(&buf, dir); err != nil {
@@ -304,12 +304,12 @@ func (u *FluxUpdater) UpdateConfig() error {
 	}
 
 	// Update the last archive name and timestamp
-	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchive), []byte(filepath.Base(url)), 0755) // nolint:gosec
+	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchive), []byte(filepath.Base(url)), 0750) // nolint:gosec
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0755) // nolint:gosec
+	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0750) // nolint:gosec
 	if err != nil {
 		return err
 	}

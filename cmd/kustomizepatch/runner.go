@@ -11,7 +11,7 @@ import (
 	"github.com/go-logr/logr"
 
 	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
-	"github.com/giantswarm/app/v7/pkg/app"
+	"github.com/giantswarm/app/v8/pkg/app"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,6 +38,8 @@ const (
 
 	// dirEnvVar is a directory containing giantswarm/config. If set, requests
 	// to source-controller will not be made and both sourceServiceEnvVar and
+	// gitRepositoryEnvVar will be ignored. Used only on local machine for
+	// debugging.
 	dirEnvVar = "KONFIGURE_DIR"
 
 	// installationEnvVar tells konfigure which installation it's running in,
@@ -215,7 +217,7 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Name:                r.config.Name,
 			InCluster:           true,
 			Labels: map[string]string{
-				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
+				meta.Label.ManagedBy.Key(): meta.Label.Default(),
 			},
 		}
 

@@ -10,7 +10,7 @@ import (
 	"github.com/go-logr/logr"
 
 	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
-	"github.com/giantswarm/app/v7/pkg/app"
+	"github.com/giantswarm/app/v8/pkg/app"
 	"github.com/imdario/mergo"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -98,7 +98,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 			ExtraAnnotations: map[string]string{
 				meta.Annotation.XAppInfo.Key():        meta.Annotation.XAppInfo.Val(r.flag.AppCatalog, r.flag.AppName, r.flag.AppVersion),
-				meta.Annotation.XCreator.Key():        meta.Annotation.XCreator.Default(),
+				meta.Annotation.XCreator.Key():        meta.Annotation.Default(),
 				meta.Annotation.XInstallation.Key():   r.flag.Installation,
 				meta.Annotation.XProjectVersion.Key(): meta.Annotation.XProjectVersion.Val(false),
 			},
@@ -123,7 +123,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 			Name:                r.flag.Name,
 			InCluster:           true,
 			Labels: map[string]string{
-				meta.Label.ManagedBy.Key(): meta.Label.ManagedBy.Default(),
+				meta.Label.ManagedBy.Key(): meta.Label.Default(),
 			},
 		}
 

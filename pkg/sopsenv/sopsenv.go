@@ -96,7 +96,7 @@ func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
 		}
 
 		s.keysDir = keysDir
-		s.cleanup = func() { os.RemoveAll(keysDir) }
+		s.cleanup = func() { _ = os.RemoveAll(keysDir) }
 	}
 
 	if config.K8sClient != nil {
@@ -198,7 +198,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 					"--import",
 				}
 
-				err, _, stderr := s.runGPGCmd(ctx, bytes.NewReader(v), args)
+				_, stderr, err := s.runGPGCmd(ctx, bytes.NewReader(v), args)
 				if err != nil {
 					return &PgpImportError{message: fmt.Sprintf("failed to import key GnuPG keyring: \n %s", stderr.String())}
 				}
@@ -220,7 +220,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 
 // RunGPGCmd runs GPG binary with given args and input.
 // It is exporter mainly for re-using in tests
-func (s *SOPSEnv) runGPGCmd(ctx context.Context, stdin io.Reader, args []string) (err error, stdout bytes.Buffer, stderr bytes.Buffer) {
+func (s *SOPSEnv) runGPGCmd(ctx context.Context, stdin io.Reader, args []string) (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
 	cmd := exec.Command("gpg", args...)
 	cmd.Stdin = stdin
 	cmd.Stdout = &stdout
@@ -263,7 +263,9 @@ func (s *SOPSEnv) writeKeysTxt(ctx context.Context, keys map[string][]byte) erro
 		}
 	}
 
-	keysTxt, err := os.OpenFile(fmt.Sprintf("%s/%s", s.keysDir, "keys.txt"), os.O_CREATE|os.O_WRONLY, 0644)
+	keysPath := filepath.Join(s.keysDir, "keys.txt")
+	keysPath = filepath.Clean(keysPath)
+	keysTxt, err := os.OpenFile(keysPath, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}

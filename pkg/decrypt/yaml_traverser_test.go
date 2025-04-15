@@ -39,6 +39,7 @@ func TestYAMLTraverser(t *testing.T) {
 			var input []byte
 			{
 				path := filepath.Join("testdata", tc.inputFile)
+				path = filepath.Clean(path)
 				input, err = os.ReadFile(path)
 				if err != nil {
 					t.Fatalf("err = %#q, want %#v", err, nil)
@@ -48,6 +49,7 @@ func TestYAMLTraverser(t *testing.T) {
 			var expectedResult []byte
 			{
 				path := filepath.Join("testdata", tc.expectedGoldenFile)
+				path = filepath.Clean(path)
 				expectedResult, err = os.ReadFile(path)
 				if err != nil {
 					t.Fatalf("err = %#q, want %#v", err, nil)
