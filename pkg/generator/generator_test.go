@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -10,20 +11,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/konfigure/internal/sopsenv"
-	"github.com/giantswarm/konfigure/internal/sopsenv/key"
-	"github.com/giantswarm/konfigure/internal/testutils"
+	"github.com/go-logr/logr"
+
+	"github.com/giantswarm/konfigure/pkg/sopsenv"
+	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
+	"github.com/giantswarm/konfigure/pkg/testutils"
 
 	"github.com/ghodss/yaml"
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger/microloggertest"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestGenerator_generateRawConfig(t *testing.T) {
-	t.Parallel()
+	logger := logr.Discard()
 
 	// This archive store development private keys. This is to avoid `gitleaks`
 	// and `pre-commit` to complain on files stored in this repository. We untar
@@ -238,7 +239,7 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 					K8sClient:  client,
 					KeysDir:    "",
 					KeysSource: key.KeysSourceKubernetes,
-					Logger:     microloggertest.New(),
+					Logger:     logger,
 				}
 
 				se, err = sopsenv.NewSOPSEnv(seConfig)
@@ -267,17 +268,17 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}
-			configmap, secret, err := g.generateRawConfig(context.Background(), tc.app)
+			configmap, secret, err := g.GenerateRawConfig(context.Background(), tc.app)
 			if tc.expectedErrorMessage == "" {
 				if err != nil {
-					t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
+					t.Fatalf("unexpected error: %s", err)
 				}
 			} else {
 				switch {
 				case err == nil:
 					t.Fatalf("expected error %q but got nil", tc.expectedErrorMessage)
-				case !strings.Contains(microerror.Pretty(err, true), tc.expectedErrorMessage):
-					t.Fatalf("expected error %q but got %q", tc.expectedErrorMessage, microerror.Pretty(err, true))
+				case !strings.Contains(err.Error(), tc.expectedErrorMessage):
+					t.Fatalf("expected error %q but got %q", tc.expectedErrorMessage, err)
 				default:
 					return
 				}
@@ -318,9 +319,9 @@ func Test_sortYAMLKeys(t *testing.T) {
 	// to see if there is any difference in the keys order.
 	var firstConfigMap string
 	for i := 0; i < 100; i++ {
-		configmap, _, err := g.generateRawConfig(context.Background(), "operator")
+		configmap, _, err := g.GenerateRawConfig(context.Background(), "operator")
 		if err != nil {
-			t.Fatalf("unexpected error: %s", microerror.Pretty(err, true))
+			t.Fatalf("unexpected error: %s", err)
 		}
 
 		if firstConfigMap == "" {
@@ -351,7 +352,7 @@ func Test_sortYAMLKeys_null(t *testing.T) {
 
 	out, err := sortYAMLKeys("")
 	if err != nil {
-		t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+		t.Fatalf("err = %#q, want %#v", err, nil)
 	}
 
 	if out != "" {
@@ -381,8 +382,7 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 		}
 	}
 
-	caseFile = filepath.Clean(caseFile)
-	rawData, err := os.ReadFile(caseFile)
+	rawData, err := os.ReadFile(path.Clean(caseFile))
 	if err != nil {
 		panic(err)
 	}
@@ -423,19 +423,17 @@ func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
 	return &fs
 }
 
-func (fs *mockFilesystem) ReadFile(filePath string) ([]byte, error) {
-	path := filepath.Join(fs.tempDirPath, filePath)
-	path = filepath.Clean(path)
-	data, err := os.ReadFile(path)
+func (fs *mockFilesystem) ReadFile(filepath string) ([]byte, error) {
+	data, err := os.ReadFile(path.Clean(path.Join(fs.tempDirPath, filepath)))
 	if err != nil {
-		return []byte{}, microerror.Maskf(notFoundError, "%q not found", path)
+		return []byte{}, &NotFoundError{message: fmt.Sprintf("%q not found", filepath)}
 	}
 	return data, nil
 }
 
 func (fs *mockFilesystem) ReadDir(dirpath string) ([]fs.DirEntry, error) {
 	p := path.Join(fs.tempDirPath, dirpath)
-	return os.ReadDir(p)
+	return os.ReadDir(path.Clean(p))
 }
 
 type noopTraverser struct{}
@@ -450,7 +448,7 @@ func (t mapStringTraverser) Traverse(ctx context.Context, encrypted []byte) ([]b
 	encryptedMap := map[string]string{}
 	err := yaml.Unmarshal(encrypted, &encryptedMap)
 	if err != nil {
-		return []byte{}, microerror.Mask(err)
+		return []byte{}, err
 	}
 
 	decryptedMap := map[string]string{}
@@ -459,7 +457,7 @@ func (t mapStringTraverser) Traverse(ctx context.Context, encrypted []byte) ([]b
 	}
 	decrypted, err := yaml.Marshal(decryptedMap)
 	if err != nil {
-		return []byte{}, microerror.Mask(err)
+		return []byte{}, err
 	}
 	return decrypted, nil
 }

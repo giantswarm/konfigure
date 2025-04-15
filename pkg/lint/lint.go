@@ -9,8 +9,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/giantswarm/microerror"
-
 	"github.com/giantswarm/konfigure/pkg/generator"
 )
 
@@ -53,7 +51,7 @@ type Linter struct {
 func New(c Config) (*Linter, error) {
 	discovery, err := newDiscovery(c.Store)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	var skipREs []*regexp.Regexp
@@ -65,7 +63,7 @@ func New(c Config) (*Linter, error) {
 
 			matcher, err := regexp.Compile(re)
 			if err != nil {
-				return nil, microerror.Mask(err)
+				return nil, err
 			}
 
 			skipREs = append(skipREs, matcher)

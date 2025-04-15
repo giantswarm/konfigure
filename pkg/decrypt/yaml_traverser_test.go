@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/giantswarm/microerror"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -43,7 +42,7 @@ func TestYAMLTraverser(t *testing.T) {
 				path = filepath.Clean(path)
 				input, err = os.ReadFile(path)
 				if err != nil {
-					t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+					t.Fatalf("err = %#q, want %#v", err, nil)
 				}
 			}
 
@@ -53,7 +52,7 @@ func TestYAMLTraverser(t *testing.T) {
 				path = filepath.Clean(path)
 				expectedResult, err = os.ReadFile(path)
 				if err != nil {
-					t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+					t.Fatalf("err = %#q, want %#v", err, nil)
 				}
 			}
 
@@ -65,20 +64,20 @@ func TestYAMLTraverser(t *testing.T) {
 
 				traverser, err = NewYAMLTraverser(c)
 				if err != nil {
-					t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+					t.Fatalf("err = %#q, want %#v", err, nil)
 				}
 			}
 
 			result, err := traverser.Traverse(ctx, input)
 			if err != nil {
-				t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+				t.Fatalf("err = %#q, want %#v", err, nil)
 			}
 
 			if *update {
 				path := filepath.Join("testdata", tc.expectedGoldenFile)
 				err := os.WriteFile(path, []byte(result), 0644) // nolint:gosec
 				if err != nil {
-					t.Fatalf("err = %#q, want %#v", microerror.Pretty(err, true), nil)
+					t.Fatalf("err = %#q, want %#v", err, nil)
 				}
 			}
 

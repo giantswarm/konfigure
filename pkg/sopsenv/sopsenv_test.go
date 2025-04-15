@@ -9,31 +9,34 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger/microloggertest"
+	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
+
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/giantswarm/konfigure/internal/sopsenv/key"
-	"github.com/giantswarm/konfigure/internal/testutils"
+	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
+	"github.com/giantswarm/konfigure/pkg/testutils"
 )
 
 func TestSetups(t *testing.T) {
+	logger := logr.Discard()
+
 	testCases := []struct {
 		name          string
 		config        SOPSEnvConfig
 		dontCreateDir bool
 		expectCleanup bool
 		expectedVars  map[string]string
-		errorMatcher  func(error) bool
+		expectedError error
 	}{
 		{
 			name: "default",
 			config: SOPSEnvConfig{
 				KeysSource: key.KeysSourceLocal,
-				Logger:     microloggertest.New(),
+				Logger:     logger,
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  "",
@@ -45,7 +48,7 @@ func TestSetups(t *testing.T) {
 			config: SOPSEnvConfig{
 				KeysDir:    tmpDirName("local"),
 				KeysSource: key.KeysSourceLocal,
-				Logger:     microloggertest.New(),
+				Logger:     logger,
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  tmpDirName("local"),
@@ -60,7 +63,7 @@ func TestSetups(t *testing.T) {
 				),
 				KeysDir:    tmpDirName("k8s"),
 				KeysSource: key.KeysSourceKubernetes,
-				Logger:     microloggertest.New(),
+				Logger:     logger,
 			},
 			expectedVars: map[string]string{
 				gnuPGHomeVar:  tmpDirName("k8s"),
@@ -74,7 +77,7 @@ func TestSetups(t *testing.T) {
 					testutils.NewSecret("test", "giantswarm", true, map[string][]byte{}),
 				),
 				KeysSource: key.KeysSourceKubernetes,
-				Logger:     microloggertest.New(),
+				Logger:     logger,
 			},
 			expectCleanup: true,
 		},
@@ -83,7 +86,7 @@ func TestSetups(t *testing.T) {
 			config: SOPSEnvConfig{
 				K8sClient:  clientgofake.NewSimpleClientset(),
 				KeysSource: key.KeysSourceKubernetes,
-				Logger:     microloggertest.New(),
+				Logger:     logger,
 			},
 			expectCleanup: true,
 		},
@@ -93,10 +96,10 @@ func TestSetups(t *testing.T) {
 				K8sClient:  clientgofake.NewSimpleClientset(),
 				KeysDir:    "/non/existing/directory",
 				KeysSource: key.KeysSourceKubernetes,
-				Logger:     microloggertest.New(),
+				Logger:     logger,
 			},
 			dontCreateDir: true,
-			errorMatcher:  IsNotFound,
+			expectedError: &NotFoundError{},
 		},
 	}
 
@@ -119,9 +122,9 @@ func TestSetups(t *testing.T) {
 			}
 
 			err = se.Setup(context.TODO())
-			if tc.errorMatcher != nil {
-				if !tc.errorMatcher(err) {
-					t.Fatalf("error not matching expected matcher, got: %s", microerror.Cause(err))
+			if tc.expectedError != nil {
+				if !errors.Is(err, tc.expectedError) {
+					t.Fatalf("error not matching expected matcher, got: %s", err)
 				}
 			} else if err != nil {
 				t.Fatalf("error == %#v, want nil", err)
@@ -143,6 +146,8 @@ func TestSetups(t *testing.T) {
 }
 
 func TestImportKeys(t *testing.T) {
+	logger := logr.Discard()
+
 	var err error
 
 	// This archive store development private keys. This is to avoid `gitleaks`
@@ -240,7 +245,7 @@ func TestImportKeys(t *testing.T) {
 					K8sClient:  client,
 					KeysDir:    "",
 					KeysSource: key.KeysSourceKubernetes,
-					Logger:     microloggertest.New(),
+					Logger:     logger,
 				}
 
 				se, err = NewSOPSEnv(seConfig)

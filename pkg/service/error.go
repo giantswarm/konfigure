@@ -1,4 +1,4 @@
-package decrypt
+package service
 
 import (
 	"reflect"

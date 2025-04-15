@@ -1,25 +1,26 @@
-package generator
+package service
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/giantswarm/konfigure/internal/vaultclient"
+	"github.com/go-logr/logr"
 
-	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger"
+	"github.com/giantswarm/konfigure/pkg/vaultclient"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/konfigure/internal/meta"
-	"github.com/giantswarm/konfigure/internal/sopsenv"
 	"github.com/giantswarm/konfigure/pkg/decrypt"
 	"github.com/giantswarm/konfigure/pkg/filesystem"
 	"github.com/giantswarm/konfigure/pkg/generator"
+	"github.com/giantswarm/konfigure/pkg/meta"
+	"github.com/giantswarm/konfigure/pkg/sopsenv"
 	"github.com/giantswarm/konfigure/pkg/xstrings"
 )
 
 type Config struct {
-	Log         micrologger.Logger
+	Log         logr.Logger
 	VaultClient *vaultclient.WrappedVaultClient
 
 	Dir            string
@@ -30,7 +31,7 @@ type Config struct {
 }
 
 type Service struct {
-	log              micrologger.Logger
+	log              logr.Logger
 	decryptTraverser generator.DecryptTraverser
 	sopsEnv          *sopsenv.SOPSEnv
 
@@ -40,20 +41,16 @@ type Service struct {
 }
 
 func New(config Config) (*Service, error) {
-	if config.Log == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Log must not be empty", config)
-	}
-
 	if config.VaultClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.VaultClient must not be empty", config)
+		return nil, &InvalidConfigError{message: fmt.Sprintf("%T.VaultClient must not be empty", config)}
 	}
 
 	if config.Installation == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Installation must not be empty", config)
+		return nil, &InvalidConfigError{message: fmt.Sprintf("%T.Installation must not be empty", config)}
 	}
 
 	if config.Dir == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
+		return nil, &InvalidConfigError{message: fmt.Sprintf("%T.Dir must not be empty", config)}
 	}
 
 	var err error
@@ -66,7 +63,7 @@ func New(config Config) (*Service, error) {
 
 		decrypter, err = decrypt.NewVaultDecrypter(c)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 	}
 
@@ -78,7 +75,7 @@ func New(config Config) (*Service, error) {
 
 		decryptTraverser, err = decrypt.NewYAMLTraverser(c)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 	}
@@ -93,7 +90,7 @@ func New(config Config) (*Service, error) {
 
 		sopsEnv, err = sopsenv.NewSOPSEnv(c)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 	}
 
@@ -130,6 +127,14 @@ type GenerateInput struct {
 	VersionOverride string
 }
 
+func (s *Service) GetDir() string {
+	return s.dir
+}
+
+func (s *Service) GetInstallation() string {
+	return s.installation
+}
+
 func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
 	store := &filesystem.Store{
 		Dir: s.dir,
@@ -147,7 +152,7 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 
 		gen, err = generator.New(c)
 		if err != nil {
-			return nil, nil, microerror.Mask(err)
+			return nil, nil, err
 		}
 	}
 
@@ -157,7 +162,7 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 	} else {
 		v, err := store.Version()
 		if err != nil {
-			return nil, nil, microerror.Mask(err)
+			return nil, nil, err
 		}
 		version = v
 	}
@@ -175,13 +180,13 @@ func (s *Service) Generate(ctx context.Context, in GenerateInput) (configmap *co
 
 	err = s.sopsEnv.Setup(ctx)
 	if err != nil {
-		return nil, nil, microerror.Mask(err)
+		return nil, nil, err
 	}
 	defer s.sopsEnv.Cleanup()
 
 	configMap, secret, err := gen.GenerateConfig(ctx, in.App, meta)
 	if err != nil {
-		return nil, nil, microerror.Mask(err)
+		return nil, nil, err
 	}
 
 	return configMap, secret, nil

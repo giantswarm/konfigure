@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Almost completely exposed previously internal functions to generate the raw configurations in order to be
+  able to use this logic as a library, e.g. in [konfigure-operator](https://github.com/giantswarm/konfigure-operator/).
+  In was merely a refactor and exposing functionality without changing any functionality.
+
+### Removed
+
+- Replace `microerror` with normal Go errors.
+- Replace `micrologger` with `logr` interface and `zapr` as implementation.
+
 ## [0.17.2] - 2025-01-22
 
 - Update dependencies

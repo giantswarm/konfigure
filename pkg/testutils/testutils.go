@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -17,12 +16,12 @@ import (
 func UntarFile(path, name string) error {
 	keysArchive, err := os.Open(fmt.Sprintf("%s/%s", path, name))
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	gzr, err := gzip.NewReader(keysArchive)
 	if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 	defer func() { _ = gzr.Close() }()
 
@@ -35,7 +34,7 @@ func UntarFile(path, name string) error {
 		case err == io.EOF:
 			return nil
 		case err != nil:
-			return microerror.Mask(err)
+			return err
 		case header == nil:
 			continue
 		}
@@ -49,11 +48,11 @@ func UntarFile(path, name string) error {
 		modeInt32 := uint32(header.Mode) //#nosec G115
 		file, err := os.OpenFile(key, os.O_CREATE|os.O_RDWR, os.FileMode(modeInt32))
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 
 		if _, err := io.Copy(file, tr); err != nil { //nolint:gosec
-			return microerror.Mask(err)
+			return err
 		}
 
 		_ = file.Close()
