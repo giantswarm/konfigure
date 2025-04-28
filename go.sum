@@ -982,8 +982,8 @@ github.com/fatih/color v1.18.0/go.mod h1:4FelSpRwEGDpQ12mAdzqdOukCy4u8WUtOY6lkT/
 github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/fluxcd/pkg/tar v0.11.0 h1:pjf/rzr6HNAPiuxT59mtba9tfBtdNiSQ/UqduG8vZ2I=
-github.com/fluxcd/pkg/tar v0.11.0/go.mod h1:+kiP25NqibWMpFWgizyPEMqnMJIux7bCgEy+4pfxyI4=
+github.com/fluxcd/pkg/tar v0.12.0 h1:og6F+ivnWNRbNJSq0ukCTVs7YrGIlzjxSVZU+E8NprM=
+github.com/fluxcd/pkg/tar v0.12.0/go.mod h1:Ra5Cj++MD5iCy7bZGKJJX3GpOeMPv+ZDkPO9bBwpDeU=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fogleman/gg v1.3.0/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/frankban/quicktest v1.10.0/go.mod h1:ui7WezCLWMWxVWr1GETZY3smRy0G4KWq9vcPtJmFl7Y=
