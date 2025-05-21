@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The flux updater now returns the message from the falsy `Ready` condition of the `GitRepository` when it exists
+  and the `.status.artifact.url` field is missing or empty. This usually indicates that the source is broken for
+  some reason and the `Ready` condition might have a better indication why rather than just failing with the message
+  of the URL being empty.
+
 ## [1.0.0] - 2025-05-14
 
 ### Added
