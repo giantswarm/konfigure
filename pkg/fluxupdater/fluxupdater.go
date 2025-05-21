@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/fluxcd/pkg/tar"
 )
 
@@ -245,7 +247,8 @@ func (u *FluxUpdater) UpdateConfig() error {
 		// some of the status fields that advertise the new archive.
 		type gitRepository struct {
 			Status struct {
-				Artifact struct {
+				Conditions []metav1.Condition `json:"conditions,omitempty"`
+				Artifact   struct {
 					Url string
 				}
 			}
@@ -261,6 +264,14 @@ func (u *FluxUpdater) UpdateConfig() error {
 		// of the CR still being reconciled, or not being picked up by the Source Controller
 		// at all, in which case, we could simply skip quietly.
 		if gr.Status.Artifact.Url == "" {
+			for _, condition := range gr.Status.Conditions {
+				if condition.Type == "Ready" && condition.Status != metav1.ConditionTrue {
+					return &ExecutionFailedError{
+						message: condition.Message,
+					}
+				}
+			}
+
 			return &ExecutionFailedError{
 				message: "error downloading artifact: got empty URL from GitRepository status",
 			}
