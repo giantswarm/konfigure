@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-05-21
+
 ### Changed
 
 - The flux updater now returns the message from the falsy `Ready` condition of the `GitRepository` when it exists
@@ -281,7 +283,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/giantswarm/konfigure/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/giantswarm/konfigure/compare/v0.17.2...v1.0.0
 [0.17.2]: https://github.com/giantswarm/konfigure/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/giantswarm/konfigure/compare/v0.17.0...v0.17.1
