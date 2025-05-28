@@ -14,7 +14,7 @@ require (
 	github.com/giantswarm/app/v8 v8.0.0
 	github.com/giantswarm/k8smetadata v0.25.0
 	github.com/giantswarm/valuemodifier v0.5.2
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/vault/api v1.16.0
