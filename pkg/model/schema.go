@@ -1,0 +1,62 @@
+package model
+
+type Schema struct {
+	Variables []Variable `yaml:"variables"`
+	Layers    []Layer    `yaml:"layers"`
+	Includes  []Variable `yaml:"includes"`
+}
+
+type Variable struct {
+	Name     string `yaml:"name"`
+	Type     string `yaml:"type"`
+	Required bool   `yaml:"required"`
+}
+
+type Layer struct {
+	Id        string    `yaml:"id"`
+	Path      Path      `yaml:"path"`
+	Values    Values    `yaml:"values"`
+	Templates Templates `yaml:"templates"`
+}
+
+type Values struct {
+	Path      Path  `yaml:"path"`
+	ConfigMap Value `yaml:"configMap"`
+	Secret    Value `yaml:"secret"`
+}
+
+type Value struct {
+	Name     string `yaml:"name"`
+	Required bool   `yaml:"required"`
+}
+
+type Templates struct {
+	Path      Path     `yaml:"path"`
+	ConfigMap Template `yaml:"configMap"`
+	Secret    Template `yaml:"secret"`
+}
+
+type Template struct {
+	Name     string            `yaml:"name"`
+	Required bool              `yaml:"required"`
+	Values   ValueMergeOptions `yaml:"values"`
+}
+
+type ValueMergeOptions struct {
+	Merge []ValueMergeReference `yaml:"merge"`
+}
+
+type ValueMergeReference struct {
+	LayerId string `yaml:"layerId"`
+}
+
+type Include struct {
+	Id        string `yaml:"id"`
+	Path      Path   `yaml:"path"`
+	Extension string `yaml:"extension"`
+}
+
+type Path struct {
+	Directory string `yaml:"directory"`
+	Required  bool   `yaml:"required"`
+}
