@@ -1,0 +1,76 @@
+variables:
+  - name: installation-name
+    type: string
+    required: true
+  - name: app-name
+    type: string
+    required: true
+layers:
+  - id: defaults
+    path:
+      directory: default
+      required: true
+    values:
+      path:
+        directory: ""
+      configMap:
+        name: config.yaml
+    templates:
+      path:
+        directory: apps/<< app-name >>
+        required: true
+      configMap:
+        name: configmap-values.yaml.template
+        required: true
+        values:
+          merge:
+            - layerId: defaults
+            - layerId: management-cluster
+      secret:
+        name: secret-values.yaml.template
+        required: true
+        values:
+          merge:
+            - layerId: defaults
+            - layerId: management-cluster
+  - id: management-cluster
+    path:
+      root: installations/<< installation-name >>
+      required: true
+    values:
+      path:
+        directory: ""
+      configMap:
+        name: config.yaml.patch
+        required: true
+      secret:
+        name: secret.yaml
+        required: true
+    templates:
+      path:
+        directory: apps/<< app-name >>
+        required: false
+      configMap:
+        name: configmap-values.yaml.patch
+        required: false
+        values:
+          merge:
+            - layerId: defaults
+            - layerId: management-cluster
+      secret:
+        name: secret-values.yaml.patch
+        required: false
+        values:
+          merge:
+            - layerId: management-cluster
+includes:
+  - id: include
+    path:
+      directory: include
+      required: true
+    extension: .yaml.template
+  - id: include-self
+    path:
+      directory: include-self
+      required: false
+    extension: .yaml.template

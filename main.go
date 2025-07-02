@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/giantswarm/konfigure/cmd/render"
 	"os"
 
 	"github.com/go-logr/zapr"
@@ -113,6 +114,16 @@ func mainE(ctx context.Context) error {
 			Run: func(_ *cobra.Command, _ []string) {
 				fmt.Println(commandVersion())
 			},
+		}
+		subcommands = append(subcommands, cmd)
+	}
+	{
+		c := render.Config{
+			Logger: logger,
+		}
+		cmd, err := render.New(c)
+		if err != nil {
+			return err
 		}
 		subcommands = append(subcommands, cmd)
 	}
