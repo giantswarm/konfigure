@@ -2,8 +2,9 @@ package render
 
 import (
 	"context"
-	"github.com/go-logr/logr"
 	"io"
+
+	"github.com/go-logr/logr"
 
 	"github.com/spf13/cobra"
 )
