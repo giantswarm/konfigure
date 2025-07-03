@@ -3,6 +3,7 @@ package renderer
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/getsops/sops/v3/decrypt"
@@ -41,7 +42,7 @@ func LoadSchemaVariables(flagValues []string, variables []model.Variable) (Schem
 }
 
 func LoadSchema(path string) (*model.Schema, error) {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +139,7 @@ func loadFileFromPathSegments(dir string, segments []PathSegment) ([]byte, error
 		}
 	}
 
-	return os.ReadFile(path)
+	return os.ReadFile(filepath.Clean(path))
 }
 
 func renderValue(value string, variables SchemaVariables) string {
@@ -149,16 +150,4 @@ func renderValue(value string, variables SchemaVariables) string {
 	}
 
 	return result
-}
-
-func loadFile(path string, required bool) ([]byte, error) {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) && !required {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return content, nil
 }
