@@ -4,11 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
-	"gopkg.in/yaml.v3"
-
-	"github.com/giantswarm/konfigure/pkg/model"
+	"github.com/giantswarm/konfigure/pkg/renderer"
 
 	"github.com/go-logr/logr"
 
@@ -42,17 +39,22 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	r.logger.Info("Rendering...")
 	r.logger.Info("")
 
-	f, err := os.ReadFile(r.flag.Schema)
+	schema, err := renderer.LoadSchema(r.flag.Schema)
 	if err != nil {
-		r.logger.Error(err, "Failed to read schema", "file", r.flag.Schema)
-	}
-
-	var schema model.Schema
-	if err := yaml.Unmarshal(f, &schema); err != nil {
-		r.logger.Error(err, "Failed to unmarshal schema", "file", r.flag.Schema)
+		r.logger.Error(err, "Failed to load schema", "file", r.flag.Schema)
 	}
 
 	r.logger.Info(fmt.Sprintf("%+v\n", schema))
+
+	r.logger.Info("Loading variables...")
+	r.logger.Info("")
+
+	variables, err := renderer.LoadSchemaVariables(r.flag.Variables, schema.Variables)
+	if err != nil {
+		r.logger.Error(err, "Failed to load variables from flags for schema", "schema", r.flag.Schema)
+	}
+
+	r.logger.Info(fmt.Sprintf("%+v\n", variables))
 
 	return nil
 }

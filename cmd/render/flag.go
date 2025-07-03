@@ -17,6 +17,7 @@ const (
 	flagSOPSKeysSource = "sops-keys-source"
 	flagSOPSKeysDir    = "sops-keys-dir"
 	flagVerbose        = "verbose"
+	flagVariable       = "variable"
 )
 
 type flag struct {
@@ -28,6 +29,7 @@ type flag struct {
 	SOPSKeysDir    string
 	SOPSKeysSource string
 	Verbose        bool
+	Variables      []string
 }
 
 func (f *flag) Init(cmd *cobra.Command) {
@@ -39,6 +41,7 @@ func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.SOPSKeysDir, flagSOPSKeysDir, "", `Directory containing SOPS private keys (optional).`)
 	cmd.Flags().StringVar(&f.SOPSKeysSource, flagSOPSKeysSource, "local", `Source of SOPS private keys, supports "local" and "kubernetes", (optional).`)
 	cmd.Flags().BoolVar(&f.Verbose, flagVerbose, false, `Enables generator to output consecutive generation stages.`)
+	cmd.Flags().StringArrayVar(&f.Variables, flagVariable, []string{}, `Variables for rendering the schema.`)
 }
 
 func (f *flag) Validate() error {

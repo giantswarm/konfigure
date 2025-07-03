@@ -1,9 +1,7 @@
 variables:
   - name: installation-name
-    type: string
     required: true
   - name: app-name
-    type: string
     required: true
 layers:
   - id: defaults

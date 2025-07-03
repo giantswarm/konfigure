@@ -8,8 +8,8 @@ type Schema struct {
 
 type Variable struct {
 	Name     string `yaml:"name"`
-	Type     string `yaml:"type"`
 	Required bool   `yaml:"required"`
+	Default  string `yaml:"default"`
 }
 
 type Layer struct {
