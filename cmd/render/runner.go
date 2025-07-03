@@ -56,5 +56,14 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 	r.logger.Info(fmt.Sprintf("%+v\n", variables))
 
+	r.logger.Info("Loading value files...")
+
+	valueFiles, err := renderer.LoadValueFiles(r.flag.Dir, schema, variables)
+	if err != nil {
+		r.logger.Error(err, "Failed to load value files")
+	}
+
+	r.logger.Info(fmt.Sprintf("%+v\n", valueFiles))
+
 	return nil
 }

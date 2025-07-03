@@ -33,7 +33,7 @@ layers:
             - layerId: management-cluster
   - id: management-cluster
     path:
-      root: installations/<< installation-name >>
+      directory: installations/<< installation-name >>
       required: true
     values:
       path:
