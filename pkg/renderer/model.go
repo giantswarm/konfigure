@@ -11,3 +11,8 @@ type ValueFiles struct {
 	ConfigMaps map[string]string
 	Secrets    map[string]string
 }
+
+type RenderedTemplates struct {
+	ConfigMaps map[string]string
+	Secrets    map[string]string
+}

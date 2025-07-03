@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getsops/sops/v3/decrypt"
+	"github.com/giantswarm/konfigure/pkg/decrypt"
+
+	sopsV3Decrypt "github.com/getsops/sops/v3/decrypt"
 
 	"gopkg.in/yaml.v3"
 
@@ -72,8 +74,6 @@ func LoadValueFiles(dir string, schema *model.Schema, variables SchemaVariables)
 				{renderValue(layer.Values.ConfigMap.Name, variables), layer.Values.ConfigMap.Required},
 			}
 
-			fmt.Println(segments)
-
 			configMapValueFile, err := loadFileFromPathSegments(dir, segments)
 
 			if err != nil {
@@ -93,8 +93,6 @@ func LoadValueFiles(dir string, schema *model.Schema, variables SchemaVariables)
 				{renderValue(layer.Values.Secret.Name, variables), layer.Values.Secret.Required},
 			}
 
-			fmt.Println(segments)
-
 			secretValueFile, err := loadFileFromPathSegments(dir, segments)
 
 			if err != nil {
@@ -105,10 +103,15 @@ func LoadValueFiles(dir string, schema *model.Schema, variables SchemaVariables)
 			if len(strings.TrimSpace(string(secretValueFile))) == 0 {
 				decryptedSecretValueFile = make([]byte, 0)
 			} else {
-				decryptedSecretValueFile, err = decrypt.Data(secretValueFile, "yaml")
+				isSopsEncrypted := decrypt.IsSOPSEncrypted(secretValueFile)
 
-				if err != nil {
-					return nil, err
+				if isSopsEncrypted {
+					decryptedSecretValueFile, err = sopsV3Decrypt.Data(secretValueFile, "yaml")
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					decryptedSecretValueFile = secretValueFile
 				}
 			}
 
@@ -140,14 +143,4 @@ func loadFileFromPathSegments(dir string, segments []PathSegment) ([]byte, error
 	}
 
 	return os.ReadFile(filepath.Clean(path))
-}
-
-func renderValue(value string, variables SchemaVariables) string {
-	result := value
-
-	for name, value := range variables {
-		result = strings.ReplaceAll(result, fmt.Sprintf("<< %s >>", name), value)
-	}
-
-	return result
 }

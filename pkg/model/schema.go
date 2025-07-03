@@ -46,8 +46,16 @@ type ValueMergeOptions struct {
 	Merge []ValueMergeReference `yaml:"merge"`
 }
 
+type ValueMergeReferenceType string
+
+const (
+	ValueMergeReferenceTypeConfigMap ValueMergeReferenceType = "ConfigMap"
+	ValueMergeReferenceTypeSecret    ValueMergeReferenceType = "Secret"
+)
+
 type ValueMergeReference struct {
-	LayerId string `yaml:"layerId"`
+	LayerId string                  `yaml:"layerId"`
+	Type    ValueMergeReferenceType `yaml:"type"`
 }
 
 type Include struct {
