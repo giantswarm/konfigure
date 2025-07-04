@@ -44,7 +44,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		r.logger.Error(err, "Failed to load schema", "file", r.flag.Schema)
 	}
 
-	r.logger.Info(fmt.Sprintf("%+v\n", schema))
+	//r.logger.Info(fmt.Sprintf("%+v\n", schema))
 
 	r.logger.Info("Loading variables...")
 	r.logger.Info("")
@@ -54,7 +54,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		r.logger.Error(err, "Failed to load variables from flags for schema", "schema", r.flag.Schema)
 	}
 
-	r.logger.Info(fmt.Sprintf("%+v\n", variables))
+	//r.logger.Info(fmt.Sprintf("%+v\n", variables))
 
 	r.logger.Info("Loading value files...")
 
@@ -63,7 +63,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		r.logger.Error(err, "Failed to load value files")
 	}
 
-	r.logger.Info(fmt.Sprintf("%+v\n", valueFiles))
+	//r.logger.Info(fmt.Sprintf("%+v\n", valueFiles))
 
 	r.logger.Info("Loading templates...")
 	r.logger.Info("")
@@ -73,7 +73,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		r.logger.Error(err, "Failed to load templates")
 	}
 
-	r.logger.Info(fmt.Sprintf("%+v\n", loadedTemplates))
+	//r.logger.Info(fmt.Sprintf("%+v\n", loadedTemplates))
 
 	r.logger.Info("Rendering templates...")
 	r.logger.Info("")
@@ -83,7 +83,7 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		r.logger.Error(err, "Failed to render templates")
 	}
 
-	r.logger.Info(fmt.Sprintf("%+v\n", renderedTemplates))
+	//r.logger.Info(fmt.Sprintf("%+v\n", renderedTemplates))
 
 	r.logger.Info("Merging rendered templates...")
 	r.logger.Info("")

@@ -6,6 +6,8 @@ import (
 	"path"
 	"text/template"
 
+	"github.com/giantswarm/konfigure/pkg/utils"
+
 	"github.com/pkg/errors"
 
 	"github.com/Masterminds/sprig/v3"
@@ -169,6 +171,11 @@ func MergeRenderedTemplates(schema *model.Schema, renderedTemplates *RenderedTem
 		return "", "", err
 	}
 
+	configmap, err = utils.SortYAMLKeys(mergedConfigMapsUnsorted)
+	if err != nil {
+		return "", "", err
+	}
+
 	var secretsToMerge []string
 	for _, layer := range layerOrder {
 		secretsToMerge = append(secretsToMerge, renderedTemplates.Secrets[layer])
@@ -179,7 +186,12 @@ func MergeRenderedTemplates(schema *model.Schema, renderedTemplates *RenderedTem
 		return "", "", err
 	}
 
-	return mergedConfigMapsUnsorted, mergedSecretsUnsorted, nil
+	secret, err = utils.SortYAMLKeys(mergedSecretsUnsorted)
+	if err != nil {
+		return "", "", err
+	}
+
+	return configmap, secret, nil
 }
 
 func getLayerOrder(schema *model.Schema) []string {
