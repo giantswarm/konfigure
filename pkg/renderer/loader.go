@@ -20,7 +20,7 @@ func LoadSchemaVariables(flagValues []string, variables []model.Variable) (Schem
 
 	parsedFlagValues := make(map[string]string)
 	for _, flagValue := range flagValues {
-		parts := strings.Split(flagValue, "=")
+		parts := strings.SplitN(flagValue, "=", 2)
 		if len(parts) != 2 {
 			return schemaVariables, fmt.Errorf("invalid flag value: %s", flagValue)
 		}
