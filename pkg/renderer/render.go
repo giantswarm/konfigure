@@ -67,11 +67,11 @@ func MergeValueFileReferences(valueMergeOptions model.ValueMergeOptions, valueFi
 		}
 	}
 
-	return MergeValueFiles(valuesToMerge)
+	return MergeYamlDocuments(valuesToMerge)
 }
 
-// MergeValueFiles This is what used to be generator.Generator.applyPatch, but dynamic
-func MergeValueFiles(valuesToMerge []string) (string, error) {
+// MergeYamlDocuments This is what used to be generator.Generator.applyPatch, but dynamic
+func MergeYamlDocuments(valuesToMerge []string) (string, error) {
 	if len(valuesToMerge) == 0 {
 		return "", nil
 	}
@@ -153,4 +153,41 @@ func RenderTemplate(text, data string, functions template.FuncMap) (string, erro
 	}
 
 	return out.String(), nil
+}
+
+// MergeRenderedTemplates This is what used to be generator.Generator.GenerateRawConfig, but dynamic
+func MergeRenderedTemplates(schema *model.Schema, renderedTemplates *RenderedTemplates) (configmap string, secret string, err error) {
+	layerOrder := getLayerOrder(schema)
+
+	var configMapsToMerge []string
+	for _, layer := range layerOrder {
+		configMapsToMerge = append(configMapsToMerge, renderedTemplates.ConfigMaps[layer])
+	}
+
+	mergedConfigMapsUnsorted, err := MergeYamlDocuments(configMapsToMerge)
+	if err != nil {
+		return "", "", err
+	}
+
+	var secretsToMerge []string
+	for _, layer := range layerOrder {
+		secretsToMerge = append(secretsToMerge, renderedTemplates.Secrets[layer])
+	}
+
+	mergedSecretsUnsorted, err := MergeYamlDocuments(secretsToMerge)
+	if err != nil {
+		return "", "", err
+	}
+
+	return mergedConfigMapsUnsorted, mergedSecretsUnsorted, nil
+}
+
+func getLayerOrder(schema *model.Schema) []string {
+	var result []string
+
+	for _, layer := range schema.Layers {
+		result = append(result, layer.Id)
+	}
+
+	return result
 }

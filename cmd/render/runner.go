@@ -85,5 +85,21 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 	r.logger.Info(fmt.Sprintf("%+v\n", renderedTemplates))
 
+	r.logger.Info("Merging rendered templates...")
+	r.logger.Info("")
+
+	configmap, secret, err := renderer.MergeRenderedTemplates(schema, renderedTemplates)
+	if err != nil {
+		r.logger.Error(err, "Failed to merge rendered templates")
+	}
+
+	r.logger.Info("# Rendered configmap data:")
+	r.logger.Info(fmt.Sprintf("%+v\n", configmap))
+	r.logger.Info("")
+
+	r.logger.Info("# Rendered secret data:")
+	r.logger.Info(fmt.Sprintf("%+v\n", secret))
+	r.logger.Info("")
+
 	return nil
 }
