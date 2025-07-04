@@ -2,10 +2,11 @@ package renderer
 
 import (
 	"bytes"
-	"github.com/pkg/errors"
 	"os"
 	"path"
 	"text/template"
+
+	"github.com/pkg/errors"
 
 	"github.com/Masterminds/sprig/v3"
 	uberconfig "go.uber.org/config"
@@ -56,11 +57,12 @@ func MergeValueFileReferences(valueMergeOptions model.ValueMergeOptions, valueFi
 	var valuesToMerge []string
 
 	for _, valueMergeReference := range valueMergeOptions.Merge {
-		if valueMergeReference.Type == model.ValueMergeReferenceTypeConfigMap {
+		switch valueMergeReference.Type {
+		case model.ValueMergeReferenceTypeConfigMap:
 			valuesToMerge = append(valuesToMerge, valueFiles.ConfigMaps[valueMergeReference.LayerId])
-		} else if valueMergeReference.Type == model.ValueMergeReferenceTypeSecret {
+		case model.ValueMergeReferenceTypeSecret:
 			valuesToMerge = append(valuesToMerge, valueFiles.Secrets[valueMergeReference.LayerId])
-		} else {
+		default:
 			return "", errors.Errorf("unknown value merge type %s", valueMergeReference.Type)
 		}
 	}
@@ -111,7 +113,7 @@ func GenerateIncludeFunctions(dir string, includes []model.Include) template.Fun
 func generateIncludeFunction(dir string, include model.Include) func(templateName string, templateData interface{}) (string, error) {
 	return func(templateName string, templateData interface{}) (string, error) {
 		templateFilePath := path.Join(dir, include.Path.Directory, templateName+include.Extension)
-		contents, err := os.ReadFile(templateFilePath)
+		contents, err := os.ReadFile(path.Clean(templateFilePath))
 		if err != nil {
 			return "", err
 		}
