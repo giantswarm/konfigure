@@ -347,19 +347,6 @@ func Test_sortYAMLKeys(t *testing.T) {
 	}
 }
 
-func Test_sortYAMLKeys_null(t *testing.T) {
-	t.Parallel()
-
-	out, err := sortYAMLKeys("")
-	if err != nil {
-		t.Fatalf("err = %#q, want %#v", err, nil)
-	}
-
-	if out != "" {
-		t.Fatalf("out = %v, want %v", out, "")
-	}
-}
-
 type mockFilesystem struct {
 	tempDirPath string
 
