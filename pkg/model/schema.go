@@ -3,7 +3,7 @@ package model
 type Schema struct {
 	Variables []Variable `yaml:"variables"`
 	Layers    []Layer    `yaml:"layers"`
-	Includes  []Variable `yaml:"includes"`
+	Includes  []Include  `yaml:"includes"`
 }
 
 type Variable struct {
@@ -49,8 +49,8 @@ type ValueMergeOptions struct {
 type ValueMergeReferenceType string
 
 const (
-	ValueMergeReferenceTypeConfigMap ValueMergeReferenceType = "ConfigMap"
-	ValueMergeReferenceTypeSecret    ValueMergeReferenceType = "Secret"
+	ValueMergeReferenceTypeConfigMap ValueMergeReferenceType = "configMap"
+	ValueMergeReferenceTypeSecret    ValueMergeReferenceType = "secret"
 )
 
 type ValueMergeReference struct {
@@ -59,9 +59,14 @@ type ValueMergeReference struct {
 }
 
 type Include struct {
-	Id        string `yaml:"id"`
-	Path      Path   `yaml:"path"`
-	Extension string `yaml:"extension"`
+	Id        string          `yaml:"id"`
+	Function  IncludeFunction `yaml:"function"`
+	Path      Path            `yaml:"path"`
+	Extension string          `yaml:"extension"`
+}
+
+type IncludeFunction struct {
+	Name string `yaml:"name"`
 }
 
 type Path struct {

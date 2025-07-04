@@ -1,72 +1,154 @@
 package renderer
 
 import (
-	"strings"
+	"bytes"
+	"github.com/pkg/errors"
+	"os"
+	"path"
+	"text/template"
 
-	sopsV3Decrypt "github.com/getsops/sops/v3/decrypt"
+	"github.com/Masterminds/sprig/v3"
+	uberconfig "go.uber.org/config"
+	yaml3 "gopkg.in/yaml.v3"
+	"sigs.k8s.io/yaml"
 
-	"github.com/giantswarm/konfigure/pkg/decrypt"
 	"github.com/giantswarm/konfigure/pkg/model"
 )
 
-func RenderLayerTemplates(dir string, schema *model.Schema, variables SchemaVariables, valueFiles *ValueFiles) (*RenderedTemplates, error) {
+func RenderTemplates(dir string, schema *model.Schema, templates *Templates, valueFiles *ValueFiles) (*RenderedTemplates, error) {
 	renderedTemplates := &RenderedTemplates{
 		ConfigMaps: make(map[string]string),
 		Secrets:    make(map[string]string),
 	}
 
+	extraIncludeFunctions := GenerateIncludeFunctions(dir, schema.Includes)
+
 	for _, layer := range schema.Layers {
-		if layer.Templates.ConfigMap.Name == "" {
-			renderedTemplates.ConfigMaps[layer.Id] = ""
-		} else {
-			segments := []PathSegment{
-				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
-				{renderValue(layer.Templates.Path.Directory, variables), layer.Templates.Path.Required},
-				{renderValue(layer.Templates.ConfigMap.Name, variables), layer.Templates.ConfigMap.Required},
-			}
-
-			configMapTemplate, err := loadFileFromPathSegments(dir, segments)
-			if err != nil {
-				return nil, err
-			}
-
-			renderedTemplates.ConfigMaps[layer.Id] = string(configMapTemplate)
+		configMapMergedValueFiles, err := MergeValueFileReferences(layer.Templates.ConfigMap.Values, *valueFiles)
+		if err != nil {
+			return nil, err
 		}
 
-		if layer.Templates.Secret.Name == "" {
-			renderedTemplates.Secrets[layer.Id] = ""
-		} else {
-			segments := []PathSegment{
-				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
-				{renderValue(layer.Templates.Path.Directory, variables), layer.Templates.Path.Required},
-				{renderValue(layer.Templates.Secret.Name, variables), layer.Templates.Secret.Required},
-			}
-
-			secretTemplate, err := loadFileFromPathSegments(dir, segments)
-			if err != nil {
-				return nil, err
-			}
-
-			var decryptedSecretTemplate []byte
-			if len(strings.TrimSpace(string(secretTemplate))) == 0 {
-				decryptedSecretTemplate = make([]byte, 0)
-			} else {
-				isSopsEncrypted := decrypt.IsSOPSEncrypted(secretTemplate)
-
-				if isSopsEncrypted {
-					decryptedSecretTemplate, err = sopsV3Decrypt.Data(secretTemplate, "yaml")
-					if err != nil {
-						return nil, err
-					}
-				} else {
-					decryptedSecretTemplate = secretTemplate
-				}
-
-			}
-
-			renderedTemplates.Secrets[layer.Id] = string(decryptedSecretTemplate)
+		renderedConfigMap, err := RenderTemplate(templates.ConfigMaps[layer.Id], configMapMergedValueFiles, extraIncludeFunctions)
+		if err != nil {
+			return nil, err
 		}
+
+		renderedTemplates.ConfigMaps[layer.Id] = renderedConfigMap
+
+		secretMergedValueFiles, err := MergeValueFileReferences(layer.Templates.Secret.Values, *valueFiles)
+		if err != nil {
+			return nil, err
+		}
+
+		renderedSecret, err := RenderTemplate(templates.Secrets[layer.Id], secretMergedValueFiles, extraIncludeFunctions)
+		if err != nil {
+			return nil, err
+		}
+
+		renderedTemplates.Secrets[layer.Id] = renderedSecret
 	}
 
 	return renderedTemplates, nil
+}
+
+func MergeValueFileReferences(valueMergeOptions model.ValueMergeOptions, valueFiles ValueFiles) (string, error) {
+	var valuesToMerge []string
+
+	for _, valueMergeReference := range valueMergeOptions.Merge {
+		if valueMergeReference.Type == model.ValueMergeReferenceTypeConfigMap {
+			valuesToMerge = append(valuesToMerge, valueFiles.ConfigMaps[valueMergeReference.LayerId])
+		} else if valueMergeReference.Type == model.ValueMergeReferenceTypeSecret {
+			valuesToMerge = append(valuesToMerge, valueFiles.Secrets[valueMergeReference.LayerId])
+		} else {
+			return "", errors.Errorf("unknown value merge type %s", valueMergeReference.Type)
+		}
+	}
+
+	return MergeValueFiles(valuesToMerge)
+}
+
+// MergeValueFiles This is what used to be generator.Generator.applyPatch, but dynamic
+func MergeValueFiles(valuesToMerge []string) (string, error) {
+	if len(valuesToMerge) == 0 {
+		return "", nil
+	}
+
+	options := []uberconfig.YAMLOption{
+		uberconfig.Permissive(),
+	}
+
+	for _, valueToMerge := range valuesToMerge {
+		options = append(options, uberconfig.Source(bytes.NewBuffer([]byte(valueToMerge))))
+	}
+
+	patcher, err := uberconfig.NewYAML(options...)
+
+	if err != nil {
+		return "", err
+	}
+
+	value := patcher.Get(uberconfig.Root).Value() // nolint:staticcheck
+
+	output, err := yaml3.Marshal(value)
+	if err != nil {
+		return "", err
+	}
+
+	return string(output), nil
+}
+
+func GenerateIncludeFunctions(dir string, includes []model.Include) template.FuncMap {
+	funcMap := sprig.TxtFuncMap()
+
+	for _, include := range includes {
+		funcMap[include.Function.Name] = generateIncludeFunction(dir, include)
+	}
+
+	return funcMap
+}
+
+func generateIncludeFunction(dir string, include model.Include) func(templateName string, templateData interface{}) (string, error) {
+	return func(templateName string, templateData interface{}) (string, error) {
+		templateFilePath := path.Join(dir, include.Path.Directory, templateName+include.Extension)
+		contents, err := os.ReadFile(templateFilePath)
+		if err != nil {
+			return "", err
+		}
+
+		t, err := template.New(templateName).Funcs(sprig.TxtFuncMap()).Option("missingkey=error").Parse(string(contents))
+		if err != nil {
+			return "", errors.Errorf("failed to parse template in file %q: %s", templateFilePath, err)
+		}
+
+		out := bytes.NewBuffer([]byte{})
+		err = t.Execute(out, templateData)
+		if err != nil {
+			return "", errors.Errorf("failed to render template from %q: %s", templateFilePath, err)
+		}
+
+		return out.String(), nil
+	}
+}
+
+// RenderTemplate This is what used to be generator.Generator.renderTemplate, but dynamic
+func RenderTemplate(text, data string, functions template.FuncMap) (string, error) {
+	c := map[string]interface{}{}
+	err := yaml.Unmarshal([]byte(data), &c)
+	if err != nil {
+		return "", err
+	}
+
+	t, err := template.New("main").Funcs(functions).Option("missingkey=error").Parse(text)
+	if err != nil {
+		return "", err
+	}
+
+	out := bytes.NewBuffer([]byte{})
+	err = t.Execute(out, c)
+	if err != nil {
+		return "", err
+	}
+
+	return out.String(), nil
 }

@@ -74,12 +74,16 @@ layers:
               type: secret
 includes:
   - id: include
+    function:
+      name: include
     path:
       directory: include
-      required: true
+      required: true # unused
     extension: .yaml.template
   - id: include-self
+    function:
+      name: includeSelf
     path:
       directory: include-self
-      required: false
+      required: false # unused
     extension: .yaml.template

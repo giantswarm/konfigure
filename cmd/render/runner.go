@@ -65,10 +65,20 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 
 	r.logger.Info(fmt.Sprintf("%+v\n", valueFiles))
 
+	r.logger.Info("Loading templates...")
+	r.logger.Info("")
+
+	loadedTemplates, err := renderer.LoadTemplates(r.flag.Dir, schema, variables)
+	if err != nil {
+		r.logger.Error(err, "Failed to load templates")
+	}
+
+	r.logger.Info(fmt.Sprintf("%+v\n", loadedTemplates))
+
 	r.logger.Info("Rendering templates...")
 	r.logger.Info("")
 
-	renderedTemplates, err := renderer.RenderLayerTemplates(r.flag.Dir, schema, variables, valueFiles)
+	renderedTemplates, err := renderer.RenderTemplates(r.flag.Dir, schema, loadedTemplates, valueFiles)
 	if err != nil {
 		r.logger.Error(err, "Failed to render templates")
 	}
