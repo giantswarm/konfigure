@@ -2,7 +2,10 @@ package utils
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
+
+	k8sIoYaml "sigs.k8s.io/yaml"
 
 	yaml3 "gopkg.in/yaml.v3"
 )
@@ -61,4 +64,15 @@ func sortYAMLKeysNode(node *yaml3.Node) {
 		sortedContent[1+(index*2)] = valueBucket[keyString]
 	}
 	node.Content = sortedContent
+}
+
+func PrettyPrint(in interface{}) error {
+	out, err := k8sIoYaml.Marshal(in)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("---")
+	fmt.Printf("%s\n", out)
+	return nil
 }
