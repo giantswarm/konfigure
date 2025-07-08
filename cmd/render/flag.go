@@ -15,6 +15,8 @@ const (
 	flagSOPSKeysDir    = "sops-keys-dir"
 	flagVerbose        = "verbose"
 	flagVariable       = "variable"
+	flagName           = "name"
+	flagNamespace      = "namespace"
 )
 
 type flag struct {
@@ -24,6 +26,8 @@ type flag struct {
 	SOPSKeysSource string
 	Verbose        bool
 	Variables      []string
+	Name           string
+	Namespace      string
 }
 
 func (f *flag) Init(cmd *cobra.Command) {
@@ -33,6 +37,8 @@ func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.SOPSKeysSource, flagSOPSKeysSource, "local", `Source of SOPS private keys, supports "local" and "kubernetes", (optional).`)
 	cmd.Flags().BoolVar(&f.Verbose, flagVerbose, false, `Enables generator to output consecutive generation stages.`)
 	cmd.Flags().StringArrayVar(&f.Variables, flagVariable, []string{}, `Variables for rendering the schema.`)
+	cmd.Flags().StringVar(&f.Name, flagName, "", `Name of the rendered config map and secret.`)
+	cmd.Flags().StringVar(&f.Namespace, flagNamespace, "default", `Namespace of the rendered config map and secret.`)
 }
 
 func (f *flag) Validate() error {
@@ -44,6 +50,12 @@ func (f *flag) Validate() error {
 	}
 	if f.SOPSKeysSource != key.KeysSourceLocal && f.SOPSKeysSource != key.KeysSourceKubernetes {
 		return &InvalidFlagError{message: fmt.Sprintf("--%s must be one of: %s", flagSOPSKeysSource, "local,kubernetes")}
+	}
+	if f.Name == "" {
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagName)}
+	}
+	if f.Namespace == "" {
+		return &InvalidFlagError{message: fmt.Sprintf("--%s must not be empty", flagNamespace)}
 	}
 
 	return nil

@@ -66,8 +66,8 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 		Dir:       r.flag.Dir,
 		Schema:    r.flag.Schema,
 		Variables: r.flag.Variables,
-		Name:      "example",
-		Namespace: "default",
+		Name:      r.flag.Name,
+		Namespace: r.flag.Namespace,
 	})
 	if err != nil {
 		return err
