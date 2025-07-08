@@ -2,6 +2,7 @@ package render
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/giantswarm/konfigure/pkg/sopsenv"
@@ -61,26 +62,38 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	})
 
 	// Render configs
-	configMap, secret, err := dynamicService.Render(service.RenderInput{
-		// Root directory of the config repository.
-		Dir:       r.flag.Dir,
-		Schema:    r.flag.Schema,
-		Variables: r.flag.Variables,
-		Name:      r.flag.Name,
-		Namespace: r.flag.Namespace,
-	})
-	if err != nil {
-		return err
-	}
+	if r.flag.Raw {
+		configMapData, secretData, err := dynamicService.RenderRaw(r.flag.Dir, r.flag.Schema, r.flag.Variables)
+		if err != nil {
+			return err
+		}
 
-	err = utils.PrettyPrint(configMap)
-	if err != nil {
-		return err
-	}
+		fmt.Println("---")
+		fmt.Println(configMapData)
+		fmt.Println("---")
+		fmt.Println(secretData)
+	} else {
+		configMap, secret, err := dynamicService.Render(service.RenderInput{
+			// Root directory of the config repository.
+			Dir:       r.flag.Dir,
+			Schema:    r.flag.Schema,
+			Variables: r.flag.Variables,
+			Name:      r.flag.Name,
+			Namespace: r.flag.Namespace,
+		})
+		if err != nil {
+			return err
+		}
 
-	err = utils.PrettyPrint(secret)
-	if err != nil {
-		return err
+		err = utils.PrettyPrint(configMap)
+		if err != nil {
+			return err
+		}
+
+		err = utils.PrettyPrint(secret)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
