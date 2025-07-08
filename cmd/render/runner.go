@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/giantswarm/konfigure/pkg/sopsenv"
+
 	"github.com/giantswarm/konfigure/pkg/service"
 	"github.com/giantswarm/konfigure/pkg/utils"
 
@@ -36,10 +38,29 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 }
 
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
+	// Setup SOPS environment
+	sopsEnv, err := sopsenv.NewSOPSEnv(sopsenv.SOPSEnvConfig{
+		KeysDir:    r.flag.SOPSKeysDir,
+		KeysSource: r.flag.SOPSKeysSource,
+		Logger:     r.logger,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = sopsEnv.Setup(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer sopsEnv.Cleanup()
+
+	// Setup dynamic service
 	dynamicService := service.NewDynamicService(service.DynamicServiceConfig{
 		Log: r.logger,
 	})
 
+	// Render configs
 	configMap, secret, err := dynamicService.Render(service.RenderInput{
 		// Root directory of the config repository.
 		Dir:       r.flag.Dir,

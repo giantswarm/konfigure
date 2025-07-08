@@ -11,9 +11,6 @@ import (
 const (
 	flagSchema         = "schema"
 	flagDir            = "dir"
-	flagInstallation   = "installation"
-	flagName           = "name"
-	flagRaw            = "raw"
 	flagSOPSKeysSource = "sops-keys-source"
 	flagSOPSKeysDir    = "sops-keys-dir"
 	flagVerbose        = "verbose"
@@ -23,7 +20,6 @@ const (
 type flag struct {
 	Schema         string
 	Dir            string
-	Raw            bool
 	SOPSKeysDir    string
 	SOPSKeysSource string
 	Verbose        bool
@@ -33,7 +29,6 @@ type flag struct {
 func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.Schema, flagSchema, "", `Path to the schema file.`)
 	cmd.Flags().StringVar(&f.Dir, flagDir, ".", `Directory containing configuration source (e.g cloned "giantswarm/config" repo).`)
-	cmd.Flags().BoolVar(&f.Raw, flagRaw, false, `Forces generator to output YAML instead of ConfigMap & Secret.`)
 	cmd.Flags().StringVar(&f.SOPSKeysDir, flagSOPSKeysDir, "", `Directory containing SOPS private keys (optional).`)
 	cmd.Flags().StringVar(&f.SOPSKeysSource, flagSOPSKeysSource, "local", `Source of SOPS private keys, supports "local" and "kubernetes", (optional).`)
 	cmd.Flags().BoolVar(&f.Verbose, flagVerbose, false, `Enables generator to output consecutive generation stages.`)
