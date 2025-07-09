@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 
@@ -66,6 +68,7 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 	parsedSchema, err := renderer.LoadSchema(schema)
 	if err != nil {
 		s.log.Error(err, "Failed to load schema", "file", schema)
+		return "", "", err
 	}
 
 	s.log.Info("Loading schema variables...")
@@ -73,6 +76,7 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 	parsedSchemaVariables, err := renderer.LoadSchemaVariables(primitiveVariables, parsedSchema.Variables)
 	if err != nil {
 		s.log.Error(err, "Failed to load schema variables schema", "schema", schema, "variables", primitiveVariables)
+		return "", "", err
 	}
 
 	s.log.Info("Loading value files...")
@@ -80,6 +84,7 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 	valueFiles, err := renderer.LoadValueFiles(dir, parsedSchema, parsedSchemaVariables)
 	if err != nil {
 		s.log.Error(err, "Failed to load value files")
+		return "", "", err
 	}
 
 	s.log.Info("Loading templates...")
@@ -87,6 +92,7 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 	loadedTemplates, err := renderer.LoadTemplates(dir, parsedSchema, parsedSchemaVariables)
 	if err != nil {
 		s.log.Error(err, "Failed to load templates")
+		return "", "", err
 	}
 
 	s.log.Info("Rendering templates...")
@@ -94,13 +100,31 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 	renderedTemplates, err := renderer.RenderTemplates(dir, parsedSchema, loadedTemplates, valueFiles)
 	if err != nil {
 		s.log.Error(err, "Failed to render templates")
+		return "", "", err
 	}
 
-	s.log.Info("Merging rendered templates...")
+	s.log.Info("Loading patches...")
 
-	configmapData, secretData, err = renderer.MergeRenderedTemplates(parsedSchema, renderedTemplates)
+	loadedPatches, err := renderer.LoadPatches(dir, parsedSchema, parsedSchemaVariables)
 	if err != nil {
-		s.log.Error(err, "Failed to merge rendered templates")
+		s.log.Error(err, "Failed to load patches")
+		return "", "", err
+	}
+
+	s.log.Info(fmt.Sprintf("%+v\n", loadedPatches))
+
+	//s.log.Info("Merging rendered templates...")
+	//
+	//configmapData, secretData, err = renderer.MergeRenderedTemplates(parsedSchema, renderedTemplates)
+	//if err != nil {
+	//	s.log.Error(err, "Failed to merge rendered templates")
+	//}
+
+	s.log.Info("Merging and applying patches to rendered templates...")
+
+	configmapData, secretData, err = renderer.MergeAndPatchRenderedTemplates(parsedSchema, renderedTemplates, loadedPatches)
+	if err != nil {
+		s.log.Error(err, "Failed to merge and apply patches to rendered templates")
 	}
 
 	return configmapData, secretData, nil

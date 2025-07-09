@@ -184,6 +184,51 @@ func LoadTemplates(dir string, schema *model.Schema, variables SchemaVariables) 
 	return loadedTemplates, nil
 }
 
+func LoadPatches(dir string, schema *model.Schema, variables SchemaVariables) (*Patches, error) {
+	loadedPatches := &Patches{
+		ConfigMaps: make(map[string]string),
+		Secrets:    make(map[string]string),
+	}
+
+	for _, layer := range schema.Layers {
+		if layer.Patches.ConfigMap.Name == "" {
+			loadedPatches.ConfigMaps[layer.Id] = ""
+		} else {
+			segments := []PathSegment{
+				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
+				{renderValue(layer.Patches.Path.Directory, variables), layer.Patches.Path.Required},
+				{renderValue(layer.Patches.ConfigMap.Name, variables), layer.Patches.ConfigMap.Required},
+			}
+
+			configMapPatches, err := loadFileFromPathSegments(dir, segments)
+			if err != nil {
+				return nil, err
+			}
+
+			loadedPatches.ConfigMaps[layer.Id] = string(configMapPatches)
+		}
+
+		if layer.Patches.Secret.Name == "" {
+			loadedPatches.Secrets[layer.Id] = ""
+		} else {
+			segments := []PathSegment{
+				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
+				{renderValue(layer.Patches.Path.Directory, variables), layer.Patches.Path.Required},
+				{renderValue(layer.Patches.Secret.Name, variables), layer.Patches.Secret.Required},
+			}
+
+			secretPatches, err := loadFileFromPathSegments(dir, segments)
+			if err != nil {
+				return nil, err
+			}
+
+			loadedPatches.Secrets[layer.Id] = string(secretPatches)
+		}
+	}
+
+	return loadedPatches, nil
+}
+
 func loadFileFromPathSegments(dir string, segments []PathSegment) ([]byte, error) {
 	path := dir
 

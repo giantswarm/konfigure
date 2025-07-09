@@ -17,6 +17,7 @@ type Layer struct {
 	Path      Path      `yaml:"path"`
 	Values    Values    `yaml:"values"`
 	Templates Templates `yaml:"templates"`
+	Patches   Patches   `yaml:"patches"`
 }
 
 type Values struct {
@@ -56,6 +57,17 @@ const (
 type ValueMergeReference struct {
 	LayerId string                  `yaml:"layerId"`
 	Type    ValueMergeReferenceType `yaml:"type"`
+}
+
+type Patches struct {
+	Path      Path         `yaml:"path"`
+	ConfigMap PatchOptions `yaml:"configMap"`
+	Secret    PatchOptions `yaml:"secret"`
+}
+
+type PatchOptions struct {
+	Name     string `yaml:"name"`
+	Required bool   `yaml:"required"`
 }
 
 type Include struct {

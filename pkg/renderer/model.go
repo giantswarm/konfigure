@@ -21,3 +21,8 @@ type RenderedTemplates struct {
 	ConfigMaps map[string]string
 	Secrets    map[string]string
 }
+
+type Patches struct {
+	ConfigMaps map[string]string
+	Secrets    map[string]string
+}
