@@ -26,9 +26,9 @@ layers:
             options:
               order:
               - layerId: defaults
-                type: configMap
+                type: ConfigMap
               - layerId: management-cluster
-                type: configMap
+                type: ConfigMap
       secret:
         name: secret-values.yaml.template
         required: true
@@ -38,13 +38,13 @@ layers:
             options:
               order:
               - layerId: defaults
-                type: configMap
+                type: ConfigMap
               - layerId: management-cluster
-                type: configMap
+                type: ConfigMap
               - layerId: defaults
-                type: secret
+                type: Secret
               - layerId: management-cluster
-                type: secret
+                type: Secret
   - id: management-cluster
     path:
       directory: installations/<< installation-name >>
@@ -71,9 +71,9 @@ layers:
             options:
               order:
               - layerId: defaults
-                type: configMap
+                type: ConfigMap
               - layerId: management-cluster
-                type: configMap
+                type: ConfigMap
       secret:
         name: secret-values.yaml.patch
         required: false
@@ -83,7 +83,7 @@ layers:
             options:
               order:
               - layerId: management-cluster
-                type: secret
+                type: Secret
 includes:
   - id: include
     function:

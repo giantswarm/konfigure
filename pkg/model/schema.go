@@ -79,8 +79,8 @@ type CustomOrderValueMergeStrategyOptions struct {
 type ValueMergeReferenceType string
 
 const (
-	ValueMergeReferenceTypeConfigMap ValueMergeReferenceType = "configMap"
-	ValueMergeReferenceTypeSecret    ValueMergeReferenceType = "secret"
+	ValueMergeReferenceTypeConfigMap ValueMergeReferenceType = "ConfigMap"
+	ValueMergeReferenceTypeSecret    ValueMergeReferenceType = "Secret"
 )
 
 type ValueMergeReference struct {

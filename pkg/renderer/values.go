@@ -1,6 +1,8 @@
 package renderer
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 
 	"github.com/giantswarm/konfigure/pkg/model"
@@ -40,10 +42,10 @@ func CustomOrderFilter(rawOptions model.RawMessage, valueFiles ValueFiles) ([]st
 	valuesToMerge := make([]string, 0)
 
 	for _, valueMergeReference := range options.Order {
-		switch valueMergeReference.Type {
-		case model.ValueMergeReferenceTypeConfigMap:
+		switch strings.ToLower(string(valueMergeReference.Type)) {
+		case strings.ToLower(string(model.ValueMergeReferenceTypeConfigMap)):
 			valuesToMerge = append(valuesToMerge, valueFiles.ConfigMaps[valueMergeReference.LayerId])
-		case model.ValueMergeReferenceTypeSecret:
+		case strings.ToLower(string(model.ValueMergeReferenceTypeSecret)):
 			valuesToMerge = append(valuesToMerge, valueFiles.Secrets[valueMergeReference.LayerId])
 		default:
 			return []string{}, errors.Errorf("unknown value merge reference type %s", valueMergeReference.Type)
