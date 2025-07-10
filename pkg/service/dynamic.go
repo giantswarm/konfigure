@@ -113,13 +113,6 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 
 	s.log.Info(fmt.Sprintf("%+v\n", loadedPatches))
 
-	//s.log.Info("Merging rendered templates...")
-	//
-	//configmapData, secretData, err = renderer.MergeRenderedTemplates(parsedSchema, renderedTemplates)
-	//if err != nil {
-	//	s.log.Error(err, "Failed to merge rendered templates")
-	//}
-
 	s.log.Info("Merging and applying patches to rendered templates...")
 
 	configmapData, secretData, err = renderer.MergeAndPatchRenderedTemplates(parsedSchema, renderedTemplates, loadedPatches)

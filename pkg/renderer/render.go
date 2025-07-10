@@ -160,43 +160,6 @@ func RenderTemplate(text, data string, functions template.FuncMap) (string, erro
 	return out.String(), nil
 }
 
-// MergeRenderedTemplates This is what used to be generator.Generator.GenerateRawConfig, but dynamic
-func MergeRenderedTemplates(schema *model.Schema, renderedTemplates *RenderedTemplates) (configmap string, secret string, err error) {
-	layerOrder := getLayerOrder(schema)
-
-	var configMapsToMerge []string
-	for _, layer := range layerOrder {
-		configMapsToMerge = append(configMapsToMerge, renderedTemplates.ConfigMaps[layer])
-	}
-
-	mergedConfigMapsUnsorted, err := MergeYamlDocuments(configMapsToMerge)
-	if err != nil {
-		return "", "", err
-	}
-
-	configmap, err = utils.SortYAMLKeys(mergedConfigMapsUnsorted)
-	if err != nil {
-		return "", "", err
-	}
-
-	var secretsToMerge []string
-	for _, layer := range layerOrder {
-		secretsToMerge = append(secretsToMerge, renderedTemplates.Secrets[layer])
-	}
-
-	mergedSecretsUnsorted, err := MergeYamlDocuments(secretsToMerge)
-	if err != nil {
-		return "", "", err
-	}
-
-	secret, err = utils.SortYAMLKeys(mergedSecretsUnsorted)
-	if err != nil {
-		return "", "", err
-	}
-
-	return configmap, secret, nil
-}
-
 func MergeAndPatchRenderedTemplates(schema *model.Schema, renderedTemplates *RenderedTemplates, patches *Patches) (configmap string, secret string, err error) {
 	layerOrder := getLayerOrder(schema)
 
@@ -210,6 +173,16 @@ func MergeAndPatchRenderedTemplates(schema *model.Schema, renderedTemplates *Ren
 		if err != nil {
 			return "", "", err
 		}
+	}
+
+	configmap, err = utils.SortYAMLKeys(configmap)
+	if err != nil {
+		return "", "", err
+	}
+
+	secret, err = utils.SortYAMLKeys(secret)
+	if err != nil {
+		return "", "", err
 	}
 
 	return configmap, secret, nil
