@@ -41,6 +41,14 @@ func MergeValueFileReferences(schema *model.Schema, layer model.Layer, valueType
 		valuesToMerge, err = SecretsInLayerOrderFilter(schema, valueFiles)
 	case strings.ToLower(model.ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder):
 		valuesToMerge, err = ConfigMapsAndSecretsInLayerOrderFilter(schema, valueFiles)
+	case strings.ToLower(model.ValueFileMergeStrategySameTypeFromCurrentLayer):
+		if valueTypeLower == configMapTypeLower {
+			valuesToMerge = append(valuesToMerge, valueFiles.ConfigMaps[layer.Id])
+		} else {
+			valuesToMerge = append(valuesToMerge, valueFiles.Secrets[layer.Id])
+		}
+	case strings.ToLower(model.ValueFileMergeStrategyConfigMapAndSecretFromCurrentLayer):
+		valuesToMerge = append(valuesToMerge, valueFiles.ConfigMaps[layer.Id], valueFiles.Secrets[layer.Id])
 	default:
 		return "", errors.Errorf("unknown value merge strategy %q", valueFileOptions.Merge.Strategy)
 	}

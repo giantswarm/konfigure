@@ -48,11 +48,13 @@ type ValueFileOptions struct {
 }
 
 const (
-	ValueFileMergeStrategyCustomOrder                      = "CustomOrder"
-	ValueFileMergeStrategySameTypeInLayerOrder             = "SameTypeInLayerOrder"
-	ValueFileMergeStrategyConfigMapsInLayerOrder           = "ConfigMapsInLayerOrder"
-	ValueFileMergeStrategySecretsInLayerOrder              = "SecretsInLayerOrder"
-	ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder = "ConfigMapsAndSecretsInLayerOrder" // nolint:gosec
+	ValueFileMergeStrategyCustomOrder                        = "CustomOrder"
+	ValueFileMergeStrategySameTypeInLayerOrder               = "SameTypeInLayerOrder"
+	ValueFileMergeStrategyConfigMapsInLayerOrder             = "ConfigMapsInLayerOrder"
+	ValueFileMergeStrategySecretsInLayerOrder                = "SecretsInLayerOrder"
+	ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder   = "ConfigMapsAndSecretsInLayerOrder" // nolint:gosec
+	ValueFileMergeStrategySameTypeFromCurrentLayer           = "SameTypeFromCurrentLayer"
+	ValueFileMergeStrategyConfigMapAndSecretFromCurrentLayer = "ConfigMapAndSecretFromCurrentLayer" // nolint:gosec
 )
 
 type RawMessage struct {

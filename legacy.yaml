@@ -22,29 +22,13 @@ layers:
         required: true
         values:
           merge:
-            strategy: CustomOrder
-            options:
-              order:
-              - layerId: defaults
-                type: ConfigMap
-              - layerId: management-cluster
-                type: ConfigMap
+            strategy: ConfigMapsInLayerOrder
       secret:
         name: secret-values.yaml.template
         required: true
         values:
           merge:
-            strategy: CustomOrder
-            options:
-              order:
-              - layerId: defaults
-                type: ConfigMap
-              - layerId: management-cluster
-                type: ConfigMap
-              - layerId: defaults
-                type: Secret
-              - layerId: management-cluster
-                type: Secret
+            strategy: ConfigMapsAndSecretsInLayerOrder
   - id: management-cluster
     path:
       directory: installations/<< installation-name >>
@@ -67,23 +51,13 @@ layers:
         required: false
         values:
           merge:
-            strategy: CustomOrder
-            options:
-              order:
-              - layerId: defaults
-                type: ConfigMap
-              - layerId: management-cluster
-                type: ConfigMap
+            strategy: ConfigMapsInLayerOrder
       secret:
         name: secret-values.yaml.patch
         required: false
         values:
           merge:
-            strategy: CustomOrder
-            options:
-              order:
-              - layerId: management-cluster
-                type: Secret
+            strategy: SameTypeFromCurrentLayer
 includes:
   - id: include
     function:
