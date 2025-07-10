@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 
@@ -116,8 +114,6 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 		s.log.Error(err, "Failed to load patches")
 		return "", "", err
 	}
-
-	s.log.Info(fmt.Sprintf("%+v\n", loadedPatches))
 
 	s.log.Info("Merging and applying patches to rendered templates...")
 
