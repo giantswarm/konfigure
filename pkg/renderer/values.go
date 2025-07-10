@@ -8,13 +8,33 @@ import (
 	"github.com/giantswarm/konfigure/pkg/model"
 )
 
-func MergeValueFileReferences(schema *model.Schema, valueMergeOptions model.ValueFileOptions, valueFiles ValueFiles) (string, error) {
+func MergeValueFileReferences(schema *model.Schema, layer model.Layer, valueType model.ValueMergeReferenceType, valueFiles ValueFiles) (string, error) {
+	valueTypeLower := strings.ToLower(string(valueType))
+	configMapTypeLower := strings.ToLower(string(model.ValueMergeReferenceTypeConfigMap))
+	secretTypeLower := strings.ToLower(string(model.ValueMergeReferenceTypeSecret))
+
+	var valueFileOptions model.ValueFileOptions
+	switch valueTypeLower {
+	case configMapTypeLower:
+		valueFileOptions = layer.Templates.ConfigMap.Values
+	case secretTypeLower:
+		valueFileOptions = layer.Templates.Secret.Values
+	default:
+		return "", errors.Errorf("unknown value reference type %s", valueType)
+	}
+
 	var valuesToMerge []string
 	var err error
 
-	switch strings.ToLower(valueMergeOptions.Merge.Strategy) {
+	switch strings.ToLower(valueFileOptions.Merge.Strategy) {
 	case strings.ToLower(model.ValueFileMergeStrategyCustomOrder):
-		valuesToMerge, err = CustomOrderFilter(valueMergeOptions.Merge.Options, valueFiles)
+		valuesToMerge, err = CustomOrderFilter(valueFileOptions.Merge.Options, valueFiles)
+	case strings.ToLower(model.ValueFileMergeStrategySameTypeInLayerOrder):
+		if valueTypeLower == configMapTypeLower {
+			valuesToMerge, err = ConfigMapsInLayerOrderFilter(schema, valueFiles)
+		} else {
+			valuesToMerge, err = SecretsInLayerOrderFilter(schema, valueFiles)
+		}
 	case strings.ToLower(model.ValueFileMergeStrategyConfigMapsInLayerOrder):
 		valuesToMerge, err = ConfigMapsInLayerOrderFilter(schema, valueFiles)
 	case strings.ToLower(model.ValueFileMergeStrategySecretsInLayerOrder):
@@ -22,7 +42,7 @@ func MergeValueFileReferences(schema *model.Schema, valueMergeOptions model.Valu
 	case strings.ToLower(model.ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder):
 		valuesToMerge, err = ConfigMapsAndSecretsInLayerOrderFilter(schema, valueFiles)
 	default:
-		return "", errors.Errorf("unknown value merge strategy %q", valueMergeOptions.Merge.Strategy)
+		return "", errors.Errorf("unknown value merge strategy %q", valueFileOptions.Merge.Strategy)
 	}
 
 	if err != nil {

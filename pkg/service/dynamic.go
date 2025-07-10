@@ -49,8 +49,6 @@ type RenderInput struct {
 }
 
 func (s *DynamicService) Render(in RenderInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
-	s.log.Info("Rendering...")
-
 	configmapData, secretData, err := s.RenderRaw(in.Dir, in.Schema, in.Variables)
 	if err != nil {
 		return nil, nil, err
@@ -60,8 +58,6 @@ func (s *DynamicService) Render(in RenderInput) (configmap *corev1.ConfigMap, se
 
 	configmap = renderer.WrapIntoConfigMap(configmapData, in.Name, in.Namespace, in.ExtraAnnotations, in.ExtraLabels, in.ConfigMapDataKey)
 	secret = renderer.WrapIntoSecret(secretData, in.Name, in.Namespace, in.ExtraAnnotations, in.ExtraLabels, in.SecretDataKey)
-
-	s.log.Info("All done!")
 
 	return configmap, secret, nil
 }
@@ -115,11 +111,11 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 		return "", "", err
 	}
 
-	s.log.Info("Merging and applying patches to rendered templates...")
+	s.log.Info("Folding and applying patches to rendered templates...")
 
-	configmapData, secretData, err = renderer.MergeAndPatchRenderedTemplates(parsedSchema, renderedTemplates, loadedPatches)
+	configmapData, secretData, err = renderer.FoldAndPatchRenderedTemplates(parsedSchema, renderedTemplates, loadedPatches)
 	if err != nil {
-		s.log.Error(err, "Failed to merge and apply patches to rendered templates")
+		s.log.Error(err, "Failed to fold and apply patches to rendered templates")
 	}
 
 	return configmapData, secretData, nil

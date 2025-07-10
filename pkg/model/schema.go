@@ -49,6 +49,7 @@ type ValueFileOptions struct {
 
 const (
 	ValueFileMergeStrategyCustomOrder                      = "CustomOrder"
+	ValueFileMergeStrategySameTypeInLayerOrder             = "SameTypeInLayerOrder"
 	ValueFileMergeStrategyConfigMapsInLayerOrder           = "ConfigMapsInLayerOrder"
 	ValueFileMergeStrategySecretsInLayerOrder              = "SecretsInLayerOrder"
 	ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder = "ConfigMapsAndSecretsInLayerOrder" // nolint:gosec

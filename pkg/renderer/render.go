@@ -28,7 +28,7 @@ func RenderTemplates(dir string, schema *model.Schema, templates *Templates, val
 	extraIncludeFunctions := GenerateIncludeFunctions(dir, schema.Includes)
 
 	for _, layer := range schema.Layers {
-		configMapMergedValueFiles, err := MergeValueFileReferences(schema, layer.Templates.ConfigMap.Values, *valueFiles)
+		configMapMergedValueFiles, err := MergeValueFileReferences(schema, layer, model.ValueMergeReferenceTypeConfigMap, *valueFiles)
 		if err != nil {
 			return nil, err
 		}
@@ -40,7 +40,7 @@ func RenderTemplates(dir string, schema *model.Schema, templates *Templates, val
 
 		renderedTemplates.ConfigMaps[layer.Id] = renderedConfigMap
 
-		secretMergedValueFiles, err := MergeValueFileReferences(schema, layer.Templates.Secret.Values, *valueFiles)
+		secretMergedValueFiles, err := MergeValueFileReferences(schema, layer, model.ValueMergeReferenceTypeSecret, *valueFiles)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +111,7 @@ func RenderTemplate(text, data string, functions template.FuncMap) (string, erro
 	return out.String(), nil
 }
 
-func MergeAndPatchRenderedTemplates(schema *model.Schema, renderedTemplates *RenderedTemplates, patches *Patches) (configmap string, secret string, err error) {
+func FoldAndPatchRenderedTemplates(schema *model.Schema, renderedTemplates *RenderedTemplates, patches *Patches) (configmap string, secret string, err error) {
 	layerOrder := GetLayerOrder(schema)
 
 	for _, layer := range layerOrder {
@@ -139,8 +139,8 @@ func MergeAndPatchRenderedTemplates(schema *model.Schema, renderedTemplates *Ren
 	return configmap, secret, nil
 }
 
-func MergeAndPatchRenderedTemplate(accumulator, renderedTemplate, patches string) (string, error) {
-	merged, err := MergeYamlDocuments([]string{accumulator, renderedTemplate})
+func MergeAndPatchRenderedTemplate(baseTemplate, topTemplate, patches string) (string, error) {
+	merged, err := MergeYamlDocuments([]string{baseTemplate, topTemplate})
 	if err != nil {
 		return "", err
 	}
