@@ -12,8 +12,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/Masterminds/sprig/v3"
-	uberconfig "go.uber.org/config"
-	yaml3 "gopkg.in/yaml.v3"
 	"sigs.k8s.io/yaml"
 
 	"github.com/giantswarm/konfigure/pkg/model"
@@ -30,7 +28,7 @@ func RenderTemplates(dir string, schema *model.Schema, templates *Templates, val
 	extraIncludeFunctions := GenerateIncludeFunctions(dir, schema.Includes)
 
 	for _, layer := range schema.Layers {
-		configMapMergedValueFiles, err := MergeValueFileReferences(layer.Templates.ConfigMap.Values, *valueFiles)
+		configMapMergedValueFiles, err := MergeValueFileReferences(schema, layer.Templates.ConfigMap.Values, *valueFiles)
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +40,7 @@ func RenderTemplates(dir string, schema *model.Schema, templates *Templates, val
 
 		renderedTemplates.ConfigMaps[layer.Id] = renderedConfigMap
 
-		secretMergedValueFiles, err := MergeValueFileReferences(layer.Templates.Secret.Values, *valueFiles)
+		secretMergedValueFiles, err := MergeValueFileReferences(schema, layer.Templates.Secret.Values, *valueFiles)
 		if err != nil {
 			return nil, err
 		}
@@ -56,53 +54,6 @@ func RenderTemplates(dir string, schema *model.Schema, templates *Templates, val
 	}
 
 	return renderedTemplates, nil
-}
-
-func MergeValueFileReferences(valueMergeOptions model.ValueMergeOptions, valueFiles ValueFiles) (string, error) {
-	var valuesToMerge []string
-
-	for _, valueMergeReference := range valueMergeOptions.Merge {
-		switch valueMergeReference.Type {
-		case model.ValueMergeReferenceTypeConfigMap:
-			valuesToMerge = append(valuesToMerge, valueFiles.ConfigMaps[valueMergeReference.LayerId])
-		case model.ValueMergeReferenceTypeSecret:
-			valuesToMerge = append(valuesToMerge, valueFiles.Secrets[valueMergeReference.LayerId])
-		default:
-			return "", errors.Errorf("unknown value merge type %s", valueMergeReference.Type)
-		}
-	}
-
-	return MergeYamlDocuments(valuesToMerge)
-}
-
-// MergeYamlDocuments This is what used to be generator.Generator.applyPatch, but dynamic
-func MergeYamlDocuments(valuesToMerge []string) (string, error) {
-	if len(valuesToMerge) == 0 {
-		return "", nil
-	}
-
-	options := []uberconfig.YAMLOption{
-		uberconfig.Permissive(),
-	}
-
-	for _, valueToMerge := range valuesToMerge {
-		options = append(options, uberconfig.Source(bytes.NewBuffer([]byte(valueToMerge))))
-	}
-
-	patcher, err := uberconfig.NewYAML(options...)
-
-	if err != nil {
-		return "", err
-	}
-
-	value := patcher.Get(uberconfig.Root).Value() // nolint:staticcheck
-
-	output, err := yaml3.Marshal(value)
-	if err != nil {
-		return "", err
-	}
-
-	return string(output), nil
 }
 
 func GenerateIncludeFunctions(dir string, includes []model.Include) template.FuncMap {
@@ -161,7 +112,7 @@ func RenderTemplate(text, data string, functions template.FuncMap) (string, erro
 }
 
 func MergeAndPatchRenderedTemplates(schema *model.Schema, renderedTemplates *RenderedTemplates, patches *Patches) (configmap string, secret string, err error) {
-	layerOrder := getLayerOrder(schema)
+	layerOrder := GetLayerOrder(schema)
 
 	for _, layer := range layerOrder {
 		configmap, err = MergeAndPatchRenderedTemplate(configmap, renderedTemplates.ConfigMaps[layer], patches.ConfigMaps[layer])
@@ -249,14 +200,4 @@ func convertJsonToYaml(document string) (string, error) {
 	}
 
 	return string(yamlDocument), nil
-}
-
-func getLayerOrder(schema *model.Schema) []string {
-	var result []string
-
-	for _, layer := range schema.Layers {
-		result = append(result, layer.Id)
-	}
-
-	return result
 }

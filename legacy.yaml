@@ -22,23 +22,29 @@ layers:
         required: true
         values:
           merge:
-            - layerId: defaults
-              type: configMap
-            - layerId: management-cluster
-              type: configMap
+            strategy: CustomOrder
+            options:
+              order:
+              - layerId: defaults
+                type: configMap
+              - layerId: management-cluster
+                type: configMap
       secret:
         name: secret-values.yaml.template
         required: true
         values:
           merge:
-            - layerId: defaults
-              type: configMap
-            - layerId: management-cluster
-              type: configMap
-            - layerId: defaults
-              type: secret
-            - layerId: management-cluster
-              type: secret
+            strategy: CustomOrder
+            options:
+              order:
+              - layerId: defaults
+                type: configMap
+              - layerId: management-cluster
+                type: configMap
+              - layerId: defaults
+                type: secret
+              - layerId: management-cluster
+                type: secret
   - id: management-cluster
     path:
       directory: installations/<< installation-name >>
@@ -61,17 +67,23 @@ layers:
         required: false
         values:
           merge:
-            - layerId: defaults
-              type: configMap
-            - layerId: management-cluster
-              type: configMap
+            strategy: CustomOrder
+            options:
+              order:
+              - layerId: defaults
+                type: configMap
+              - layerId: management-cluster
+                type: configMap
       secret:
         name: secret-values.yaml.patch
         required: false
         values:
           merge:
-            - layerId: management-cluster
-              type: secret
+            strategy: CustomOrder
+            options:
+              order:
+              - layerId: management-cluster
+                type: secret
 includes:
   - id: include
     function:

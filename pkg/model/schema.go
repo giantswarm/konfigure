@@ -38,13 +38,42 @@ type Templates struct {
 }
 
 type Template struct {
-	Name     string            `yaml:"name"`
-	Required bool              `yaml:"required"`
-	Values   ValueMergeOptions `yaml:"values"`
+	Name     string           `yaml:"name"`
+	Required bool             `yaml:"required"`
+	Values   ValueFileOptions `yaml:"values"`
 }
 
-type ValueMergeOptions struct {
-	Merge []ValueMergeReference `yaml:"merge"`
+type ValueFileOptions struct {
+	Merge ValueFileMergeOptions `yaml:"merge"`
+}
+
+const (
+	ValueFileMergeStrategyCustomOrder                      = "CustomOrder"
+	ValueFileMergeStrategyConfigMapsInLayerOrder           = "ConfigMapsInLayerOrder"
+	ValueFileMergeStrategySecretsInLayerOrder              = "SecretsInLayerOrder"
+	ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder = "ConfigMapsAndSecretsInLayerOrder" // nolint:gosec
+)
+
+type RawMessage struct {
+	unmarshal func(interface{}) error
+}
+
+func (msg *RawMessage) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	msg.unmarshal = unmarshal
+	return nil
+}
+
+func (msg *RawMessage) Unmarshal(v interface{}) error {
+	return msg.unmarshal(v)
+}
+
+type ValueFileMergeOptions struct {
+	Strategy string     `yaml:"strategy"`
+	Options  RawMessage `yaml:"options"`
+}
+
+type CustomOrderValueMergeStrategyOptions struct {
+	Order []ValueMergeReference `yaml:"order"`
 }
 
 type ValueMergeReferenceType string

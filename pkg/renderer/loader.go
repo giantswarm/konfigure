@@ -15,6 +15,20 @@ import (
 	"github.com/giantswarm/konfigure/pkg/model"
 )
 
+func LoadSchema(path string) (*model.Schema, error) {
+	content, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, err
+	}
+
+	var schema model.Schema
+	if err := yaml.Unmarshal(content, &schema); err != nil {
+		return nil, err
+	}
+
+	return &schema, nil
+}
+
 func LoadSchemaVariables(flagValues []string, variables []model.Variable) (SchemaVariables, error) {
 	schemaVariables := make(SchemaVariables)
 
@@ -43,20 +57,6 @@ func LoadSchemaVariables(flagValues []string, variables []model.Variable) (Schem
 	return schemaVariables, nil
 }
 
-func LoadSchema(path string) (*model.Schema, error) {
-	content, err := os.ReadFile(filepath.Clean(path))
-	if err != nil {
-		return nil, err
-	}
-
-	var schema model.Schema
-	if err := yaml.Unmarshal(content, &schema); err != nil {
-		return nil, err
-	}
-
-	return &schema, nil
-}
-
 func LoadValueFiles(dir string, schema *model.Schema, variables SchemaVariables) (*ValueFiles, error) {
 	valueFiles := &ValueFiles{
 		ConfigMaps: make(map[string]string),
@@ -69,9 +69,9 @@ func LoadValueFiles(dir string, schema *model.Schema, variables SchemaVariables)
 			valueFiles.ConfigMaps[layer.Id] = ""
 		} else {
 			segments := []PathSegment{
-				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
-				{renderValue(layer.Values.Path.Directory, variables), layer.Values.Path.Required},
-				{renderValue(layer.Values.ConfigMap.Name, variables), layer.Values.ConfigMap.Required},
+				{RenderValue(layer.Path.Directory, variables), layer.Path.Required},
+				{RenderValue(layer.Values.Path.Directory, variables), layer.Values.Path.Required},
+				{RenderValue(layer.Values.ConfigMap.Name, variables), layer.Values.ConfigMap.Required},
 			}
 
 			configMapValueFile, err := loadFileFromPathSegments(dir, segments)
@@ -88,9 +88,9 @@ func LoadValueFiles(dir string, schema *model.Schema, variables SchemaVariables)
 			valueFiles.Secrets[layer.Id] = ""
 		} else {
 			segments := []PathSegment{
-				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
-				{renderValue(layer.Values.Path.Directory, variables), layer.Values.Path.Required},
-				{renderValue(layer.Values.Secret.Name, variables), layer.Values.Secret.Required},
+				{RenderValue(layer.Path.Directory, variables), layer.Path.Required},
+				{RenderValue(layer.Values.Path.Directory, variables), layer.Values.Path.Required},
+				{RenderValue(layer.Values.Secret.Name, variables), layer.Values.Secret.Required},
 			}
 
 			secretValueFile, err := loadFileFromPathSegments(dir, segments)
@@ -133,9 +133,9 @@ func LoadTemplates(dir string, schema *model.Schema, variables SchemaVariables) 
 			loadedTemplates.ConfigMaps[layer.Id] = ""
 		} else {
 			segments := []PathSegment{
-				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
-				{renderValue(layer.Templates.Path.Directory, variables), layer.Templates.Path.Required},
-				{renderValue(layer.Templates.ConfigMap.Name, variables), layer.Templates.ConfigMap.Required},
+				{RenderValue(layer.Path.Directory, variables), layer.Path.Required},
+				{RenderValue(layer.Templates.Path.Directory, variables), layer.Templates.Path.Required},
+				{RenderValue(layer.Templates.ConfigMap.Name, variables), layer.Templates.ConfigMap.Required},
 			}
 
 			configMapTemplate, err := loadFileFromPathSegments(dir, segments)
@@ -150,9 +150,9 @@ func LoadTemplates(dir string, schema *model.Schema, variables SchemaVariables) 
 			loadedTemplates.Secrets[layer.Id] = ""
 		} else {
 			segments := []PathSegment{
-				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
-				{renderValue(layer.Templates.Path.Directory, variables), layer.Templates.Path.Required},
-				{renderValue(layer.Templates.Secret.Name, variables), layer.Templates.Secret.Required},
+				{RenderValue(layer.Path.Directory, variables), layer.Path.Required},
+				{RenderValue(layer.Templates.Path.Directory, variables), layer.Templates.Path.Required},
+				{RenderValue(layer.Templates.Secret.Name, variables), layer.Templates.Secret.Required},
 			}
 
 			secretTemplate, err := loadFileFromPathSegments(dir, segments)
@@ -195,9 +195,9 @@ func LoadPatches(dir string, schema *model.Schema, variables SchemaVariables) (*
 			loadedPatches.ConfigMaps[layer.Id] = ""
 		} else {
 			segments := []PathSegment{
-				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
-				{renderValue(layer.Patches.Path.Directory, variables), layer.Patches.Path.Required},
-				{renderValue(layer.Patches.ConfigMap.Name, variables), layer.Patches.ConfigMap.Required},
+				{RenderValue(layer.Path.Directory, variables), layer.Path.Required},
+				{RenderValue(layer.Patches.Path.Directory, variables), layer.Patches.Path.Required},
+				{RenderValue(layer.Patches.ConfigMap.Name, variables), layer.Patches.ConfigMap.Required},
 			}
 
 			configMapPatches, err := loadFileFromPathSegments(dir, segments)
@@ -212,9 +212,9 @@ func LoadPatches(dir string, schema *model.Schema, variables SchemaVariables) (*
 			loadedPatches.Secrets[layer.Id] = ""
 		} else {
 			segments := []PathSegment{
-				{renderValue(layer.Path.Directory, variables), layer.Path.Required},
-				{renderValue(layer.Patches.Path.Directory, variables), layer.Patches.Path.Required},
-				{renderValue(layer.Patches.Secret.Name, variables), layer.Patches.Secret.Required},
+				{RenderValue(layer.Path.Directory, variables), layer.Path.Required},
+				{RenderValue(layer.Patches.Path.Directory, variables), layer.Patches.Path.Required},
+				{RenderValue(layer.Patches.Secret.Name, variables), layer.Patches.Secret.Required},
 			}
 
 			secretPatches, err := loadFileFromPathSegments(dir, segments)
