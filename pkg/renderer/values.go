@@ -12,14 +12,14 @@ func MergeValueFileReferences(schema *model.Schema, valueMergeOptions model.Valu
 	var valuesToMerge []string
 	var err error
 
-	switch valueMergeOptions.Merge.Strategy {
-	case model.ValueFileMergeStrategyCustomOrder:
+	switch strings.ToLower(valueMergeOptions.Merge.Strategy) {
+	case strings.ToLower(model.ValueFileMergeStrategyCustomOrder):
 		valuesToMerge, err = CustomOrderFilter(valueMergeOptions.Merge.Options, valueFiles)
-	case model.ValueFileMergeStrategyConfigMapsInLayerOrder:
+	case strings.ToLower(model.ValueFileMergeStrategyConfigMapsInLayerOrder):
 		valuesToMerge, err = ConfigMapsInLayerOrderFilter(schema, valueFiles)
-	case model.ValueFileMergeStrategySecretsInLayerOrder:
+	case strings.ToLower(model.ValueFileMergeStrategySecretsInLayerOrder):
 		valuesToMerge, err = SecretsInLayerOrderFilter(schema, valueFiles)
-	case model.ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder:
+	case strings.ToLower(model.ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder):
 		valuesToMerge, err = ConfigMapsAndSecretsInLayerOrderFilter(schema, valueFiles)
 	default:
 		return "", errors.Errorf("unknown value merge strategy %q", valueMergeOptions.Merge.Strategy)
