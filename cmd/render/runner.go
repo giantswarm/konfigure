@@ -75,11 +75,13 @@ func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) err
 	} else {
 		configMap, secret, err := dynamicService.Render(service.RenderInput{
 			// Root directory of the config repository.
-			Dir:       r.flag.Dir,
-			Schema:    r.flag.Schema,
-			Variables: r.flag.Variables,
-			Name:      r.flag.Name,
-			Namespace: r.flag.Namespace,
+			Dir:              r.flag.Dir,
+			Schema:           r.flag.Schema,
+			Variables:        r.flag.Variables,
+			Name:             r.flag.Name,
+			Namespace:        r.flag.Namespace,
+			ConfigMapDataKey: r.flag.ConfigMapDataKey,
+			SecretDataKey:    r.flag.SecretDataKey,
 		})
 		if err != nil {
 			return err

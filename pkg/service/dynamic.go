@@ -42,6 +42,12 @@ type RenderInput struct {
 
 	// Additional labels to be set on the generated ConfigMap and Secret.
 	ExtraLabels map[string]string
+
+	// The key to store the rendered data in the generated ConfigMap
+	ConfigMapDataKey string
+
+	// The key to store the rendered data in the generated Secret
+	SecretDataKey string
 }
 
 func (s *DynamicService) Render(in RenderInput) (configmap *corev1.ConfigMap, secret *corev1.Secret, err error) {
@@ -54,8 +60,8 @@ func (s *DynamicService) Render(in RenderInput) (configmap *corev1.ConfigMap, se
 
 	s.log.Info("Wrapping into ConfigMap and Secret...")
 
-	configmap = renderer.WrapIntoConfigMap(configmapData, in.Name, in.Namespace, in.ExtraAnnotations, in.ExtraLabels)
-	secret = renderer.WrapIntoSecret(secretData, in.Name, in.Namespace, in.ExtraAnnotations, in.ExtraLabels)
+	configmap = renderer.WrapIntoConfigMap(configmapData, in.Name, in.Namespace, in.ExtraAnnotations, in.ExtraLabels, in.ConfigMapDataKey)
+	secret = renderer.WrapIntoSecret(secretData, in.Name, in.Namespace, in.ExtraAnnotations, in.ExtraLabels, in.SecretDataKey)
 
 	s.log.Info("All done!")
 

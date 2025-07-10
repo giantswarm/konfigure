@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func WrapIntoConfigMap(data, name, namespace string, annotations, labels map[string]string) *corev1.ConfigMap {
+func WrapIntoConfigMap(data, name, namespace string, annotations, labels map[string]string, key string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -20,12 +20,12 @@ func WrapIntoConfigMap(data, name, namespace string, annotations, labels map[str
 			Labels:      labels,
 		},
 		Data: map[string]string{
-			"configmap-values.yaml": sanitizeData(data),
+			key: sanitizeData(data),
 		},
 	}
 }
 
-func WrapIntoSecret(data, name, namespace string, annotations, labels map[string]string) *corev1.Secret {
+func WrapIntoSecret(data, name, namespace string, annotations, labels map[string]string, key string) *corev1.Secret {
 	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -38,7 +38,7 @@ func WrapIntoSecret(data, name, namespace string, annotations, labels map[string
 			Labels:      labels,
 		},
 		Data: map[string][]byte{
-			"secret-values.yaml": []byte(sanitizeData(data)),
+			key: []byte(sanitizeData(data)),
 		},
 	}
 }
