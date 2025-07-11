@@ -116,6 +116,48 @@ func TestRenderRaw(t *testing.T) {
 				}),
 			},
 		},
+		{
+			name:     "case 12 - same as case 10 with SOPS AGE encryption",
+			caseFile: "../generator/testdata/cases/case12.yaml",
+
+			app:          "operator",
+			installation: "puma",
+
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
+					"key.agekey": testutils.GetFile("../generator/testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+				}),
+			},
+		},
+		{
+			name:     "case 13 - same as case 11, but with missing key",
+			caseFile: "../generator/testdata/cases/case11.yaml",
+
+			app:          "operator",
+			installation: "puma",
+
+			secrets: []*corev1.Secret{},
+
+			expectedErrorMessage: `Error getting data key: 0 successful groups required, got 0`,
+		},
+		{
+			name:     "case 14 - same as case 12, but with missing key",
+			caseFile: "../generator/testdata/cases/case12.yaml",
+
+			app:          "operator",
+			installation: "puma",
+
+			secrets: []*corev1.Secret{},
+
+			expectedErrorMessage: `Error getting data key: 0 successful groups required, got 0`,
+		},
+		{
+			name:     "case 15 - include self",
+			caseFile: "../generator/testdata/cases/case15.yaml",
+
+			app:          "operator",
+			installation: "puma",
+		},
 	}
 
 	for _, tc := range testCases {
