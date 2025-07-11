@@ -7,7 +7,7 @@ toolchain go1.24.5
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/fatih/color v1.18.0
-	github.com/fluxcd/pkg/tar v0.12.0
+	github.com/fluxcd/pkg/tar v0.13.0
 	github.com/getsops/sops/v3 v3.10.2
 	github.com/ghodss/yaml v1.0.0
 	github.com/giantswarm/apiextensions-application v0.6.2
