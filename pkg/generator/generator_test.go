@@ -8,21 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-logr/logr"
-
 	"github.com/giantswarm/konfigure/pkg/sopsenv"
-	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
+
 	"github.com/giantswarm/konfigure/pkg/testutils"
 
 	"github.com/ghodss/yaml"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgofake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestGenerator_generateRawConfig(t *testing.T) {
-	logger := logr.Discard()
-
 	// This archive store development private keys. This is to avoid `gitleaks`
 	// and `pre-commit` to complain on files stored in this repository. We untar
 	// it here so that it can be used in test cases. Storing testing private keys
@@ -223,37 +217,13 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 
 			fs := testutils.NewMockFilesystem(tmpDir, tc.caseFile)
 
-			var se *sopsenv.SOPSEnv
-			{
-				k8sObj := make([]runtime.Object, 0)
-				for _, sec := range tc.secrets {
-					k8sObj = append(k8sObj, sec)
-				}
-
-				client := clientgofake.NewSimpleClientset(k8sObj...)
-
-				seConfig := sopsenv.SOPSEnvConfig{
-					K8sClient:  client,
-					KeysDir:    "",
-					KeysSource: key.KeysSourceKubernetes,
-					Logger:     logger,
-				}
-
-				se, err = sopsenv.NewSOPSEnv(seConfig)
-				if err != nil {
-					t.Fatalf("error == %#v, want nil", err)
-				}
-				defer se.Cleanup()
+			// SOPS env setup from fake Kubernetes
+			se, err := sopsenv.SetupNewSopsEnvironmentFromFakeKubernetes(tc.secrets)
+			if err != nil {
+				t.Fatalf("faled to setup SOPS environment: %s", err.Error())
 			}
 
-			isSOPS := len(tc.secrets) != 0
-
-			if isSOPS {
-				err = se.Setup(context.TODO())
-				if err != nil {
-					t.Fatalf("error == %#v, want nil", err)
-				}
-			}
+			defer se.Cleanup()
 
 			config := Config{
 				Fs:               fs,

@@ -5,6 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/giantswarm/konfigure/pkg/sopsenv"
+
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/go-logr/logr"
 
 	"github.com/giantswarm/konfigure/pkg/testutils"
@@ -25,7 +29,7 @@ func TestRenderRaw(t *testing.T) {
 		app          string
 		installation string
 
-		ageKeyFile string
+		secrets []*corev1.Secret
 	}{
 		{
 			name:     "case 0 - basic config with config.yaml.patch",
@@ -83,6 +87,35 @@ func TestRenderRaw(t *testing.T) {
 			app:          "operator",
 			installation: "puma",
 		},
+		// case 8: the original case 8 does not make sense here cos it uses data from a mocked part of the generator
+		{
+			name:                 "case 9 - throw error when a key is missing",
+			caseFile:             "../generator/testdata/cases/case9.yaml",
+			expectedErrorMessage: `<.this.key.is.missing>: map has no entry for key "this"`,
+
+			app:          "operator",
+			installation: "puma",
+		},
+		{
+			name:     "case 10 - no extra encoding for included files",
+			caseFile: "../generator/testdata/cases/case10.yaml",
+
+			app:          "operator",
+			installation: "puma",
+		},
+		{
+			name:     "case 11 - same as case 10 with SOPS GnuPGP encryption",
+			caseFile: "../generator/testdata/cases/case11.yaml",
+
+			app:          "operator",
+			installation: "puma",
+
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
+					"key.asc": testutils.GetFile("../generator/testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+				}),
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -90,9 +123,17 @@ func TestRenderRaw(t *testing.T) {
 			tmpDir, err := os.MkdirTemp("", "konfigure-test")
 
 			if err != nil {
-				t.Fatalf("unexpected error: %s", err.Error())
+				t.Fatalf("failed to create temp dir: %s", err.Error())
 			}
 			defer func() { _ = os.RemoveAll(tmpDir) }()
+
+			// SOPS env setup from fake Kubernetes
+			se, err := sopsenv.SetupNewSopsEnvironmentFromFakeKubernetes(tc.secrets)
+			if err != nil {
+				t.Fatalf("faled to create SOPS environment: %s", err.Error())
+			}
+
+			defer se.Cleanup()
 
 			fs := testutils.NewMockFilesystem(tmpDir, tc.caseFile)
 
