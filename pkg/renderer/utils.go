@@ -41,6 +41,11 @@ func MergeYamlDocuments(valuesToMerge []string) (string, error) {
 
 	value := patcher.Get(uberconfig.Root).Value() // nolint:staticcheck
 
+	// This prevents empty yaml to be marshalled as "null\n"
+	if value == nil {
+		return "", nil
+	}
+
 	output, err := yaml3.Marshal(value)
 	if err != nil {
 		return "", err

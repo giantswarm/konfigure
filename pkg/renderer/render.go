@@ -194,6 +194,10 @@ func trimAndConvertYamlToJson(document string) (string, error) {
 }
 
 func convertJsonToYaml(document string) (string, error) {
+	if strings.TrimSpace(document) == "null" {
+		return "", nil
+	}
+
 	yamlDocument, err := yaml.JSONToYAML([]byte(document))
 	if err != nil {
 		return "", err

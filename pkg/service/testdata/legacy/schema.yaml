@@ -39,10 +39,10 @@ layers:
         directory: ""
       configMap:
         name: config.yaml.patch
-        required: true
+        required: false
       secret:
         name: secret.yaml
-        required: true
+        required: false
     templates:
       path:
         directory: apps/<< app >>
