@@ -34,11 +34,6 @@ func NewMockFilesystem(temporaryDirectory, caseFile string) *MockFilesystem {
 	mockFileSystem := MockFilesystem{
 		tempDirPath: temporaryDirectory,
 	}
-	for _, p := range []string{"default", "installations", "include"} {
-		if err := os.MkdirAll(path.Join(temporaryDirectory, p), 0750); err != nil {
-			panic(err)
-		}
-	}
 
 	rawData, err := os.ReadFile(path.Clean(caseFile))
 	if err != nil {
