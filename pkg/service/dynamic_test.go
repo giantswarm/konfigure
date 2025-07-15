@@ -14,78 +14,89 @@ import (
 	"github.com/giantswarm/konfigure/pkg/testutils"
 )
 
-func TestRenderRaw(t *testing.T) {
+type RenderRawTestCase struct {
+	name     string
+	caseFile string
+
+	schema string
+
+	expectedErrorMessage string
+
+	rawVariables []string
+
+	secrets []*corev1.Secret
+}
+
+func TestRenderRaw_Legacy(t *testing.T) {
 	err := testutils.UntarFile("../generator/testdata/keys", "keys.tgz")
 	if err != nil {
 		t.Fatalf("error == %#v, want nil", err)
 	}
 
-	testCases := []struct {
-		name     string
-		caseFile string
-
-		expectedErrorMessage string
-
-		app          string
-		installation string
-
-		secrets []*corev1.Secret
-	}{
+	testCases := []RenderRawTestCase{
 		{
 			name:     "case 0 - basic config with config.yaml.patch",
 			caseFile: "../generator/testdata/cases/case0.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 1 - include files in templates",
 			caseFile: "../generator/testdata/cases/case1.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 2 - override global value for one installation",
 			caseFile: "../generator/testdata/cases/case2.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 3 - keep non-string values after templating/patching",
 			caseFile: "../generator/testdata/cases/case3.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 4 - allow templating in included files ",
 			caseFile: "../generator/testdata/cases/case4.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 5 - test indentation when including files",
 			caseFile: "../generator/testdata/cases/case5.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 6 - test app with no secrets (configmap only)",
 			caseFile: "../generator/testdata/cases/case6.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 7 - patch configmap and secret",
 			caseFile: "../generator/testdata/cases/case7.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		// case 8: the original case 8 does not make sense here cos it uses data from a mocked part of the generator
 		{
@@ -93,22 +104,25 @@ func TestRenderRaw(t *testing.T) {
 			caseFile:             "../generator/testdata/cases/case9.yaml",
 			expectedErrorMessage: `<.this.key.is.missing>: map has no entry for key "this"`,
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 10 - no extra encoding for included files",
 			caseFile: "../generator/testdata/cases/case10.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 		{
 			name:     "case 11 - same as case 10 with SOPS GnuPGP encryption",
 			caseFile: "../generator/testdata/cases/case11.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 
 			secrets: []*corev1.Secret{
 				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
@@ -120,8 +134,9 @@ func TestRenderRaw(t *testing.T) {
 			name:     "case 12 - same as case 10 with SOPS AGE encryption",
 			caseFile: "../generator/testdata/cases/case12.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 
 			secrets: []*corev1.Secret{
 				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
@@ -133,8 +148,9 @@ func TestRenderRaw(t *testing.T) {
 			name:     "case 13 - same as case 11, but with missing key",
 			caseFile: "../generator/testdata/cases/case11.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 
 			secrets: []*corev1.Secret{},
 
@@ -144,8 +160,9 @@ func TestRenderRaw(t *testing.T) {
 			name:     "case 14 - same as case 12, but with missing key",
 			caseFile: "../generator/testdata/cases/case12.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 
 			secrets: []*corev1.Secret{},
 
@@ -155,60 +172,62 @@ func TestRenderRaw(t *testing.T) {
 			name:     "case 15 - include self",
 			caseFile: "../generator/testdata/cases/case15.yaml",
 
-			app:          "operator",
-			installation: "puma",
+			schema: "testdata/legacy/schema.yaml",
+
+			rawVariables: []string{"app=operator", "installation=puma"},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tmpDir, err := os.MkdirTemp("", "konfigure-test")
-
-			if err != nil {
-				t.Fatalf("failed to create temp dir: %s", err.Error())
-			}
-			defer func() { _ = os.RemoveAll(tmpDir) }()
-
-			// SOPS env setup from fake Kubernetes
-			se, err := sopsenv.SetupNewSopsEnvironmentFromFakeKubernetes(tc.secrets)
-			if err != nil {
-				t.Fatalf("faled to create SOPS environment: %s", err.Error())
-			}
-
-			defer se.Cleanup()
-
-			fs := testutils.NewMockFilesystem(tmpDir, tc.caseFile)
-
-			service := NewDynamicService(DynamicServiceConfig{
-				Log: logr.Discard(),
-			})
-
-			configmap, secret, err := service.RenderRaw(tmpDir, "testdata/legacy/schema.yaml", []string{
-				"app=" + tc.app,
-				"installation=" + tc.installation,
-			})
-
-			if tc.expectedErrorMessage == "" {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
-			} else {
-				switch {
-				case err == nil:
-					t.Fatalf("expected error %q but got nil", tc.expectedErrorMessage)
-				case !strings.Contains(err.Error(), tc.expectedErrorMessage):
-					t.Fatalf("expected error %q but got %q", tc.expectedErrorMessage, err)
-				default:
-					return
-				}
-			}
-
-			if configmap != fs.ExpectedConfigmap {
-				t.Fatalf("configmap not expected, got: %s", configmap)
-			}
-			if secret != fs.ExpectedSecret {
-				t.Fatalf("secret not expected, got: %s", secret)
-			}
+			RenderRawTestCore(t, tc)
 		})
+	}
+}
+
+func RenderRawTestCore(t *testing.T, tc RenderRawTestCase) {
+	tmpDir, err := os.MkdirTemp("", "konfigure-test")
+
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %s", err.Error())
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// SOPS env setup from fake Kubernetes
+	se, err := sopsenv.SetupNewSopsEnvironmentFromFakeKubernetes(tc.secrets)
+	if err != nil {
+		t.Fatalf("faled to create SOPS environment: %s", err.Error())
+	}
+
+	defer se.Cleanup()
+
+	fs := testutils.NewMockFilesystem(tmpDir, tc.caseFile)
+
+	service := NewDynamicService(DynamicServiceConfig{
+		Log: logr.Discard(),
+	})
+
+	configmap, secret, err := service.RenderRaw(tmpDir, tc.schema, tc.rawVariables)
+
+	if tc.expectedErrorMessage == "" {
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	} else {
+		switch {
+		case err == nil:
+			t.Fatalf("expected error %q but got nil", tc.expectedErrorMessage)
+		case !strings.Contains(err.Error(), tc.expectedErrorMessage):
+			t.Fatalf("expected error %q but got %q", tc.expectedErrorMessage, err)
+		default:
+			return
+		}
+	}
+
+	if configmap != fs.ExpectedConfigmap {
+		t.Fatalf("configmap not expected, got: %s", configmap)
+	}
+	if secret != fs.ExpectedSecret {
+		t.Fatalf("secret not expected, got: %s", secret)
 	}
 }
