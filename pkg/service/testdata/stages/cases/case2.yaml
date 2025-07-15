@@ -1,0 +1,78 @@
+path: 0-base/values.yaml
+data: |
+  e: 42
+---
+path: 0-base/secret.yaml
+data: ""
+---
+path: 0-base/konfiguration-1/config-map-template.yaml
+data: |
+  a:
+    f:
+      g:
+        - a
+        - b
+        - c
+    b:
+      c: {{ .c }}
+      d: "hello world"
+    h:
+      - 1st
+      - 2nd
+    e: {{ .e }}
+---
+path: 0-base/konfiguration-1/secret-template.yaml
+data: ""
+---
+path: 1-stages/stages/dev/values.yaml
+data: |
+  c: chicken
+---
+path: 1-stages/stages/dev/secret.yaml
+data: ""
+---
+path: 1-stages/konfigurations/konfiguration-1/config-map-patches-dev.yaml
+data: |
+  - op: remove
+    path: /a/b
+  - op: add
+    path: /a/h/-
+    value: added by patch
+
+---
+path: 2-management-clusters/mc-1/values.yaml
+data: |
+  e: 999
+---
+path: 2-management-clusters/mc-1/secret.yaml
+data: ""
+---
+path: 2-management-clusters/mc-1/konfiguration-1/config-map-template.yaml
+data: |
+  a:
+    b:
+      j: 12 {{ .c }}
+      k: curry
+    f:
+      g:
+        - d
+        - e
+---
+data: |
+  a:
+    b:
+      j: 12 chicken
+      k: curry
+    e: 999
+    f:
+      g:
+        - d
+        - e
+    h:
+      - 1st
+      - 2nd
+      - added by patch
+path: configmap-values.yaml.golden
+---
+path: secret-values.yaml.golden
+data: ""

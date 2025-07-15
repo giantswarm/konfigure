@@ -185,6 +185,46 @@ func TestRenderRaw_Legacy(t *testing.T) {
 	}
 }
 
+func TestRenderRaw_Stages(t *testing.T) {
+	err := testutils.UntarFile("../generator/testdata/keys", "keys.tgz")
+	if err != nil {
+		t.Fatalf("error == %#v, want nil", err)
+	}
+
+	testCases := []RenderRawTestCase{
+		{
+			name:     "case 0 - empty config",
+			caseFile: "testdata/stages/cases/case0.yaml",
+
+			schema: "testdata/stages/schema.yaml",
+
+			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+		},
+		{
+			name:     "case 1 - simple config",
+			caseFile: "testdata/stages/cases/case1.yaml",
+
+			schema: "testdata/stages/schema.yaml",
+
+			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+		},
+		{
+			name:     "case 2 - config with patches",
+			caseFile: "testdata/stages/cases/case2.yaml",
+
+			schema: "testdata/stages/schema.yaml",
+
+			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RenderRawTestCore(t, tc)
+		})
+	}
+}
+
 func RenderRawTestCore(t *testing.T, tc RenderRawTestCase) {
 	tmpDir, err := os.MkdirTemp("", "konfigure-test")
 
@@ -225,9 +265,9 @@ func RenderRawTestCore(t *testing.T, tc RenderRawTestCase) {
 	}
 
 	if configmap != fs.ExpectedConfigmap {
-		t.Fatalf("configmap not expected, got: %s", configmap)
+		t.Fatalf("configmap not expected, got: %s, expected: %s", configmap, fs.ExpectedConfigmap)
 	}
 	if secret != fs.ExpectedSecret {
-		t.Fatalf("secret not expected, got: %s", secret)
+		t.Fatalf("secret not expected, got: %s, expected: %s", secret, fs.ExpectedSecret)
 	}
 }
