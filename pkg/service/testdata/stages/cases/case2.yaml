@@ -58,6 +58,7 @@ data: |
         - d
         - e
 ---
+path: configmap-values.yaml.golden
 data: |
   a:
     b:
@@ -72,7 +73,6 @@ data: |
       - 1st
       - 2nd
       - added by patch
-path: configmap-values.yaml.golden
 ---
 path: secret-values.yaml.golden
 data: ""

@@ -209,12 +209,34 @@ func TestRenderRaw_Stages(t *testing.T) {
 			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
 		},
 		{
-			name:     "case 2 - config with patches",
+			name:     "case 2 - config with list overrides and patches for object and list",
 			caseFile: "testdata/stages/cases/case2.yaml",
 
 			schema: "testdata/stages/schema.yaml",
 
 			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+		},
+		{
+			name:     "case 3 - multiple stages and management-cluster overrides",
+			caseFile: "testdata/stages/cases/case3.yaml",
+
+			schema: "testdata/stages/schema.yaml",
+
+			rawVariables: []string{"stage=production", "management-cluster=mc-2", "konfiguration=konfiguration-1"},
+		},
+		{
+			name:     "case 4 - complex with SOPS and lots of patches",
+			caseFile: "testdata/stages/cases/case4.yaml",
+
+			schema: "testdata/stages/schema.yaml",
+
+			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
+					"key.agekey": testutils.GetFile("../generator/testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+				}),
+			},
 		},
 	}
 

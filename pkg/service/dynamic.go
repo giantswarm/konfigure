@@ -116,6 +116,7 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 	configmapData, secretData, err = renderer.FoldAndPatchRenderedTemplates(parsedSchema, renderedTemplates, loadedPatches)
 	if err != nil {
 		s.log.Error(err, "Failed to fold and apply patches to rendered templates")
+		return "", "", err
 	}
 
 	return configmapData, secretData, nil
