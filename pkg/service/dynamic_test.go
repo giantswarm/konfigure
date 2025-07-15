@@ -238,6 +238,24 @@ func TestRenderRaw_Stages(t *testing.T) {
 				}),
 			},
 		},
+		{
+			name:     "case 5 - use custom include function",
+			caseFile: "testdata/stages/cases/case5.yaml",
+
+			schema: "testdata/stages/schema.yaml",
+
+			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+		},
+		{
+			name:     "case 6 - error on missing required template",
+			caseFile: "testdata/stages/cases/case6.yaml",
+
+			schema: "testdata/stages/schema.yaml",
+
+			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+
+			expectedErrorMessage: "0-base/konfiguration-1/config-map-template.yaml does not exist",
+		},
 	}
 
 	for _, tc := range testCases {
