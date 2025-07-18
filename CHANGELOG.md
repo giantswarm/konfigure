@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Removed Flux `source-controller` URL being a requirement for `flux-updater` module.
+
 ## [1.0.1] - 2025-05-21
 
 ### Changed
