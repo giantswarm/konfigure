@@ -56,10 +56,6 @@ const (
 	// kubernetesServicePortEnvVar is K8S port of the Kubernetes API service.
 	kubernetesServicePortEnvVar = "KUBERNETES_SERVICE_PORT"
 
-	// sourceServiceEnvVar is K8s address of source-controller's service, e.g.
-	// "source-controller.flux-system.svc"
-	sourceServiceEnvVar = "KONFIGURE_SOURCE_SERVICE"
-
 	// sopsKeysDirEnvVar tells Konfigure how to configure environment to make
 	// it possible for SOPS to find the keys
 	sopsKeysDirEnvVar = "KONFIGURE_SOPS_KEYS_DIR"
@@ -135,11 +131,10 @@ func (r *runner) run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			// Else, we download the packaged config from source-controller.
 			if dir == "" {
 				fluxUpdaterConfig := fluxupdater.Config{
-					CacheDir:                cacheDir,
-					ApiServerHost:           os.Getenv(kubernetesServiceHostEnvVar),
-					ApiServerPort:           os.Getenv(kubernetesServicePortEnvVar),
-					SourceControllerService: os.Getenv(sourceServiceEnvVar),
-					GitRepository:           os.Getenv(gitRepositoryEnvVar),
+					CacheDir:      cacheDir,
+					ApiServerHost: os.Getenv(kubernetesServiceHostEnvVar),
+					ApiServerPort: os.Getenv(kubernetesServicePortEnvVar),
+					GitRepository: os.Getenv(gitRepositoryEnvVar),
 				}
 				fluxUpdater, err := fluxupdater.New(fluxUpdaterConfig)
 				if err != nil {
