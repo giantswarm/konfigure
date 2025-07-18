@@ -1,0 +1,117 @@
+variables:
+  - name: stage
+    required: true
+  - name: management-cluster
+    required: true
+  - name: konfiguration
+    required: true
+layers:
+  - id: base
+    path:
+      directory: 0-base
+      required: true
+    values:
+      path:
+        directory: ""
+      configMap:
+        name: values.yaml
+      secret:
+        name: secret.yaml
+    templates:
+      path:
+        directory: << konfiguration >>
+        required: true
+      configMap:
+        name: config-map-template.yaml
+        required: true
+        values:
+          merge:
+            strategy: SameTypeInLayerOrder
+      secret:
+        name: secret-template.yaml
+        required: true
+        values:
+          merge:
+            strategy: ConfigMapsAndSecretsInLayerOrdeR
+  - id: stages
+    path:
+      directory: 1-stages
+      required: true
+    values:
+      path:
+        directory: "stages/<< stage >>"
+      configMap:
+        name: values.yaml
+      secret:
+        name: secret.yaml
+    templates:
+      path:
+        directory: konfigurations/<< konfiguration >>
+        required: false
+      configMap:
+        name: config-map-template.yaml
+        required: false
+        values:
+          merge:
+            strategy: SameTypeInLayerOrder
+      secret:
+        name: secret-template.yaml
+        required: false
+        values:
+          merge:
+            strategy: ConfigMapsAndSecretsInLayerOrder
+    patches:
+      path:
+        directory: konfigurations/<< konfiguration >>
+        required: false
+      configMap:
+        name: config-map-patches-<< stage >>.yaml
+        required: false
+      secret:
+        name: secret-patches-<< stage >>.yaml
+        required: false
+  - id: management-cluster
+    path:
+      directory: 2-management-clusters/<< management-cluster >>
+      required: true
+    values:
+      path:
+        directory: ""
+      configMap:
+        name: values.yaml
+      secret:
+        name: secret.yaml
+    templates:
+      path:
+        directory: << konfiguration >>
+        required: false
+      configMap:
+        name: config-map-template.yaml
+        required: false
+        values:
+          merge:
+            strategy: SameTypeInLayerOrder
+      secret:
+        name: secret-template.yaml
+        required: false
+        values:
+          merge:
+            strategy: ConfigMapsAndSecretsInLayerOrder
+    patches:
+      path:
+        directory: << konfiguration >>
+        required: false
+      configMap:
+        name: config-map-patches.yaml
+        required: false
+      secret:
+        name: secret-patches.yaml
+        required: false
+includes:
+  - id: shared
+    function:
+      name: importShared
+    path:
+      directory: shared
+      required: true
+    extension: ""

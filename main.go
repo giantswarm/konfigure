@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/giantswarm/konfigure/cmd/render"
+
 	"github.com/go-logr/zapr"
 	"go.uber.org/zap"
 
@@ -113,6 +115,16 @@ func mainE(ctx context.Context) error {
 			Run: func(_ *cobra.Command, _ []string) {
 				fmt.Println(commandVersion())
 			},
+		}
+		subcommands = append(subcommands, cmd)
+	}
+	{
+		c := render.Config{
+			Logger: logger,
+		}
+		cmd, err := render.New(c)
+		if err != nil {
+			return err
 		}
 		subcommands = append(subcommands, cmd)
 	}

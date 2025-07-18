@@ -1,0 +1,67 @@
+path: 0-base/values.yaml
+data: |
+  provider: unknown
+---
+path: 0-base/secret.yaml
+data: ""
+---
+path: 0-base/konfiguration-1/config-map-template.yaml
+data: |
+  provider: {{ .provider }}
+---
+path: 0-base/konfiguration-1/secret-template.yaml
+data: ""
+---
+path: 1-stages/stages/dev/values.yaml
+data: |
+  stage: dev
+  url: dev.example.com
+  replicas: 1
+---
+path: 1-stages/stages/dev/secret.yaml
+data: ""
+---
+path: 1-stages/stages/production/values.yaml
+data: |
+  stage: production
+  url: production.example.com
+  replicas: 3
+---
+path: 1-stages/stages/production/secret.yaml
+data: ""
+---
+path: 1-stages/konfigurations/konfiguration-1/config-map-template.yaml
+data: |
+  stage:
+    name: {{ .stage }}
+  service:
+    url: {{ .url }}
+  deployment:
+    replicas: {{ .replicas }}
+---
+path: 2-management-clusters/mc-1/values.yaml
+data: |
+  provider: capa
+---
+path: 2-management-clusters/mc-1/secret.yaml
+data: ""
+---
+path: 2-management-clusters/mc-2/values.yaml
+data: |
+  provider: capz
+---
+path: 2-management-clusters/mc-2/secret.yaml
+data: ""
+---
+path: configmap-values.yaml.golden
+data: |
+  deployment:
+    replicas: 3
+  provider: capz
+  service:
+    url: production.example.com
+  stage:
+    name: production
+---
+path: secret-values.yaml.golden
+data: ""

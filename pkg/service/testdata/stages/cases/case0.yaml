@@ -1,0 +1,29 @@
+path: 0-base/values.yaml
+data: ""
+---
+path: 0-base/secret.yaml
+data: ""
+---
+path: 0-base/konfiguration-1/config-map-template.yaml
+data: ""
+---
+path: 0-base/konfiguration-1/secret-template.yaml
+data: ""
+---
+path: 1-stages/stages/dev/values.yaml
+data: ""
+---
+path: 1-stages/stages/dev/secret.yaml
+data: ""
+---
+path: 2-management-clusters/mc-1/values.yaml
+data: ""
+---
+path: 2-management-clusters/mc-1/secret.yaml
+data: ""
+---
+path: configmap-values.yaml.golden
+data: ""
+---
+path: secret-values.yaml.golden
+data: ""
