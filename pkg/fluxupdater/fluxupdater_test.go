@@ -67,6 +67,7 @@ func TestRunner_updateConfig(t *testing.T) {
 		latestPresent           bool
 		testArchiveName         []byte
 		testArchiveTimestamp    []byte
+		testArtifactUrl         []byte
 		testConfigYaml          []byte
 	}{
 		{
@@ -85,6 +86,7 @@ func TestRunner_updateConfig(t *testing.T) {
 			name:                    "old revision archive loaded, newer available",
 			testArchiveName:         []byte(`deprecatedrevision.tar.gz`),
 			testArchiveTimestamp:    []byte(`Thu, 28 Feb 2024 00:00:00 GMT`),
+			testArtifactUrl:         []byte(fmt.Sprintf("%s/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz", srcCtrlUrl)),
 			testConfigYaml:          []byte(`oldvalue`),
 		},
 		{
@@ -98,6 +100,7 @@ func TestRunner_updateConfig(t *testing.T) {
 			name:                    "latest revision loaded, modified since last time",
 			testArchiveName:         []byte(`latestrevision.tar.gz`),
 			testArchiveTimestamp:    []byte(`Thu, 01 Mar 2024 00:00:00 GMT`),
+			testArtifactUrl:         []byte(fmt.Sprintf("%s/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz", srcCtrlUrl)),
 			testConfigYaml:          []byte(`oldvalue`),
 		},
 		{
@@ -108,6 +111,7 @@ func TestRunner_updateConfig(t *testing.T) {
 			name:                    "latest archive loaded",
 			testArchiveName:         []byte(`latestrevision.tar.gz`),
 			testArchiveTimestamp:    []byte(advertisedTimestamp),
+			testArtifactUrl:         []byte(fmt.Sprintf("%s/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz", srcCtrlUrl)),
 			testConfigYaml:          []byte(`somevalue`),
 		},
 	}
@@ -126,18 +130,18 @@ func TestRunner_updateConfig(t *testing.T) {
 				tc.testArchiveName,
 				tc.testConfigYaml,
 				tc.testArchiveTimestamp,
+				tc.testArtifactUrl,
 			)
 			if err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
 
 			fluxUpdaterConfig := Config{
-				CacheDir:                tmpCacheDir,
-				ApiServerHost:           k8sUrl.Hostname(),
-				ApiServerPort:           k8sUrl.Port(),
-				KubernetesTokenFile:     "testdata/token",
-				SourceControllerService: fmt.Sprintf("%s:%s", srcCtrlUrl.Hostname(), srcCtrlUrl.Port()),
-				GitRepository:           "flux-giantswarm/giantswarm-config",
+				CacheDir:            tmpCacheDir,
+				ApiServerHost:       k8sUrl.Hostname(),
+				ApiServerPort:       k8sUrl.Port(),
+				KubernetesTokenFile: "testdata/token",
+				GitRepository:       "flux-giantswarm/giantswarm-config",
 			}
 
 			fluxUpdater, err := New(fluxUpdaterConfig)
@@ -178,7 +182,7 @@ func TestRunner_updateConfig(t *testing.T) {
 	}
 }
 
-func prePopulateCache(cache string, archive, config, timestamp []byte) error {
+func prePopulateCache(cache string, archive, config, timestamp, url []byte) error {
 	var err error
 	if len(timestamp) > 0 {
 		err = os.WriteFile(path.Join(cache, cacheLastArchive), archive, 0755) // nolint:gosec
@@ -201,6 +205,13 @@ func prePopulateCache(cache string, archive, config, timestamp []byte) error {
 
 	if len(timestamp) > 0 {
 		err = os.WriteFile(path.Join(cache, cacheLastArchiveTimestamp), timestamp, 0755) // nolint:gosec
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(timestamp) > 0 {
+		err = os.WriteFile(path.Join(cache, cacheLastArtifactUrl), url, 0755) // nolint:gosec
 		if err != nil {
 			return err
 		}

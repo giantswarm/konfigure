@@ -21,6 +21,7 @@ import (
 const (
 	cacheLastArchive          = "lastarchive"
 	cacheLastArchiveTimestamp = "lastarchivetimestamp"
+	cacheLastArtifactUrl      = "lastartifacturl"
 
 	// v1SourceAPIGroup holds Flux Source group and v1 version
 	v1SourceAPIGroup = "source.toolkit.fluxcd.io/v1"
@@ -39,8 +40,6 @@ type Config struct {
 	ApiServerPort       string
 	KubernetesTokenFile string
 
-	SourceControllerService string
-
 	GitRepository string
 }
 
@@ -50,8 +49,6 @@ type FluxUpdater struct {
 	ApiServerHost       string
 	ApiServerPort       string
 	KubernetesTokenFile string
-
-	SourceControllerService string
 
 	GitRepository string
 }
@@ -76,10 +73,6 @@ func New(config Config) (*FluxUpdater, error) {
 		kubernetesTokenFile = config.KubernetesTokenFile
 	}
 
-	if config.SourceControllerService == "" {
-		return nil, &InvalidConfigError{message: "sourceControllerService must not be empty"}
-	}
-
 	if config.GitRepository == "" {
 		return nil, &InvalidConfigError{message: "gitRepository must not be empty"}
 	}
@@ -89,12 +82,11 @@ func New(config Config) (*FluxUpdater, error) {
 	}
 
 	return &FluxUpdater{
-		CacheDir:                config.CacheDir,
-		ApiServerHost:           config.ApiServerHost,
-		ApiServerPort:           config.ApiServerPort,
-		KubernetesTokenFile:     kubernetesTokenFile,
-		SourceControllerService: config.SourceControllerService,
-		GitRepository:           config.GitRepository,
+		CacheDir:            config.CacheDir,
+		ApiServerHost:       config.ApiServerHost,
+		ApiServerPort:       config.ApiServerPort,
+		KubernetesTokenFile: kubernetesTokenFile,
+		GitRepository:       config.GitRepository,
 	}, nil
 }
 
@@ -106,18 +98,11 @@ func New(config Config) (*FluxUpdater, error) {
 // The URL is then used to download a new version of the archive and untar it.
 // The archive name is being saved for later comparison.
 func (u *FluxUpdater) UpdateConfig() error {
-	// We first get the 'lastarchive' file, because it contains the name of the artifact we have
-	// been using up until now. If the file is gone, it means we haven't populated the cache yet,
+	// We first get the 'lastarchivetimestamp' and 'lastartifacturl' files, because it contains the URL
+	//of the artifact we have been using up until now. If the file is gone, it means we haven't populated the cache yet,
 	// hence we must do it now. If the file is present, but archive of the given name is no longer
 	// advertised by the Source Controller, we must look for a new one and re-populate the cache. If the
 	// file is present, and is still advertised by the Source Controller, all is good and we may return.
-	cachedArtifact, err := os.ReadFile(path.Join(u.CacheDir, cacheLastArchive))
-	if err != nil && os.IsNotExist(err) {
-		cachedArtifact = []byte("placeholder.tar.gz")
-	} else if err != nil {
-		return err
-	}
-
 	cachedArtifactTimestampByte, err := os.ReadFile(path.Join(u.CacheDir, cacheLastArchiveTimestamp))
 	if err != nil && os.IsNotExist(err) {
 		cachedArtifactTimestampByte = []byte(time.Time{}.Format(http.TimeFormat))
@@ -130,41 +115,52 @@ func (u *FluxUpdater) UpdateConfig() error {
 		return err
 	}
 
-	url := fmt.Sprintf("http://%s/gitrepository/%s/%s", u.SourceControllerService, u.GitRepository, string(cachedArtifact))
-	// Make a HEAD request to the Source Controller. This allows us to check if the artifact
-	// we have cached is still offered.
+	cacheLastArtifactUrlByte, err := os.ReadFile(path.Join(u.CacheDir, cacheLastArtifactUrl))
+	if err != nil && os.IsNotExist(err) {
+		cacheLastArtifactUrlByte = []byte("")
+	} else if err != nil {
+		return err
+	}
+
+	url := string(cacheLastArtifactUrlByte)
+
 	client := &http.Client{Timeout: 60 * time.Second}
-	request, err := http.NewRequest(http.MethodHead, url, nil)
-	if err != nil {
-		return err
-	}
 
-	response, err := client.Do(request)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	// The artifact we were asking for is still advertised by the Source Controller,
-	// and has not changed since the last time, hence we may skip further processing.
-	if response.StatusCode == http.StatusOK {
-		// The artifact we are asking for is still available, we need to check its
-		// last modification date
-		artifactTimestamp, err := time.Parse(http.TimeFormat, response.Header.Get("Last-Modified"))
+	if url != "" {
+		// Make a HEAD request to the Source Controller. This allows us to check if the artifact
+		// we have cached is still offered.
+		request, err := http.NewRequest(http.MethodHead, url, nil)
 		if err != nil {
 			return err
 		}
 
-		if cachedArtifactTimestamp.After(artifactTimestamp) || cachedArtifactTimestamp.Equal(artifactTimestamp) {
-			return nil
+		response, err := client.Do(request)
+		if err != nil {
+			return err
 		}
-	} else {
-		if response.StatusCode != http.StatusNotFound {
-			return &ExecutionFailedError{
-				message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode),
+		defer func() { _ = response.Body.Close() }()
+
+		// The artifact we were asking for is still advertised by the Source Controller,
+		// and has not changed since the last time, hence we may skip further processing.
+		if response.StatusCode == http.StatusOK {
+			// The artifact we are asking for is still available, we need to check its
+			// last modification date
+			artifactTimestamp, err := time.Parse(http.TimeFormat, response.Header.Get("Last-Modified"))
+			if err != nil {
+				return err
+			}
+
+			if cachedArtifactTimestamp.After(artifactTimestamp) || cachedArtifactTimestamp.Equal(artifactTimestamp) {
+				return nil
 			}
 		} else {
-			url = ""
+			if response.StatusCode != http.StatusNotFound {
+				return &ExecutionFailedError{
+					message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode),
+				}
+			} else {
+				url = ""
+			}
 		}
 	}
 
@@ -201,8 +197,9 @@ func (u *FluxUpdater) UpdateConfig() error {
 
 		// Make a GET request to the Kubernetes API server to get the GitRepository
 		// in a JSON format.
+		var response *http.Response
 		for _, p := range k8sApiPath {
-			request, err = http.NewRequest(http.MethodGet, p, nil)
+			request, err := http.NewRequest(http.MethodGet, p, nil)
 			if err != nil {
 				return err
 			}
@@ -280,12 +277,12 @@ func (u *FluxUpdater) UpdateConfig() error {
 		url = gr.Status.Artifact.Url
 	}
 
-	request, err = http.NewRequest(http.MethodGet, url, nil)
+	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}
 
-	response, err = client.Do(request)
+	response, err := client.Do(request)
 	if err != nil {
 		return err
 	}
@@ -314,13 +311,18 @@ func (u *FluxUpdater) UpdateConfig() error {
 		return err
 	}
 
-	// Update the last archive name and timestamp
+	// Update the last archive name, timestamp and url
 	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchive), []byte(filepath.Base(url)), 0750) // nolint:gosec
 	if err != nil {
 		return err
 	}
 
 	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchiveTimestamp), []byte(response.Header.Get("Last-Modified")), 0750) // nolint:gosec
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArtifactUrl), []byte(url), 0750) // nolint:gosec
 	if err != nil {
 		return err
 	}
