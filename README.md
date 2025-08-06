@@ -9,7 +9,7 @@ Documentation: [intranet](https://intranet.giantswarm.io/docs/dev-and-releng/con
 
 ## Generating values locally with the Generalized Configuration System
 
-The Generalized Configuration System is a schema-based, dynamic configuration generation framework.  
+The Generalized Configuration System is a schema-based, dynamic configuration generation framework.
 
 This kind of configuration is called `Konfiguration` or `kfg` and the schema is called `KonfigurationSchema` or `kfgs`.
 
@@ -26,7 +26,7 @@ SOPS_AGE_KEY_FILE="..." konfigure render \
 ```
 
 The `--raw` flag can be passed to skip wrapping the results into a respective `ConfigMap` and `Secret` manifest. In that
-case the `--name` and `--namespace` flags are ignored / not required. This mode can be used to use the resulting 
+case the `--name` and `--namespace` flags are ignored / not required. This mode can be used to use the resulting
 configuration files for any purposes.
 
 ### The Konfiguration Schema
