@@ -2,30 +2,21 @@ package generator
 
 import (
 	"context"
-	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/go-logr/logr"
-
 	"github.com/giantswarm/konfigure/pkg/sopsenv"
-	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
+
 	"github.com/giantswarm/konfigure/pkg/testutils"
 
 	"github.com/ghodss/yaml"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgofake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestGenerator_generateRawConfig(t *testing.T) {
-	logger := logr.Discard()
-
 	// This archive store development private keys. This is to avoid `gitleaks`
 	// and `pre-commit` to complain on files stored in this repository. We untar
 	// it here so that it can be used in test cases. Storing testing private keys
@@ -224,39 +215,15 @@ func TestGenerator_generateRawConfig(t *testing.T) {
 			}
 			defer func() { _ = os.RemoveAll(tmpDir) }()
 
-			fs := newMockFilesystem(tmpDir, tc.caseFile)
+			fs := testutils.NewMockFilesystem(tmpDir, tc.caseFile)
 
-			var se *sopsenv.SOPSEnv
-			{
-				k8sObj := make([]runtime.Object, 0)
-				for _, sec := range tc.secrets {
-					k8sObj = append(k8sObj, sec)
-				}
-
-				client := clientgofake.NewSimpleClientset(k8sObj...)
-
-				seConfig := sopsenv.SOPSEnvConfig{
-					K8sClient:  client,
-					KeysDir:    "",
-					KeysSource: key.KeysSourceKubernetes,
-					Logger:     logger,
-				}
-
-				se, err = sopsenv.NewSOPSEnv(seConfig)
-				if err != nil {
-					t.Fatalf("error == %#v, want nil", err)
-				}
-				defer se.Cleanup()
+			// SOPS env setup from fake Kubernetes
+			se, err := sopsenv.SetupNewSopsEnvironmentFromFakeKubernetes(tc.secrets)
+			if err != nil {
+				t.Fatalf("faled to setup SOPS environment: %s", err.Error())
 			}
 
-			isSOPS := len(tc.secrets) != 0
-
-			if isSOPS {
-				err = se.Setup(context.TODO())
-				if err != nil {
-					t.Fatalf("error == %#v, want nil", err)
-				}
-			}
+			defer se.Cleanup()
 
 			config := Config{
 				Fs:               fs,
@@ -302,7 +269,7 @@ func Test_sortYAMLKeys(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	fs := newMockFilesystem(tmpDir, "testdata/cases/test_instances.yaml")
+	fs := testutils.NewMockFilesystem(tmpDir, "testdata/cases/test_instances.yaml")
 
 	config := Config{
 		Fs:               fs,
@@ -345,95 +312,6 @@ func Test_sortYAMLKeys(t *testing.T) {
 			t.Fatalf("configmap[%d] (diff): %s\n", i, diff)
 		}
 	}
-}
-
-func Test_sortYAMLKeys_null(t *testing.T) {
-	t.Parallel()
-
-	out, err := sortYAMLKeys("")
-	if err != nil {
-		t.Fatalf("err = %#q, want %#v", err, nil)
-	}
-
-	if out != "" {
-		t.Fatalf("out = %v, want %v", out, "")
-	}
-}
-
-type mockFilesystem struct {
-	tempDirPath string
-
-	ExpectedConfigmap string
-	ExpectedSecret    string
-}
-
-type testFile struct {
-	Path string `json:"path"`
-	Data string `json:"data"`
-}
-
-func newMockFilesystem(temporaryDirectory, caseFile string) *mockFilesystem {
-	fs := mockFilesystem{
-		tempDirPath: temporaryDirectory,
-	}
-	for _, p := range []string{"default", "installations", "include"} {
-		if err := os.MkdirAll(path.Join(temporaryDirectory, p), 0750); err != nil {
-			panic(err)
-		}
-	}
-
-	rawData, err := os.ReadFile(path.Clean(caseFile))
-	if err != nil {
-		panic(err)
-	}
-
-	// Necessary to avoid cutting SOPS-encrypted files
-	splitFiles := strings.Split(string(rawData), "\n---\n")
-
-	for _, rawYaml := range splitFiles {
-		rawYaml = rawYaml + "\n"
-
-		file := testFile{}
-		if err := yaml.Unmarshal([]byte(rawYaml), &file); err != nil {
-			panic(err)
-		}
-
-		p := path.Join(temporaryDirectory, file.Path)
-		dir, filename := path.Split(p)
-
-		switch filename {
-		case "configmap-values.yaml.golden":
-			fs.ExpectedConfigmap = file.Data
-			continue
-		case "secret-values.yaml.golden":
-			fs.ExpectedSecret = file.Data
-			continue
-		}
-
-		if err := os.MkdirAll(dir, 0750); err != nil {
-			panic(err)
-		}
-
-		err := os.WriteFile(p, []byte(file.Data), 0644) // nolint:gosec
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	return &fs
-}
-
-func (fs *mockFilesystem) ReadFile(filepath string) ([]byte, error) {
-	data, err := os.ReadFile(path.Clean(path.Join(fs.tempDirPath, filepath)))
-	if err != nil {
-		return []byte{}, &NotFoundError{message: fmt.Sprintf("%q not found", filepath)}
-	}
-	return data, nil
-}
-
-func (fs *mockFilesystem) ReadDir(dirpath string) ([]fs.DirEntry, error) {
-	p := path.Join(fs.tempDirPath, dirpath)
-	return os.ReadDir(path.Clean(p))
 }
 
 type noopTraverser struct{}

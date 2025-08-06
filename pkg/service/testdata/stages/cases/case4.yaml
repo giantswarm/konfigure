@@ -1,0 +1,161 @@
+path: 0-base/values.yaml
+data: ""
+---
+path: 0-base/secret.yaml
+data: ""
+---
+path: 0-base/konfiguration-1/config-map-template.yaml
+data: |
+  location:
+    latitude: 60
+    longitude: 90
+    dummy: value
+  deployment:
+    initContainers:
+      - image: something
+        tag: latest
+      - image: other
+        tag: v2.0.0
+      - image: dev
+        tag: null
+    containers:
+      - image: ubuntu
+        tag: jammy
+---
+path: 0-base/konfiguration-1/secret-template.yaml
+data: ""
+---
+path: 1-stages/stages/dev/values.yaml
+data: |
+  replicas: 1
+---
+path: 1-stages/stages/dev/secret.yaml
+data: |
+  key: ENC[AES256_GCM,data:DEnC0Vbv,iv:Sq+irV/DVEZn3HUBxcY0puBOUgrk38/oZ9zap21lhRU=,tag:6v7UynisndDbjma/lzZBsg==,type:str]
+  certificate: ENC[AES256_GCM,data:VTy9kV2fTsWw92Be,iv:rz91akXB2N2PpVquZoEOOYy73EPQ3dAEpS8uHzk4miE=,tag:n7dv0WXym8dY4ecUQBDQ2Q==,type:str]
+  sops:
+    kms: []
+    gcp_kms: []
+    azure_kv: []
+    hc_vault: []
+    age:
+      - recipient: age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw
+        enc: |
+          -----BEGIN AGE ENCRYPTED FILE-----
+          YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBpYnlJaDRHaHNNY1cveEcz
+          RCsvRHRGRUtEeHBSRm4rZW5WOGRGSTNjaUdRCmtYdUNuR1J5UU4xT3JhaUE4cWR6
+          aXBicExpNXQxcVMvN08wMHI3dGlUNVEKLS0tIE1OaFFIeE1QUUNyUlYvQ0JPWmkz
+          Q3BqMnFmSDRFbGk3eGxJZ3RlL2lNbDAKqJYskxjgFONEDJOecVv7u6BChhpHVSN/
+          BUv6mjUT3jOrCbaY+dc3c70t6A41hxt/exlKaSnu1ZWMag1axjFeZA==
+          -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-07-15T13:16:04Z"
+    mac: ENC[AES256_GCM,data:Kw13cq8SjG3Fqn62cDQtgM6/nmOesFecdMpWV+YitUmQ73CVW5SQw9B2qnUeF8e7RjN7aGiZ6pGvazN4umUoVpz31GAt42j/eW7149rqJMgyIfZbnrOWvgkdFo1IlMws3r3D9Zauqr7G2IxDJisTx+sPgQSlgcbnOE5veJSJlSQ=,iv:RwB5XVTCHEeFtwOV+uKGxsor1FOTyrTGXdBl3aAYGMA=,tag:XSd6H0zRv9bPm3+kWhIwTQ==,type:str]
+    pgp: []
+    unencrypted_suffix: _unencrypted
+    version: 3.9.4
+---
+path: 1-stages/konfigurations/konfiguration-1/config-map-template.yaml
+data: |
+  deployment:
+    replicas: {{ .replicas }}
+---
+path: 1-stages/konfigurations/konfiguration-1/secret-template.yaml
+data: |
+  something:
+    key: {{ .key }}
+    certificate: |
+      {{ .certificate | nindent 6}}
+    provider: example
+---
+path: 1-stages/konfigurations/konfiguration-1/config-map-patches-dev.yaml
+data: |
+  - op: add
+    path: /deployment/containers/-
+    value:
+      image: sidecar
+      version: v1.2.3
+      args:
+        - cowsay
+        - moo
+  - op: replace
+    path: /deployment/initContainers/0/tag
+    value: 0.7.5
+  - op: replace
+    path: /deployment/containers/0/tag
+    value: noble
+---
+path: 2-management-clusters/mc-1/values.yaml
+data: |
+  mc:
+    name: mc-1
+    region: eu-central-1
+---
+path: 2-management-clusters/mc-1/secret.yaml
+data: ""
+---
+path: 2-management-clusters/mc-1/konfiguration-1/config-map-template.yaml
+data: |
+  mc:
+    name: {{ .mc.name }}
+    region: {{ .mc.region }}
+---
+path: 2-management-clusters/mc-1/konfiguration-1/secret-template.yaml
+data: ""
+---
+path: 2-management-clusters/mc-1/konfiguration-1/config-map-patches.yaml
+data: |
+  - op: remove
+    path: /deployment/initContainers/2
+  - op: add
+    path: /deployment/containers/0/args
+    value:
+      - arg1
+      - arg2
+  - op: replace
+    path: /location
+    value:
+      latitude: 46.25° N
+      longitude: 20.14° E
+---
+path: 2-management-clusters/mc-1/konfiguration-1/secret-patches.yaml
+data: |
+  - op: replace
+    path: /something/provider
+    value: override
+---
+path: configmap-values.yaml.golden
+data: |
+  deployment:
+    containers:
+      - args:
+          - arg1
+          - arg2
+        image: ubuntu
+        tag: noble
+      - args:
+          - cowsay
+          - moo
+        image: sidecar
+        version: v1.2.3
+    initContainers:
+      - image: something
+        tag: 0.7.5
+      - image: other
+        tag: v2.0.0
+    replicas: 1
+  location:
+    latitude: 46.25° N
+    longitude: 20.14° E
+  mc:
+    name: mc-1
+    region: eu-central-1
+---
+path: secret-values.yaml.golden
+data: |
+  something:
+    certificate: |
+      abc
+      def
+      ghi
+    key: secret
+    provider: override

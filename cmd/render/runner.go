@@ -1,0 +1,102 @@
+package render
+
+import (
+	"context"
+	"fmt"
+	"io"
+
+	"github.com/giantswarm/konfigure/pkg/sopsenv"
+
+	"github.com/giantswarm/konfigure/pkg/service"
+	"github.com/giantswarm/konfigure/pkg/utils"
+
+	"github.com/go-logr/logr"
+
+	"github.com/spf13/cobra"
+)
+
+type runner struct {
+	flag   *flag
+	logger logr.Logger
+	stdout io.Writer
+	stderr io.Writer
+}
+
+func (r *runner) Run(cmd *cobra.Command, args []string) error {
+	ctx := context.Background()
+
+	err := r.flag.Validate()
+	if err != nil {
+		return err
+	}
+
+	err = r.run(ctx, cmd, args)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
+	// Setup SOPS environment
+	sopsEnv, err := sopsenv.NewSOPSEnv(sopsenv.SOPSEnvConfig{
+		KeysDir:    r.flag.SOPSKeysDir,
+		KeysSource: r.flag.SOPSKeysSource,
+		Logger:     r.logger,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = sopsEnv.Setup(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer sopsEnv.Cleanup()
+
+	// Setup dynamic service
+	dynamicService := service.NewDynamicService(service.DynamicServiceConfig{
+		Log: r.logger,
+	})
+
+	// Render configs
+	if r.flag.Raw {
+		configMapData, secretData, err := dynamicService.RenderRaw(r.flag.Dir, r.flag.Schema, r.flag.Variables)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("---")
+		fmt.Println(configMapData)
+		fmt.Println("---")
+		fmt.Println(secretData)
+	} else {
+		configMap, secret, err := dynamicService.Render(service.RenderInput{
+			// Root directory of the config repository.
+			Dir:              r.flag.Dir,
+			Schema:           r.flag.Schema,
+			Variables:        r.flag.Variables,
+			Name:             r.flag.Name,
+			Namespace:        r.flag.Namespace,
+			ConfigMapDataKey: r.flag.ConfigMapDataKey,
+			SecretDataKey:    r.flag.SecretDataKey,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = utils.PrettyPrint(configMap)
+		if err != nil {
+			return err
+		}
+
+		err = utils.PrettyPrint(secret)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
