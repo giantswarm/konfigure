@@ -10,6 +10,9 @@ We have three layers: `base`, `stages` and `cluster`.
 
 All example commands are to be executed at the root of the `examples/staged-environments` folder.
 
+In all examples commands the `--raw` flag is passed to avoid wrapping the results into Kubernetes manifests and
+thus simplify the output for the sake of the example.
+
 Secret value files are encrypted with the `example.age` key.
 
 ### Configuration for konfiguration-1 on cluster-1 at the dev stage
@@ -142,3 +145,42 @@ Note these in the result:
 - the `.a.f.g` list is overwritten, as the merge library is not merging lists as object, but overwrites them like it does
   with primitive types.
   > ℹ️ If you need more fine-grained manipulation of lists, you can use JSON6902 patches.
+
+### Configuration for konfiguration-2 on cluster-2 at the dev stage
+
+```shell
+SOPS_AGE_KEY_FILE=example.age konfigure render \
+  --schema schema.yaml \
+  --dir . \
+  --variable "stage=dev" \
+  --variable="cluster=cluster-2" \
+  --variable="konfiguration=konfiguration-2" \
+  --raw
+```
+
+The result will be:
+
+```yaml
+---
+cluster:
+  name: cluster-2
+  provider: capz
+todo:
+  - buy milk
+  - cut grass
+  - clean fridge
+  - the current stage is: dev
+
+---
+
+```
+
+Note these in the result:
+
+- for the config map result:
+  - the `.cluster.name` and `.cluster.provider` fields are taking values from the [cluster-2 config map value file](2-clusters/cluster-1/values.yaml)
+  - the `.todo` field value is the result of the rendered shared file [todo.txt](shared/todo.txt) defined in the base
+    layer [config map template](0-base/konfiguration-2/config-map-template.yaml)
+    - notice that the context is passed down to the shared template and the value from the [dev stage value file](1-stages/stages/dev/values.yaml)
+      is taken into account rendering the shared template
+- the secret result can be empty, as we did not define any secret templates - or defined as empty - for konfiguration-2
