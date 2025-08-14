@@ -1,0 +1,2 @@
+stage: production
+stageUrl: production.example.com
