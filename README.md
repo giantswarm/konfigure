@@ -239,7 +239,43 @@ the shared template and then include the result in the layer template.
 
 #### Examples
 
+See the [examples](./examples) folder.
+
 Giant Swarm schemas are located at: https://github.com/giantswarm/konfiguration-schemas.
+
+### How does rendering a schema work?
+
+These are the steps `konfigure render` takes to render a subtree of a config repository based on the schema and the
+passed variable values.
+
+- all paths and file names are resolved based on the variables
+- all value files, templates are loaded
+- all templates are rendered individually with their value files merged based on the set rules
+- all patches are loaded
+- rendered templates are folded together and patched
+  - we start with an empty base (accumulator)
+  - merge the next layer on top of that
+  - apply patches for the result merge
+  - repeat for the next layer in order, taking the patched result as the base (accumulator)
+
+This last step, for example, assuming we 3 layers: `base`, `stages`, `cluster` for a multistaged environment setup:
+
+- we start with a result as the accumulator for both config maps and secrets
+- folding `base` layer
+  - we take the rendered `base` layer templates and merge them on top of the accumulator
+  - apply the patches on the accumulator from the `base` layer for each type
+    - note that patches do not really make sense for the first layer, cos you might as well add the results
+      to the templates, but you can do it if you have a use case for it.
+- folding `stages` layer
+  - we take the rendered `stages` layer templates and merge them on top of the accumulator
+  - apply the patches on the accumulator from the `stages` layer for each type
+- folding `cluster` layer
+    - we take the rendered `cluster` layer templates and merge them on top of the accumulator
+    - apply the patches on the accumulator from the `cluster` layer for each type
+- we ran out of layers, terminate
+  - the accumulator now has the rendered result for both types of configuration
+
+Please note that the layer order, currently, is always following the list order in the `.layers` list of the schema.
 
 ## Generating values locally (legacy)
 
