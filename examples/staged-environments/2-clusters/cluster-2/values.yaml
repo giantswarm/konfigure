@@ -1,0 +1,4 @@
+foo: baz
+cluster:
+  name: cluster-2
+  provider: capz

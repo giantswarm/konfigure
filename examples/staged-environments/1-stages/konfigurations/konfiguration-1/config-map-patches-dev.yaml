@@ -1,0 +1,5 @@
+- op: remove
+  path: /a/b
+- op: add
+  path: /a/h/-
+  value: added by patch

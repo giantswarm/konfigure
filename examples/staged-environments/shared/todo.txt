@@ -1,0 +1,4 @@
+- buy milk
+- cut grass
+- clean fridge
+- the current stage is: {{ .stage }}

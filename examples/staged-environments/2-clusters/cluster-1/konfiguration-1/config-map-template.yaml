@@ -1,0 +1,11 @@
+a:
+  x: 623
+  xx: 295
+  b:
+    d: overwritten
+    j: 12
+    k: dummy
+  f:
+    g:
+      - d
+      - e

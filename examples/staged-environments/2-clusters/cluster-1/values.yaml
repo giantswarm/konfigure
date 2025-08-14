@@ -1,0 +1,4 @@
+foo: baz
+cluster:
+  name: cluster-1
+  provider: capa

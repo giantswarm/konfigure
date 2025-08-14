@@ -1,0 +1,5 @@
+cluster:
+  name: {{ .cluster.name }}
+  provider: {{ .cluster.provider }}
+todo:
+  {{- importShared "todo.txt" . | nindent 2 -}}

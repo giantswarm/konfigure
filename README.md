@@ -1,5 +1,4 @@
 [![CircleCI](https://circleci.com/gh/giantswarm/konfigure.svg?&style=shield)](https://circleci.com/gh/giantswarm/konfigure)
-[![Docker Repository on Quay](https://quay.io/repository/giantswarm/konfigure/status)](https://quay.io/repository/giantswarm/konfigure)
 
 # konfigure
 
@@ -17,8 +16,8 @@ Example:
 
 ```
 SOPS_AGE_KEY_FILE="..." konfigure render \
-  --schema legacy.yaml \
-  --dir ./giantswarm-configs \
+  --schema schema.yaml \
+  --dir giantswarm-configs \
   --variable "installation=${INSTALLATION}" \
   --variable "app=${APP}" \
   --name ${APP}-konfiguration
@@ -55,7 +54,7 @@ variables:
 
 The `layers` list of a schema defines a list of layers that describe the structure of the configuration.
 
-Each layer consists of the following main parts: `path`, `value files`, `templates`.
+Each layer consists of the following main parts: `path`, `value files`, `templates` and `patches`.
 
 Both `values files` and `templates` have support for unencrypted and encrypted data, that will respectively can be
 wrapped into a resulting kubernetes `ConfigMap` or `Secret` manifests.
@@ -104,15 +103,21 @@ layers:
 
 The `.id` of a layer must be a unique values across all layers to reference layers in other layers. More on that later.
 
+##### Path
+
 The `.path` of a layer defines the root folder of the layer in the repository. The `.path.directory` field can be used
 with variable substitution. The `.path.required` field can make the existence of the layer optional. If so, the layer
 is considered empty without raising an error.
+
+##### Values
 
 The `.values` of a layer defines where `value files` are located for the layer. The `.values.path.directory` field
 defines a path relative to the root of the layer, empty means the root of the layer. This field can be used
 with variable substitution. The `.values.configMap` and `.values.secret` field defines where the value files are
 located for the layer. The `name` field of both can be used with variable substitution. The `required` field can
 make the existence of these value files optional, considering their absence as an empty file without raising an error.
+
+##### Templates
 
 The `.templates` of a layer defines where the Go templates are located for the layer. The `.templates.path` is very
 much the same as it was for value files: relative to layer root, `name` is susceptible for variable substitution. The
@@ -148,9 +153,57 @@ layers:
             type: Secret
 ```
 
+##### Patches
+
+The `.patches` of a layer defines a set of [JSON6902 patches](https://datatracker.ietf.org/doc/html/rfc6902), similar
+to how `kustomize` supports them.
+
+The purpose of patches is to allow more flexible modifications of the render results up to that point. Since rendered
+layers are merged (folded) on top of each other, you are always merging objects and overwriting keys. But you might,
+for example, want more control on working with lists. Let's say in a given layer you only want to remove an item or
+add a new one to the list from previous layers, instead of overwriting the full list.
+
+An example for declaring patches for a layer:
+
+```yaml
+layers:
+  # ...
+  - id: stages
+    # ...
+    patches:
+      path:
+        directory: << app >>
+        required: false
+      configMap:
+        name: config-map-patches.yaml
+        required: false
+      secret:
+        name: secret-patches.yaml
+        required: false
+```
+
+Let's say you want to add a new init container. You could add this to `<< app >>/config-map-patches.yaml` at the root
+of the layer:
+
+```yaml
+- op: add
+  path: /initContainers/-
+  value:
+    name: sleep
+    image: alpine:latest
+    command: [ "sleep", "10" ]
+```
+
+The `.path` field of patches works the same way as with layers, for example. It is relative to the root of the layer,
+and the `.directory` field is susceptible for variable substitution.
+
+The `.configMap` and `.secret` fields define where the patches are located. In both cases, the `name` field is available
+for variable substitution. Setting the `required` field to false will consider the patch empty in case it is missing
+without raising an error.
+
 #### Includes
 
-The `includes` list of a schema defines a list of folders that can contain shared templates across all other templates.
+The `includes` list of a schema defines a list of folders that can contain shared templates across all layer templates.
 
 For example:
 
@@ -186,7 +239,43 @@ the shared template and then include the result in the layer template.
 
 #### Examples
 
+See the [examples](./examples) folder.
+
 Giant Swarm schemas are located at: https://github.com/giantswarm/konfiguration-schemas.
+
+### How does rendering a schema work?
+
+These are the steps `konfigure render` takes to render a subtree of a config repository based on the schema and the
+passed variable values.
+
+- all paths and file names are resolved based on the variables
+- all value files, templates are loaded
+- all templates are rendered individually with their value files merged based on the set rules
+- all patches are loaded
+- rendered templates are folded together and patched
+  - we start with an empty base (accumulator)
+  - merge the next layer on top of that
+  - apply patches for the result merge
+  - repeat for the next layer in order, taking the patched result as the base (accumulator)
+
+This last step, for example, assuming we 3 layers: `base`, `stages`, `cluster` for a multistaged environment setup:
+
+- we start with a result as the accumulator for both config maps and secrets
+- folding `base` layer
+  - we take the rendered `base` layer templates and merge them on top of the accumulator
+  - apply the patches on the accumulator from the `base` layer for each type
+    - note that patches do not really make sense for the first layer, cos you might as well add the results
+      to the templates, but you can do it if you have a use case for it.
+- folding `stages` layer
+  - we take the rendered `stages` layer templates and merge them on top of the accumulator
+  - apply the patches on the accumulator from the `stages` layer for each type
+- folding `cluster` layer
+    - we take the rendered `cluster` layer templates and merge them on top of the accumulator
+    - apply the patches on the accumulator from the `cluster` layer for each type
+- we ran out of layers, terminate
+  - the accumulator now has the rendered result for both types of configuration
+
+Please note that the layer order, currently, is always following the list order in the `.layers` list of the schema.
 
 ## Generating values locally (legacy)
 

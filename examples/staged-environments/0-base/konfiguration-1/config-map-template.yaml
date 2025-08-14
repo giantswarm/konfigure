@@ -1,0 +1,17 @@
+foo: {{ .foo }}
+cluster:
+  name: {{ .cluster.name }}
+  provider: {{ .cluster.provider }}
+a:
+  f:
+    g:
+      - a
+      - b
+      - c
+  b:
+    c: 12
+    d: "hello world"
+  h:
+    - 1st
+    - 2nd
+  e: 42
