@@ -1,0 +1,51 @@
+path: default/config.yaml
+data: ""
+---
+path: installations/puma/secret.yaml
+data: |
+  key: password
+---
+path: default/apps/operator/configmap-values.yaml.template
+data: |
+  level1:
+    {{- include "level1" . | nindent 2 }}
+    level2:
+      {{- include "level2" . | nindent 4 }}
+      level3:
+        {{- include "level3" . | nindent 6 }}
+      {{- include "level2-2" . | nindent 4 }}
+    {{- include "level1-2" . | nindent 2 }}
+---
+path: default/apps/operator/secret-values.yaml.template
+data: |
+  secretAccessKey: {{ .key }}
+---
+path: include/level1.yaml.template
+data: "firstLevel: true"
+---
+path: include/level2.yaml.template
+data: "secondLevel: true"
+---
+path: include/level3.yaml.template
+data: "thirdLevel: true"
+---
+path: include/level2-2.yaml.template
+data: "backOnSecond: true"
+---
+path: include/level1-2.yaml.template
+data: "backOnFirst: true"
+---
+path: configmap-values.yaml.golden
+data: |
+  level1:
+    backOnFirst: true
+    firstLevel: true
+    level2:
+      backOnSecond: true
+      level3:
+        thirdLevel: true
+      secondLevel: true
+---
+path: secret-values.yaml.golden
+data: |
+  secretAccessKey: password

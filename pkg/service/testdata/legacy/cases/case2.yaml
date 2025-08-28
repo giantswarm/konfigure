@@ -1,0 +1,27 @@
+path: default/config.yaml
+data: |
+  registry: docker.io
+---
+path: installations/puma/config.yaml.patch
+data: |
+  registry: azurecr.io
+---
+path: installations/puma/secret.yaml
+data: |
+  key: password
+---
+path: default/apps/operator/configmap-values.yaml.template
+data: |
+  registry: {{ .registry }}
+---
+path: default/apps/operator/secret-values.yaml.template
+data: |
+  secretAccessKey: {{ .key }}
+---
+path: configmap-values.yaml.golden
+data: |
+  registry: azurecr.io
+---
+path: secret-values.yaml.golden
+data: |
+  secretAccessKey: password

@@ -1,0 +1,35 @@
+path: default/config.yaml
+data: |
+  universalValue: 42
+---
+path: installations/puma/config.yaml.patch
+data: |
+  provider:
+    kind: aws
+    region: us-east-1
+---
+path: installations/puma/secret.yaml
+data: |
+  superSecretKey: password
+---
+path: default/apps/operator/configmap-values.yaml.template
+data: |
+  answer: {{ .universalValue }}
+  region: {{ .provider.region }}
+  availableInstances:
+  {{- include "instances" . | nindent 2 }}
+---
+path: include/instances.yaml.template
+data: |
+  - small
+  - medium
+  - large
+---
+path: configmap-values.yaml.golden
+data: |
+  answer: 42
+  availableInstances:
+    - small
+    - medium
+    - large
+  region: us-east-1
