@@ -1,4 +1,4 @@
-package decrypt
+package utils
 
 import yaml3 "gopkg.in/yaml.v3"
 

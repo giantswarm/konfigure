@@ -5,22 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/giantswarm/konfigure/cmd/render"
-
 	"github.com/go-logr/zapr"
 	"go.uber.org/zap"
 
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/konfigure/cmd/fetchkeys"
-	"github.com/giantswarm/konfigure/cmd/generate"
-	"github.com/giantswarm/konfigure/cmd/kustomizepatch"
-	"github.com/giantswarm/konfigure/cmd/lint"
+	"github.com/giantswarm/konfigure/cmd/render"
 	"github.com/giantswarm/konfigure/pkg/project"
-)
-
-const (
-	konfigureModeEnvVar = "KONFIGURE_MODE"
 )
 
 func main() {
@@ -49,64 +40,6 @@ func mainE(ctx context.Context) error {
 
 	// Add sub-commands
 	subcommands := []*cobra.Command{}
-	{
-		c := fetchkeys.Config{
-			Logger: logger,
-		}
-		cmd, err := fetchkeys.New(c)
-		if err != nil {
-			return err
-		}
-		subcommands = append(subcommands, cmd)
-	}
-	{
-		c := generate.Config{
-			Logger: logger,
-		}
-		cmd, err := generate.New(c)
-		if err != nil {
-			return err
-		}
-		subcommands = append(subcommands, cmd)
-	}
-	{
-		c := kustomizepatch.Config{
-			Logger: logger,
-		}
-		cmd, err := kustomizepatch.New(c)
-		if err != nil {
-			return err
-		}
-		subcommands = append(subcommands, cmd)
-
-		// Make kustomizepatch the main command if konfigure is running in
-		// container as a kustomize plugin. Kustomize does not know how to call
-		// sub-commands. This is enabled by setting KONFIGURE_MODE:
-		// "kustomizepatch" environment variable.
-		if v := os.Getenv(konfigureModeEnvVar); v == "kustomizepatch" {
-			cmd.SilenceErrors = true
-			cmd.SilenceUsage = true
-			err = cmd.Execute()
-			if err != nil {
-				_, err := fmt.Fprint(os.Stderr, err)
-				if err != nil {
-					return err
-				}
-				os.Exit(1)
-			}
-			return nil
-		}
-	}
-	{
-		c := lint.Config{
-			Logger: logger,
-		}
-		cmd, err := lint.New(c)
-		if err != nil {
-			return err
-		}
-		subcommands = append(subcommands, cmd)
-	}
 	{
 		cmd := &cobra.Command{
 			Use:   "version",
