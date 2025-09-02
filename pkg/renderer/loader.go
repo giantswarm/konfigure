@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/giantswarm/konfigure/pkg/decrypt"
+	"github.com/giantswarm/konfigure/pkg/utils"
 
 	sopsV3Decrypt "github.com/getsops/sops/v3/decrypt"
 
@@ -103,7 +103,7 @@ func LoadValueFiles(dir string, schema *model.Schema, variables SchemaVariables)
 			if len(strings.TrimSpace(string(secretValueFile))) == 0 {
 				decryptedSecretValueFile = make([]byte, 0)
 			} else {
-				isSopsEncrypted := decrypt.IsSOPSEncrypted(secretValueFile)
+				isSopsEncrypted := utils.IsSOPSEncrypted(secretValueFile)
 
 				if isSopsEncrypted {
 					decryptedSecretValueFile, err = sopsV3Decrypt.Data(secretValueFile, "yaml")
@@ -164,7 +164,7 @@ func LoadTemplates(dir string, schema *model.Schema, variables SchemaVariables) 
 			if len(strings.TrimSpace(string(secretTemplate))) == 0 {
 				decryptedSecretTemplate = make([]byte, 0)
 			} else {
-				isSopsEncrypted := decrypt.IsSOPSEncrypted(secretTemplate)
+				isSopsEncrypted := utils.IsSOPSEncrypted(secretTemplate)
 
 				if isSopsEncrypted {
 					decryptedSecretTemplate, err = sopsV3Decrypt.Data(secretTemplate, "yaml")

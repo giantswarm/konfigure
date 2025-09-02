@@ -7,11 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Cleaned up all obsolete code and command that are not for the `Generalized Configuration System` (GSC).
+ - Removed the `fetchkeys` command as it was only used on conjuction with the KRM function way of running `konfigure`.
+ - Removed the `kustomizepatch` command that was the KRM function implementation and is not used anymore.
+ - Removed the `generate` command, because it was replaced with the `render` command that is built around GSC.
+ - Removed the `lint` command, because it is not used anymore and was for the hard-coded structure defined by `generate`.
+- Cleaned up all exported packages and their contents related to the above commands.
+
+### Changed
+
+- The exposed `IsSOPSEncrypted` command was moved from the deleted `decrypt` package to the `utils` package.
+
 ### Added
 
 - Extend documentation.
   - Document patches feature of templates.
-- Add examples.
+- Add an `examples` folder and one example for a multi-staged environment configuration.
 
 ## [1.2.0] - 2025-08-06
 
