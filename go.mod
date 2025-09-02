@@ -1,4 +1,4 @@
-module github.com/giantswarm/konfigure
+module github.com/giantswarm/konfigure/v2
 
 go 1.25.0
 

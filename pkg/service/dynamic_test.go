@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/konfigure/pkg/sopsenv"
+	"github.com/giantswarm/konfigure/v2/pkg/sopsenv"
 
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
 
-	"github.com/giantswarm/konfigure/pkg/testutils"
+	"github.com/giantswarm/konfigure/v2/pkg/testutils"
 )
 
 type RenderRawTestCase struct {

@@ -17,8 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
-	"github.com/giantswarm/konfigure/pkg/testutils"
+	"github.com/giantswarm/konfigure/v2/pkg/sopsenv/key"
+	"github.com/giantswarm/konfigure/v2/pkg/testutils"
 )
 
 func TestSetups(t *testing.T) {

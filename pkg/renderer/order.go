@@ -1,6 +1,6 @@
 package renderer
 
-import "github.com/giantswarm/konfigure/pkg/model"
+import "github.com/giantswarm/konfigure/v2/pkg/model"
 
 func GetLayerOrder(schema *model.Schema) []string {
 	var result []string

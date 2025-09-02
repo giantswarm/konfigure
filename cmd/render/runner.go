@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/giantswarm/konfigure/pkg/sopsenv"
+	"github.com/giantswarm/konfigure/v2/pkg/sopsenv"
 
-	"github.com/giantswarm/konfigure/pkg/service"
-	"github.com/giantswarm/konfigure/pkg/utils"
+	"github.com/giantswarm/konfigure/v2/pkg/service"
+	"github.com/giantswarm/konfigure/v2/pkg/utils"
 
 	"github.com/go-logr/logr"
 
