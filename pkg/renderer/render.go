@@ -7,14 +7,14 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/giantswarm/konfigure/pkg/utils"
+	"github.com/giantswarm/konfigure/v2/pkg/utils"
 
 	"github.com/pkg/errors"
 
 	"github.com/Masterminds/sprig/v3"
 	"sigs.k8s.io/yaml"
 
-	"github.com/giantswarm/konfigure/pkg/model"
+	"github.com/giantswarm/konfigure/v2/pkg/model"
 
 	jsonpatch "github.com/evanphx/json-patch"
 )

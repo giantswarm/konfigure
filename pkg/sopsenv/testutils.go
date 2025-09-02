@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
+	"github.com/giantswarm/konfigure/v2/pkg/sopsenv/key"
 )
 
 func SetupNewSopsEnvironmentFromFakeKubernetes(secrets []*corev1.Secret) (*SOPSEnv, error) {

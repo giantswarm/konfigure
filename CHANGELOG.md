@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-09-02
+
 ### Removed
 
 - Cleaned up all obsolete code and command that are not for the `Generalized Configuration System` (GSC).

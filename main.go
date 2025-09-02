@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/konfigure/cmd/render"
-	"github.com/giantswarm/konfigure/pkg/project"
+	"github.com/giantswarm/konfigure/v2/cmd/render"
+	"github.com/giantswarm/konfigure/v2/pkg/project"
 )
 
 func main() {

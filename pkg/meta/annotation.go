@@ -6,7 +6,7 @@ import (
 
 	"github.com/giantswarm/k8smetadata/pkg/annotation"
 
-	"github.com/giantswarm/konfigure/pkg/project"
+	"github.com/giantswarm/konfigure/v2/pkg/project"
 )
 
 var (

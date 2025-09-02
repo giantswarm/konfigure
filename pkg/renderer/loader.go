@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/giantswarm/konfigure/pkg/utils"
+	"github.com/giantswarm/konfigure/v2/pkg/utils"
 
 	sopsV3Decrypt "github.com/getsops/sops/v3/decrypt"
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/giantswarm/konfigure/pkg/model"
+	"github.com/giantswarm/konfigure/v2/pkg/model"
 )
 
 func LoadSchema(path string) (*model.Schema, error) {

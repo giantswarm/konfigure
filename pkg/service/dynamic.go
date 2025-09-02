@@ -4,7 +4,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/giantswarm/konfigure/pkg/renderer"
+	"github.com/giantswarm/konfigure/v2/pkg/renderer"
 )
 
 type DynamicServiceConfig struct {

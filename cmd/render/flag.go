@@ -3,11 +3,11 @@ package render
 import (
 	"fmt"
 
-	"github.com/giantswarm/konfigure/pkg/model"
+	"github.com/giantswarm/konfigure/v2/pkg/model"
 
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/konfigure/pkg/sopsenv/key"
+	"github.com/giantswarm/konfigure/v2/pkg/sopsenv/key"
 )
 
 const (

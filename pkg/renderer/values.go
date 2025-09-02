@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/giantswarm/konfigure/pkg/model"
+	"github.com/giantswarm/konfigure/v2/pkg/model"
 )
 
 func MergeValueFileReferences(schema *model.Schema, layer model.Layer, valueType model.ValueMergeReferenceType, valueFiles ValueFiles) (string, error) {

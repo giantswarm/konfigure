@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/giantswarm/konfigure/pkg/model"
+	"github.com/giantswarm/konfigure/v2/pkg/model"
 )
 
 func TestGetLayerOrder(t *testing.T) {
