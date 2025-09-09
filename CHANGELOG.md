@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Made `SameTypeFromCurrentLayer` the default value file merge strategy if not specified or set as an empty string.
+
+### Fixed
+
+- Fixed an error that occurred when a layer skipped defining one or more types of templates. 
+
 ## [2.0.0] - 2025-09-02
 
 ### Removed

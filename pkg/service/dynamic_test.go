@@ -265,6 +265,41 @@ func TestRenderRaw_Stages(t *testing.T) {
 	}
 }
 
+func TestRenderRaw_Partial(t *testing.T) {
+	testCases := []RenderRawTestCase{
+		{
+			name:     "case 0 - nothing",
+			caseFile: "testdata/partial/cases/case0.yaml",
+
+			schema: "testdata/partial/schema.yaml",
+
+			rawVariables: []string{},
+		},
+		{
+			name:     "case 1 - renders without secrets defined in layer",
+			caseFile: "testdata/partial/cases/case1.yaml",
+
+			schema: "testdata/partial/schema.yaml",
+
+			rawVariables: []string{"konfiguration=example"},
+		},
+		{
+			name:     "case 2 - default values merge strategy is SameTypeFromCurrentLayer",
+			caseFile: "testdata/partial/cases/case2.yaml",
+
+			schema: "testdata/partial/schema.yaml",
+
+			rawVariables: []string{"konfiguration=example"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RenderRawTestCore(t, tc)
+		})
+	}
+}
+
 func RenderRawTestCore(t *testing.T, tc RenderRawTestCase) {
 	tmpDir, err := os.MkdirTemp("", "konfigure-test")
 
