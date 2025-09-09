@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed an error that occurred when a layer skipped defining one or more types of templates. 
+- Fixed an error that occurred when a layer skipped defining one or more types of templates.
 
 ## [2.0.0] - 2025-09-02
 
