@@ -1,0 +1,43 @@
+variables:
+  - name: konfiguration
+    required: false
+layers:
+  - id: partial
+    path:
+      directory: partial
+      required: false
+    values:
+      path:
+        directory: ""
+        required: false
+      configMap:
+        name: values.yaml
+        required: false
+    templates:
+      path:
+        directory: << konfiguration >>
+        required: false
+      configMap:
+        name: template.yaml
+        required: false
+  - id: overrides
+    path:
+      directory: overrides
+      required: false
+    values:
+      path:
+        directory: ""
+        required: false
+      configMap:
+        name: values.yaml
+        required: false
+    templates:
+      path:
+        directory: << konfiguration >>
+        required: false
+      configMap:
+        name: template.yaml
+        required: false
+        values:
+          merge:
+            strategy: SameTypeInLayerOrder

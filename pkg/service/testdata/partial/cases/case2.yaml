@@ -1,0 +1,30 @@
+path: partial/values.yaml
+data: |
+  foo: bar
+  hello: world
+---
+path: partial/example/template.yaml
+data: |
+  foo: {{ .foo }}
+  foo-from-partial: {{ .foo }}
+  hello-from-partial: {{ .hello }}
+---
+path: overrides/values.yaml
+data: |
+  foo: baz
+  hello: overrides
+---
+path: overrides/example/template.yaml
+data: |
+  foo: {{ .foo }}
+  hello-from-overrides: {{ .hello }}
+---
+path: configmap-values.yaml.golden
+data: |
+  foo: baz
+  foo-from-partial: bar
+  hello-from-overrides: overrides
+  hello-from-partial: world
+---
+path: secret-values.yaml.golden
+data: ""

@@ -1,0 +1,14 @@
+path: partial/values.yaml
+data: |
+  foo: bar
+---
+path: partial/example/template.yaml
+data: |
+  foo: {{ .foo }}
+---
+path: configmap-values.yaml.golden
+data: |
+  foo: bar
+---
+path: secret-values.yaml.golden
+data: ""

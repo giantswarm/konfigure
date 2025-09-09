@@ -1,0 +1,5 @@
+path: configmap-values.yaml.golden
+data: ""
+---
+path: secret-values.yaml.golden
+data: ""

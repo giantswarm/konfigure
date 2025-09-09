@@ -41,6 +41,8 @@ func MergeValueFileReferences(schema *model.Schema, layer model.Layer, valueType
 		valuesToMerge, err = SecretsInLayerOrderFilter(schema, valueFiles)
 	case strings.ToLower(model.ValueFileMergeStrategyConfigMapsAndSecretsInLayerOrder):
 		valuesToMerge, err = ConfigMapsAndSecretsInLayerOrderFilter(schema, valueFiles)
+	case "":
+		fallthrough
 	case strings.ToLower(model.ValueFileMergeStrategySameTypeFromCurrentLayer):
 		if valueTypeLower == configMapTypeLower {
 			valuesToMerge = append(valuesToMerge, valueFiles.ConfigMaps[layer.Id])
