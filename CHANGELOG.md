@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-09-09
+
 ### Changed
 
 - Made `SameTypeFromCurrentLayer` the default value file merge strategy if not specified or set as an empty string.
@@ -324,7 +326,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/giantswarm/konfigure/compare/v1.2.0...v2.1.0
 [1.2.0]: https://github.com/giantswarm/konfigure/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/giantswarm/konfigure/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/giantswarm/konfigure/compare/v1.0.0...v1.0.1
