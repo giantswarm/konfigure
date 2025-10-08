@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/evanphx/json-patch v5.9.11+incompatible
-	github.com/fluxcd/pkg/tar v0.14.0
+	github.com/fluxcd/pkg/tar v0.15.0
 	github.com/getsops/sops/v3 v3.10.2
 	github.com/giantswarm/k8smetadata v0.25.0
 	github.com/go-logr/logr v1.4.3
