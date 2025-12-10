@@ -71,11 +71,11 @@ func (s *DynamicService) RenderRaw(dir, schema string, primitiveVariables []stri
 		return "", "", err
 	}
 
-	s.log.Info("Loading schema variables...")
+	s.log.Info("Loading values for schema variables...")
 
 	parsedSchemaVariables, err := renderer.LoadSchemaVariables(primitiveVariables, parsedSchema.Variables)
 	if err != nil {
-		s.log.Error(err, "Failed to load schema variables schema", "schema", schema, "variables", primitiveVariables)
+		s.log.Error(err, "Failed to load values for schema variables", "schema", schema, "variables", primitiveVariables)
 		return "", "", err
 	}
 
