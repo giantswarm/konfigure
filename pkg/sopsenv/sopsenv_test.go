@@ -58,7 +58,7 @@ func TestSetups(t *testing.T) {
 		{
 			name: "kubernetes with dir given",
 			config: SOPSEnvConfig{
-				K8sClient: clientgofake.NewSimpleClientset(
+				K8sClient: clientgofake.NewClientset(
 					testutils.NewSecret("test", "giantswarm", true, map[string][]byte{}),
 				),
 				KeysDir:    tmpDirName("k8s"),
@@ -73,7 +73,7 @@ func TestSetups(t *testing.T) {
 		{
 			name: "kubernetes with dir generated",
 			config: SOPSEnvConfig{
-				K8sClient: clientgofake.NewSimpleClientset(
+				K8sClient: clientgofake.NewClientset(
 					testutils.NewSecret("test", "giantswarm", true, map[string][]byte{}),
 				),
 				KeysSource: key.KeysSourceKubernetes,
@@ -84,7 +84,7 @@ func TestSetups(t *testing.T) {
 		{
 			name: "kubernetes with no Secrets",
 			config: SOPSEnvConfig{
-				K8sClient:  clientgofake.NewSimpleClientset(),
+				K8sClient:  clientgofake.NewClientset(),
 				KeysSource: key.KeysSourceKubernetes,
 				Logger:     logger,
 			},
@@ -93,7 +93,7 @@ func TestSetups(t *testing.T) {
 		{
 			name: "local with non existing dir",
 			config: SOPSEnvConfig{
-				K8sClient:  clientgofake.NewSimpleClientset(),
+				K8sClient:  clientgofake.NewClientset(),
 				KeysDir:    "/non/existing/directory",
 				KeysSource: key.KeysSourceKubernetes,
 				Logger:     logger,
@@ -237,7 +237,7 @@ func TestImportKeys(t *testing.T) {
 				}
 			}
 
-			client := clientgofake.NewSimpleClientset(k8sObj...)
+			client := clientgofake.NewClientset(k8sObj...)
 
 			var se *SOPSEnv
 			{
