@@ -1,4 +1,1 @@
-CVE-2024-2660 until=2025-12-31
-CVE-2025-27144 until=2025-12-31
-CVE-2025-22869 until=2025-12-31
-CVE-2025-4673 until=2025-07-13 # golang.org/x/net@v0.41.0
+CVE-2026-24051 until=2026-03-06 # go.opentelemetry.io/otel/sdk@v1.36.0
