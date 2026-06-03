@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  architect: giantswarm/architect@8.2.2
+  architect: giantswarm/architect@9.1.0
 
 workflows:
   build:
@@ -10,6 +10,7 @@ workflows:
         context: architect
         name: go-build
         binary: konfigure
+        architectures: "linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64,windows/arm64"
         filters:
           tags:
             only: /^v.*/
@@ -20,6 +21,7 @@ workflows:
     - architect/push-to-registries:
         context: architect
         name: push-to-registries
+        platforms: "linux/amd64,linux/arm64"
         requires:
         - go-build
         filters:
@@ -29,3 +31,15 @@ workflows:
             ignore:
             - main
             - master
+
+    - architect/upload-release-assets:
+        context: architect
+        name: upload-release-assets
+        binary: konfigure
+        requires:
+        - go-build
+        filters:
+          tags:
+            only: /^v.*/
+          branches:
+            ignore: /.*/
