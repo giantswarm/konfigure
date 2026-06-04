@@ -2,7 +2,8 @@ FROM gsoci.azurecr.io/giantswarm/alpine:3.23.3
 
 ARG TARGETARCH
 
-RUN apk add --no-cache ca-certificates=20260413-r0
+# hadolint ignore=DL3018
+RUN apk add --no-cache ca-certificates
 
 COPY ./konfigure-linux-${TARGETARCH} /konfigure
 
