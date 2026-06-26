@@ -276,16 +276,3 @@ This last step, for example, assuming we 3 layers: `base`, `stages`, `cluster` f
   - the accumulator now has the rendered result for both types of configuration
 
 Please note that the layer order, currently, is always following the list order in the `.layers` list of the schema.
-
-## Generating values locally (legacy)
-
-This is the original config generation system of `konfigure` specifically tailored for Giant Swarm management cluster
-app configuration with hard-coded structure to generate and conventions to follow.
-
-Example:
-
-```
-SOPS_AGE_KEY="..." konfigure generate --raw --app-name ${APP} --installation ${INSTALLATION}
-```
-
-This will print values in YAML format ready to use in a helm release.
