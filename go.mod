@@ -8,7 +8,7 @@ require (
 	github.com/fluxcd/pkg/tar v0.17.0
 	github.com/getsops/sops/v3 v3.10.2
 	github.com/giantswarm/k8smetadata v0.26.0
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/pkg/errors v0.9.1
@@ -148,22 +148,22 @@ require (
 	go.opentelemetry.io/contrib/detectors/gcp v1.35.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0 // indirect
-	go.opentelemetry.io/otel v1.41.0 // indirect
-	go.opentelemetry.io/otel/metric v1.41.0 // indirect
+	go.opentelemetry.io/otel v1.45.0 // indirect
+	go.opentelemetry.io/otel/metric v1.45.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.40.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.40.0 // indirect
-	go.opentelemetry.io/otel/trace v1.41.0 // indirect
+	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/net v0.52.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/term v0.42.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/term v0.45.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.228.0 // indirect
@@ -193,3 +193,17 @@ replace (
 	// CVE-2023-32731
 	google.golang.org/grpc => google.golang.org/grpc v1.68.1
 )
+
+replace github.com/go-jose/go-jose/v4 v4.1.0 => github.com/go-jose/go-jose/v4 v4.1.4
+
+replace github.com/go-viper/mapstructure/v2 v2.2.1 => github.com/go-viper/mapstructure/v2 v2.5.0
+
+replace github.com/golang/glog v1.2.2 => github.com/golang/glog v1.2.5
+
+replace github.com/moby/sys/user v0.3.0 => github.com/moby/sys/user v0.4.1
+
+replace github.com/yuin/goldmark v1.4.13 => github.com/yuin/goldmark v1.8.5
+
+replace go.opentelemetry.io/otel v1.41.0 => go.opentelemetry.io/otel v1.45.0
+
+replace golang.org/x/crypto v0.50.0 => golang.org/x/crypto v0.54.0
