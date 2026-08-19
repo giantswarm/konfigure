@@ -8,7 +8,7 @@ require (
 	github.com/fluxcd/pkg/tar v0.17.0
 	github.com/getsops/sops/v3 v3.10.2
 	github.com/giantswarm/k8smetadata v0.26.0
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/pkg/errors v0.9.1
