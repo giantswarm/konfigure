@@ -193,3 +193,17 @@ replace (
 	// CVE-2023-32731
 	google.golang.org/grpc => google.golang.org/grpc v1.68.1
 )
+
+replace github.com/go-viper/mapstructure/v2 v2.2.1 => github.com/go-viper/mapstructure/v2 v2.5.0
+
+replace github.com/golang/glog v1.2.2 => github.com/golang/glog v1.2.5
+
+replace github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7 => github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0
+
+replace github.com/moby/sys/user v0.3.0 => github.com/moby/sys/user v0.4.1
+
+replace github.com/yuin/goldmark v1.4.13 => github.com/yuin/goldmark v1.8.6
+
+replace go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.40.0 => go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.46.0
+
+replace go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.40.0 => go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.46.0
