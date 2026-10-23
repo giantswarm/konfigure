@@ -1,11 +1,11 @@
 module github.com/giantswarm/konfigure/v2
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/evanphx/json-patch v5.9.11+incompatible
-	github.com/fluxcd/pkg/tar v0.17.0
+	github.com/fluxcd/pkg/tar v1.4.0
 	github.com/getsops/sops/v3 v3.10.2
 	github.com/giantswarm/k8smetadata v0.26.0
 	github.com/go-logr/logr v1.4.4
@@ -77,7 +77,7 @@ require (
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
-	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
+	github.com/cyphar/filepath-securejoin v0.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/envoyproxy/go-control-plane v0.13.1 // indirect
