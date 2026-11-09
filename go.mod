@@ -179,7 +179,7 @@ require (
 	google.golang.org/genproto v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
-	google.golang.org/grpc v1.82.1 // indirect
+	google.golang.org/grpc v1.83.1 // indirect
 	google.golang.org/grpc/stats/opentelemetry v0.0.0-20240907200651-3ffb98b2c93a // indirect
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
@@ -200,7 +200,7 @@ replace (
 	// CVE-2023-3978
 	golang.org/x/net => golang.org/x/net v0.53.0
 	// CVE-2023-32731
-	google.golang.org/grpc => google.golang.org/grpc v1.68.1
+	google.golang.org/grpc => google.golang.org/grpc v1.83.1
 )
 
 replace github.com/cloudflare/circl v1.6.1 => github.com/cloudflare/circl v1.6.5
