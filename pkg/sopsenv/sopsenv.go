@@ -221,7 +221,7 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 // RunGPGCmd runs GPG binary with given args and input.
 // It is exporter mainly for re-using in tests
 func (s *SOPSEnv) runGPGCmd(ctx context.Context, stdin io.Reader, args []string) (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
-	cmd := exec.Command("gpg", args...)
+	cmd := exec.Command("gpg", args...) //nolint:gosec // G204: fixed binary, args built from constants, key material goes via stdin
 	cmd.Stdin = stdin
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

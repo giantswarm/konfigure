@@ -11,7 +11,10 @@ import (
 	"testing"
 )
 
-const advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
+const (
+	advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
+	newConfigValue      = "newvalue"
+)
 
 func TestRunner_updateConfig(t *testing.T) {
 	archive, err := os.ReadFile("testdata/latestrevision.tar.gz")
@@ -71,7 +74,7 @@ func TestRunner_updateConfig(t *testing.T) {
 		testConfigYaml          []byte
 	}{
 		{
-			expectedConfigYamlValue: "newvalue",
+			expectedConfigYamlValue: newConfigValue,
 			name:                    "fresh, no archive loaded",
 		},
 		{
@@ -82,7 +85,7 @@ func TestRunner_updateConfig(t *testing.T) {
 				serves the archive at. This test covers this scenario. The timestamp
 				is irrelevant in this case.
 			*/
-			expectedConfigYamlValue: "newvalue",
+			expectedConfigYamlValue: newConfigValue,
 			name:                    "old revision archive loaded, newer available",
 			testArchiveName:         []byte(`deprecatedrevision.tar.gz`),
 			testArchiveTimestamp:    []byte(`Thu, 28 Feb 2024 00:00:00 GMT`),
@@ -96,7 +99,7 @@ func TestRunner_updateConfig(t *testing.T) {
 				change informing the archive has been updated. If so, it must be
 				reloaded. This test covers this scenario.
 			*/
-			expectedConfigYamlValue: "newvalue",
+			expectedConfigYamlValue: newConfigValue,
 			name:                    "latest revision loaded, modified since last time",
 			testArchiveName:         []byte(`latestrevision.tar.gz`),
 			testArchiveTimestamp:    []byte(`Thu, 01 Mar 2024 00:00:00 GMT`),

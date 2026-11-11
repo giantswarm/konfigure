@@ -14,6 +14,18 @@ import (
 	"github.com/giantswarm/konfigure/v2/pkg/testutils"
 )
 
+const (
+	legacySchema  = "testdata/legacy/schema.yaml"
+	stagesSchema  = "testdata/stages/schema.yaml"
+	partialSchema = "testdata/partial/schema.yaml"
+
+	appOperatorVar       = "app=operator"
+	konfigurationVar     = "konfiguration=konfiguration-1"
+	installationVar      = "installation=puma"
+	managementClusterVar = "management-cluster=mc-1"
+	stageVar             = "stage=dev"
+)
+
 type RenderRawTestCase struct {
 	name     string
 	caseFile string
@@ -38,65 +50,65 @@ func TestRenderRaw_Legacy(t *testing.T) {
 			name:     "case 0 - basic config with config.yaml.patch",
 			caseFile: "testdata/legacy/cases/case0.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 1 - include files in templates",
 			caseFile: "testdata/legacy/cases/case1.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 2 - override global value for one installation",
 			caseFile: "testdata/legacy/cases/case2.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 3 - keep non-string values after templating/patching",
 			caseFile: "testdata/legacy/cases/case3.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 4 - allow templating in included files ",
 			caseFile: "testdata/legacy/cases/case4.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 5 - test indentation when including files",
 			caseFile: "testdata/legacy/cases/case5.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 6 - test app with no secrets (configmap only)",
 			caseFile: "testdata/legacy/cases/case6.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 7 - patch configmap and secret",
 			caseFile: "testdata/legacy/cases/case7.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		// case 8: the original case 8 does not make sense here cos it uses data from a mocked part of the generator
 		{
@@ -104,25 +116,25 @@ func TestRenderRaw_Legacy(t *testing.T) {
 			caseFile:             "testdata/legacy/cases/case9.yaml",
 			expectedErrorMessage: `<.this.key.is.missing>: map has no entry for key "this"`,
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 10 - no extra encoding for included files",
 			caseFile: "testdata/legacy/cases/case10.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 		{
 			name:     "case 11 - same as case 10 with SOPS GnuPGP encryption",
 			caseFile: "testdata/legacy/cases/case11.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 
 			secrets: []*corev1.Secret{
 				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
@@ -134,9 +146,9 @@ func TestRenderRaw_Legacy(t *testing.T) {
 			name:     "case 12 - same as case 10 with SOPS AGE encryption",
 			caseFile: "testdata/legacy/cases/case12.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 
 			secrets: []*corev1.Secret{
 				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
@@ -148,9 +160,9 @@ func TestRenderRaw_Legacy(t *testing.T) {
 			name:     "case 13 - same as case 11, but with missing key",
 			caseFile: "testdata/legacy/cases/case11.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 
 			secrets: []*corev1.Secret{},
 
@@ -160,9 +172,9 @@ func TestRenderRaw_Legacy(t *testing.T) {
 			name:     "case 14 - same as case 12, but with missing key",
 			caseFile: "testdata/legacy/cases/case12.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 
 			secrets: []*corev1.Secret{},
 
@@ -172,9 +184,9 @@ func TestRenderRaw_Legacy(t *testing.T) {
 			name:     "case 15 - include self",
 			caseFile: "testdata/legacy/cases/case15.yaml",
 
-			schema: "testdata/legacy/schema.yaml",
+			schema: legacySchema,
 
-			rawVariables: []string{"app=operator", "installation=puma"},
+			rawVariables: []string{appOperatorVar, installationVar},
 		},
 	}
 
@@ -196,41 +208,41 @@ func TestRenderRaw_Stages(t *testing.T) {
 			name:     "case 0 - empty config",
 			caseFile: "testdata/stages/cases/case0.yaml",
 
-			schema: "testdata/stages/schema.yaml",
+			schema: stagesSchema,
 
-			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+			rawVariables: []string{stageVar, managementClusterVar, konfigurationVar},
 		},
 		{
 			name:     "case 1 - simple config",
 			caseFile: "testdata/stages/cases/case1.yaml",
 
-			schema: "testdata/stages/schema.yaml",
+			schema: stagesSchema,
 
-			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+			rawVariables: []string{stageVar, managementClusterVar, konfigurationVar},
 		},
 		{
 			name:     "case 2 - config with list overrides and patches for object and list",
 			caseFile: "testdata/stages/cases/case2.yaml",
 
-			schema: "testdata/stages/schema.yaml",
+			schema: stagesSchema,
 
-			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+			rawVariables: []string{stageVar, managementClusterVar, konfigurationVar},
 		},
 		{
 			name:     "case 3 - multiple stages and management-cluster overrides",
 			caseFile: "testdata/stages/cases/case3.yaml",
 
-			schema: "testdata/stages/schema.yaml",
+			schema: stagesSchema,
 
-			rawVariables: []string{"stage=production", "management-cluster=mc-2", "konfiguration=konfiguration-1"},
+			rawVariables: []string{"stage=production", "management-cluster=mc-2", konfigurationVar},
 		},
 		{
 			name:     "case 4 - complex with SOPS and lots of patches",
 			caseFile: "testdata/stages/cases/case4.yaml",
 
-			schema: "testdata/stages/schema.yaml",
+			schema: stagesSchema,
 
-			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+			rawVariables: []string{stageVar, managementClusterVar, konfigurationVar},
 
 			secrets: []*corev1.Secret{
 				testutils.NewSecret("sops-keys", "giantswarm", true, map[string][]byte{
@@ -242,17 +254,17 @@ func TestRenderRaw_Stages(t *testing.T) {
 			name:     "case 5 - use custom include function",
 			caseFile: "testdata/stages/cases/case5.yaml",
 
-			schema: "testdata/stages/schema.yaml",
+			schema: stagesSchema,
 
-			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+			rawVariables: []string{stageVar, managementClusterVar, konfigurationVar},
 		},
 		{
 			name:     "case 6 - error on missing required template",
 			caseFile: "testdata/stages/cases/case6.yaml",
 
-			schema: "testdata/stages/schema.yaml",
+			schema: stagesSchema,
 
-			rawVariables: []string{"stage=dev", "management-cluster=mc-1", "konfiguration=konfiguration-1"},
+			rawVariables: []string{stageVar, managementClusterVar, konfigurationVar},
 
 			expectedErrorMessage: "0-base/konfiguration-1/config-map-template.yaml does not exist",
 		},
@@ -271,7 +283,7 @@ func TestRenderRaw_Partial(t *testing.T) {
 			name:     "case 0 - nothing",
 			caseFile: "testdata/partial/cases/case0.yaml",
 
-			schema: "testdata/partial/schema.yaml",
+			schema: partialSchema,
 
 			rawVariables: []string{},
 		},
@@ -279,7 +291,7 @@ func TestRenderRaw_Partial(t *testing.T) {
 			name:     "case 1 - renders without secrets defined in layer",
 			caseFile: "testdata/partial/cases/case1.yaml",
 
-			schema: "testdata/partial/schema.yaml",
+			schema: partialSchema,
 
 			rawVariables: []string{"konfiguration=example"},
 		},
@@ -287,7 +299,7 @@ func TestRenderRaw_Partial(t *testing.T) {
 			name:     "case 2 - default values merge strategy is SameTypeFromCurrentLayer",
 			caseFile: "testdata/partial/cases/case2.yaml",
 
-			schema: "testdata/partial/schema.yaml",
+			schema: partialSchema,
 
 			rawVariables: []string{"konfiguration=example"},
 		},
