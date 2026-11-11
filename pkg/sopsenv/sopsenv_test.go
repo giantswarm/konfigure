@@ -21,6 +21,12 @@ import (
 	"github.com/giantswarm/konfigure/v2/pkg/testutils"
 )
 
+const (
+	ageKeyName     = "key1.agekey"
+	pgpKeyName     = "key1.asc"
+	pgpFingerprint = "F65B080F01DB7669363DFE31B69A68334353D9C0"
+)
+
 func TestSetups(t *testing.T) {
 	logger := logr.Discard()
 
@@ -180,8 +186,8 @@ func TestImportKeys(t *testing.T) {
 				}),
 				testutils.NewSecret("regular-secret-2", "giantswarm", false, map[string][]byte{}),
 				testutils.NewSecret("sops-gpg-keys-1", "giantswarm", true, map[string][]byte{
-					"key1.agekey": testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
-					"key1.asc":    testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+					ageKeyName: testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+					pgpKeyName: testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
 				}),
 				testutils.NewSecret("sops-gpg-keys-2", "giantswarm", true, map[string][]byte{
 					"key2.agekey": testutils.GetFile("testdata/keys/age1t60sj6dj77q7jp47s4tav4a967c8609lsexmg8eutxnez6d5gp8s27g9kl.private"),
@@ -189,41 +195,41 @@ func TestImportKeys(t *testing.T) {
 			},
 			expectedKeysTxt: testutils.GetFile("testdata/expected/keys1.txt"),
 			expectedPGPKeys: []string{
-				"F65B080F01DB7669363DFE31B69A68334353D9C0",
+				pgpFingerprint,
 			},
 		},
 		{
 			name: "duplicated keys",
 			secrets: []*corev1.Secret{
 				testutils.NewSecret("sops-gpg-keys-1", "giantswarm", true, map[string][]byte{
-					"key1.agekey": testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
-					"key1.asc":    testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+					ageKeyName: testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+					pgpKeyName: testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
 				}),
 				testutils.NewSecret("sops-gpg-keys-2", "giantswarm", true, map[string][]byte{
-					"key1.agekey": testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
-					"key1.asc":    testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+					ageKeyName: testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+					pgpKeyName: testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
 				}),
 			},
 			expectedKeysTxt: testutils.GetFile("testdata/expected/keys2.txt"),
 			expectedPGPKeys: []string{
-				"F65B080F01DB7669363DFE31B69A68334353D9C0",
+				pgpFingerprint,
 			},
 		},
 		{
 			name: "duplicated keys",
 			secrets: []*corev1.Secret{
 				testutils.NewSecret("sops-gpg-keys-1", "giantswarm", true, map[string][]byte{
-					"key1.agekey": testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
-					"key1.asc":    testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+					ageKeyName: testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+					pgpKeyName: testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
 				}),
 				testutils.NewSecret("sops-gpg-keys-2", "flux-giantswarm", true, map[string][]byte{
-					"key1.agekey": testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
-					"key1.asc":    testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
+					ageKeyName: testutils.GetFile("testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"),
+					pgpKeyName: testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
 				}),
 			},
 			expectedKeysTxt: testutils.GetFile("testdata/expected/keys2.txt"),
 			expectedPGPKeys: []string{
-				"F65B080F01DB7669363DFE31B69A68334353D9C0",
+				pgpFingerprint,
 			},
 		},
 	}
@@ -273,7 +279,7 @@ func TestImportKeys(t *testing.T) {
 				t.Fatalf("wrong %s value, got %s=%s", gnuPGHomeVar, gnuPGHomeVar, oldEnvs[gnuPGHomeVar])
 			}
 
-			keysTxt, err := os.ReadFile(os.Getenv(ageKeyFileVar))
+			keysTxt, err := os.ReadFile(os.Getenv(ageKeyFileVar)) //nolint:gosec // G703: Setup points this at the test's own temp dir
 			if err != nil {
 				t.Fatalf("error == %#v, want nil", err)
 			}
