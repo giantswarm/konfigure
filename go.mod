@@ -201,20 +201,10 @@ replace github.com/cloudflare/circl v1.6.1 => github.com/cloudflare/circl v1.6.5
 
 replace github.com/go-viper/mapstructure/v2 v2.2.1 => github.com/go-viper/mapstructure/v2 v2.5.0
 
-replace github.com/golang/glog v1.2.2 => github.com/golang/glog v1.2.5
-
 replace github.com/moby/sys/user v0.3.0 => github.com/moby/sys/user v0.4.1
-
-replace github.com/yuin/goldmark v1.4.13 => github.com/yuin/goldmark v1.8.6
-
-replace go.opentelemetry.io/otel v1.44.0 => go.opentelemetry.io/otel v1.46.0
 
 replace go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.44.0 => go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.46.0
 
 replace go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.44.0 => go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.46.0
-
-replace go.opentelemetry.io/otel/sdk v1.44.0 => go.opentelemetry.io/otel/sdk v1.46.0
-
-replace golang.org/x/mod v0.37.0 => golang.org/x/mod v0.41.0
 
 replace github.com/cilium/ebpf v0.17.3 => github.com/cilium/ebpf v0.22.0
