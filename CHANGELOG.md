@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Drop five `replace` directives from `go.mod` that no longer applied (`glog`, `goldmark`, `x/mod`, `otel`, `otel/sdk`). Every module resolves to the same version as before.
 - Release binaries now include darwin/amd64, darwin/arm64, windows/amd64, and windows/arm64 alongside the existing linux targets. Windows binaries are named `konfigure-windows-<arch>.exe`.
 
 ## [2.1.1] - 2025-12-10
