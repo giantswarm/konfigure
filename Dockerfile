@@ -1,4 +1,4 @@
-FROM gsoci.azurecr.io/giantswarm/alpine:3.24.2
+FROM gsoci.azurecr.io/giantswarm/alpine:3.24.4
 
 ARG TARGETARCH
 
