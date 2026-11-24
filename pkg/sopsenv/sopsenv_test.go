@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 
@@ -25,6 +26,16 @@ const (
 	ageKeyName     = "key1.agekey"
 	pgpKeyName     = "key1.asc"
 	pgpFingerprint = "F65B080F01DB7669363DFE31B69A68334353D9C0"
+
+	ageKey2Name = "key2.agekey"
+
+	// Split so that private key detectors do not flag these invalid keys.
+	brokenAgeKey = "AGE-SECRET-KEY-" + "1NOTAKEY\n"
+	brokenPGPKey = "-----BEGIN PGP " + "PRIVATE KEY BLOCK-----\ngarbage\n-----END PGP " + "PRIVATE KEY BLOCK-----\n"
+
+	ageKey1Path = "testdata/keys/age1q3ed8z5e25t5a2vmzvzsyc9kevd68ukvuvajex0jwhewupat95zsdjmmrw.private"
+	ageKey2Path = "testdata/keys/age1t60sj6dj77q7jp47s4tav4a967c8609lsexmg8eutxnez6d5gp8s27g9kl.private"
+	pgpKeyPath  = "testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"
 )
 
 func TestSetups(t *testing.T) {
@@ -175,8 +186,10 @@ func TestImportKeys(t *testing.T) {
 	testCases := []struct {
 		name            string
 		secrets         []*corev1.Secret
+		keysNamespaces  []string
 		expectedKeysTxt []byte
 		expectedPGPKeys []string
+		expectedError   error
 	}{
 		{
 			name: "flawless with tmp dir",
@@ -190,7 +203,7 @@ func TestImportKeys(t *testing.T) {
 					pgpKeyName: testutils.GetFile("testdata/keys/F65B080F01DB7669363DFE31B69A68334353D9C0.private"),
 				}),
 				testutils.NewSecret("sops-gpg-keys-2", "giantswarm", true, map[string][]byte{
-					"key2.agekey": testutils.GetFile("testdata/keys/age1t60sj6dj77q7jp47s4tav4a967c8609lsexmg8eutxnez6d5gp8s27g9kl.private"),
+					ageKey2Name: testutils.GetFile("testdata/keys/age1t60sj6dj77q7jp47s4tav4a967c8609lsexmg8eutxnez6d5gp8s27g9kl.private"),
 				}),
 			},
 			expectedKeysTxt: testutils.GetFile("testdata/expected/keys1.txt"),
@@ -232,6 +245,68 @@ func TestImportKeys(t *testing.T) {
 				pgpFingerprint,
 			},
 		},
+		{
+			name: "key Secret in a foreign namespace is ignored",
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-gpg-keys-1", "giantswarm", true, map[string][]byte{
+					ageKeyName: testutils.GetFile(ageKey1Path),
+					pgpKeyName: testutils.GetFile(pgpKeyPath),
+				}),
+				testutils.NewSecret("sops-gpg-keys-2", "org-x", true, map[string][]byte{
+					ageKey2Name: testutils.GetFile(ageKey2Path),
+				}),
+			},
+			expectedKeysTxt: testutils.GetFile("testdata/expected/keys2.txt"),
+			expectedPGPKeys: []string{
+				pgpFingerprint,
+			},
+		},
+		{
+			name: "key Secrets in all namespaces when asked for explicitly",
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-gpg-keys-1", "giantswarm", true, map[string][]byte{
+					ageKeyName: testutils.GetFile(ageKey1Path),
+					pgpKeyName: testutils.GetFile(pgpKeyPath),
+				}),
+				testutils.NewSecret("sops-gpg-keys-2", "org-x", true, map[string][]byte{
+					ageKey2Name: testutils.GetFile(ageKey2Path),
+				}),
+			},
+			keysNamespaces:  []string{metav1.NamespaceAll},
+			expectedKeysTxt: testutils.GetFile("testdata/expected/keys1.txt"),
+			expectedPGPKeys: []string{
+				pgpFingerprint,
+			},
+		},
+		{
+			name: "broken keys are skipped",
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-gpg-keys-1", "giantswarm", true, map[string][]byte{
+					ageKeyName: testutils.GetFile(ageKey1Path),
+					pgpKeyName: testutils.GetFile(pgpKeyPath),
+				}),
+				testutils.NewSecret("sops-gpg-keys-2", "flux-giantswarm", true, map[string][]byte{
+					"broken.agekey":  []byte(brokenAgeKey),
+					"garbage.agekey": []byte("not a key at all\n"),
+					"empty.agekey":   []byte(""),
+					"broken.asc":     []byte(brokenPGPKey),
+					"unrelated.txt":  []byte("ignored"),
+				}),
+			},
+			expectedKeysTxt: testutils.GetFile("testdata/expected/keys2.txt"),
+			expectedPGPKeys: []string{
+				pgpFingerprint,
+			},
+		},
+		{
+			name: "only broken keys",
+			secrets: []*corev1.Secret{
+				testutils.NewSecret("sops-gpg-keys-1", "giantswarm", true, map[string][]byte{
+					"broken.agekey": []byte(brokenAgeKey),
+				}),
+			},
+			expectedError: &KeyImportError{},
+		},
 	}
 
 	for i, tc := range testCases {
@@ -248,10 +323,11 @@ func TestImportKeys(t *testing.T) {
 			var se *SOPSEnv
 			{
 				seConfig := SOPSEnvConfig{
-					K8sClient:  client,
-					KeysDir:    "",
-					KeysSource: key.KeysSourceKubernetes,
-					Logger:     logger,
+					K8sClient:      client,
+					KeysDir:        "",
+					KeysSource:     key.KeysSourceKubernetes,
+					KeysNamespaces: tc.keysNamespaces,
+					Logger:         logger,
 				}
 
 				se, err = NewSOPSEnv(seConfig)
@@ -267,6 +343,12 @@ func TestImportKeys(t *testing.T) {
 			}
 
 			err = se.Setup(context.TODO())
+			if tc.expectedError != nil {
+				if !errors.Is(err, tc.expectedError) {
+					t.Fatalf("want error matching %T, got %v", tc.expectedError, err)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatalf("error == %#v, want nil", err)
 			}

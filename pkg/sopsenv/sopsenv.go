@@ -1,6 +1,7 @@
 package sopsenv
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -8,10 +9,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
+	"strings"
 
+	"filippo.io/age"
 	"github.com/go-logr/logr"
-
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,19 +49,31 @@ const (
 	secretAgeExt = ".agekey"
 )
 
+// DefaultKeysNamespaces lists the namespaces SOPS key Secrets are imported
+// from when SOPSEnvConfig.KeysNamespaces is empty.
+var DefaultKeysNamespaces = []string{"giantswarm", "flux-giantswarm"}
+
 type SOPSEnvConfig struct {
 	K8sClient  kubernetes.Interface
 	KeysDir    string
 	KeysSource string
 	Logger     logr.Logger
+
+	// KeysNamespaces lists the namespaces to import labelled SOPS key
+	// Secrets from when KeysSource is "kubernetes". Defaults to
+	// DefaultKeysNamespaces when empty. Listing metav1.NamespaceAll ("")
+	// imports from all namespaces; only do that when every namespace in the
+	// cluster is trusted to provide decryption keys.
+	KeysNamespaces []string
 }
 
 type SOPSEnv struct {
-	cleanup    func()
-	k8sClient  kubernetes.Interface
-	keysDir    string
-	keysSource string
-	logger     logr.Logger
+	cleanup        func()
+	k8sClient      kubernetes.Interface
+	keysDir        string
+	keysNamespaces []string
+	keysSource     string
+	logger         logr.Logger
 }
 
 // NewSOPSEnv creates SOPS environment configurator, it works according to the
@@ -79,10 +95,19 @@ type SOPSEnv struct {
 //     keysDir="path"
 //     keysSource="kubernetes"
 func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
+	keysNamespaces := slices.Clone(config.KeysNamespaces)
+	if len(keysNamespaces) == 0 {
+		keysNamespaces = slices.Clone(DefaultKeysNamespaces)
+	}
+	if slices.Contains(keysNamespaces, metav1.NamespaceAll) {
+		keysNamespaces = []string{metav1.NamespaceAll}
+	}
+
 	s := &SOPSEnv{
-		keysDir:    config.KeysDir,
-		keysSource: config.KeysSource,
-		logger:     config.Logger,
+		keysDir:        config.KeysDir,
+		keysNamespaces: keysNamespaces,
+		keysSource:     config.KeysSource,
+		logger:         config.Logger,
 	}
 
 	if config.KeysSource == key.KeysSourceLocal {
@@ -159,12 +184,15 @@ func (s *SOPSEnv) Setup(ctx context.Context) error {
 	return nil
 }
 
-// importKeys grabs Kubernetes Secrets matching selector and import PGP and AGE
-// keys into desired location. The Secrets are expected to match the Flux secrets constraints,
+// importKeys grabs Kubernetes Secrets matching selector in the configured
+// namespaces and import PGP and AGE keys into desired location. The Secrets are
+// expected to match the Flux secrets constraints,
 // see https://fluxcd.io/docs/components/kustomize/kustomization/#decryption-secret-reference.
+//
+// A key that cannot be imported is logged and skipped, so one broken key does
+// not prevent the others from being used. The import fails only when no key
+// could be imported at all.
 func (s *SOPSEnv) importKeys(ctx context.Context) error {
-	var err error
-
 	if _, err := os.Stat(s.keysDir); os.IsNotExist(err) {
 		return &NotFoundError{message: "specified keychains directory does not exist"}
 	}
@@ -173,23 +201,29 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 		LabelSelector: fmt.Sprintf("%s=%s", KonfigureLabelKey, KonfigureLabelValue),
 	}
 
-	// Getting keys from all namespaces poses a risk of someone presenting the konfigure something
-	// that my not be a real key, resulting in crashing it upon importing this "something". Yet,
-	// crashing it, although easy, does not feel overly dangerous.
-	secrets, err := s.k8sClient.CoreV1().Secrets("").List(ctx, o)
-	if err != nil {
-		return err
+	var secrets []corev1.Secret
+	for _, namespace := range s.keysNamespaces {
+		list, err := s.k8sClient.CoreV1().Secrets(namespace).List(ctx, o)
+		if err != nil {
+			return err
+		}
+		secrets = append(secrets, list.Items...)
 	}
 
 	// Let user know no Secrets have been found using selector.
-	if len(secrets.Items) == 0 {
-		s.logger.Info(fmt.Sprintf("no Kubernetes Secrets found matching selector: %s=%s", KonfigureLabelKey, KonfigureLabelValue))
+	if len(secrets) == 0 {
+		s.logger.Info(fmt.Sprintf("no Kubernetes Secrets found matching selector: %s=%s", KonfigureLabelKey, KonfigureLabelValue), "namespaces", s.keysNamespaces)
 		return nil
 	}
 
+	imported := 0
+	var failures []string
+
 	ageKeysMap := map[string][]byte{}
-	for _, secret := range secrets.Items {
+	for _, secret := range secrets {
 		for k, v := range secret.Data {
+			source := fmt.Sprintf("%s/%s[%s]", secret.Namespace, secret.Name, k)
+
 			switch ext := filepath.Ext(k); ext {
 			case secretPGPExt:
 				args := []string{
@@ -200,19 +234,66 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 
 				_, stderr, err := s.runGPGCmd(ctx, bytes.NewReader(v), args)
 				if err != nil {
-					return &PgpImportError{message: fmt.Sprintf("failed to import key GnuPG keyring: \n %s", stderr.String())}
+					s.logger.Error(&PgpImportError{message: stderr.String()}, "skipping SOPS PGP key that failed to import", "source", source)
+					failures = append(failures, source)
+					continue
 				}
+				imported++
 			case secretAgeExt:
+				if err := validateAgeIdentities(v); err != nil {
+					s.logger.Error(err, "skipping invalid SOPS age key", "source", source)
+					failures = append(failures, source)
+					continue
+				}
 				// Put keys into map to filter out duplicates and thus avoid
 				// writing the same key multiple times into the keys.txt file
 				ageKeysMap[string(v)] = v
+				imported++
 			}
 		}
 	}
 
-	err = s.writeKeysTxt(ctx, ageKeysMap)
-	if err != nil {
-		return err
+	if imported == 0 && len(failures) > 0 {
+		return &KeyImportError{message: fmt.Sprintf("failed to import any SOPS key, invalid keys in: %s", strings.Join(failures, ", "))}
+	}
+
+	return s.writeKeysTxt(ctx, ageKeysMap)
+}
+
+// validateAgeIdentities checks that every line of an age key file is empty, a
+// comment or an identity SOPS can parse, so a broken key cannot make SOPS
+// reject the whole keys.txt file.
+func validateAgeIdentities(data []byte) error {
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	found := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		switch {
+		case strings.HasPrefix(line, "AGE-PLUGIN-"):
+			// Plugin identities are resolved by SOPS at decryption time.
+		case strings.HasPrefix(line, "AGE-SECRET-KEY-1"):
+			if _, err := age.ParseX25519Identity(line); err != nil {
+				return &InvalidAgeKeyError{message: err.Error()}
+			}
+		default:
+			return &InvalidAgeKeyError{message: "unknown identity type"}
+		}
+
+		found = true
+	}
+
+	if err := scanner.Err(); err != nil {
+		return &InvalidAgeKeyError{message: err.Error()}
+	}
+
+	if !found {
+		return &InvalidAgeKeyError{message: "no identity found"}
 	}
 
 	return nil
@@ -265,7 +346,7 @@ func (s *SOPSEnv) writeKeysTxt(ctx context.Context, keys map[string][]byte) erro
 
 	keysPath := filepath.Join(s.keysDir, "keys.txt")
 	keysPath = filepath.Clean(keysPath)
-	keysTxt, err := os.OpenFile(keysPath, os.O_CREATE|os.O_WRONLY, 0600)
+	keysTxt, err := os.OpenFile(keysPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}

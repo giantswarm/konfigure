@@ -3,6 +3,7 @@ module github.com/giantswarm/konfigure/v2
 go 1.26.0
 
 require (
+	filippo.io/age v1.2.1
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/evanphx/json-patch v5.9.11+incompatible
 	github.com/fluxcd/pkg/tar v0.17.0
@@ -35,7 +36,6 @@ require (
 	cloud.google.com/go/monitoring v1.24.3 // indirect
 	cloud.google.com/go/storage v1.56.0 // indirect
 	dario.cat/mergo v1.0.1 // indirect
-	filippo.io/age v1.2.1 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.9.0 // indirect
