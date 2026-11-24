@@ -35,12 +35,14 @@ const (
 	defaultKubernetesTokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101
 )
 
-// DefaultArtifactHosts lists the hosts artifacts are downloaded from when
+// DefaultArtifactHosts returns the hosts artifacts are downloaded from when
 // Config.ArtifactHosts is empty: the Source Controller service in the
 // flux-giantswarm namespace, with and without the cluster domain.
-var DefaultArtifactHosts = []string{
-	"source-controller.flux-giantswarm.svc",
-	"source-controller.flux-giantswarm.svc.cluster.local",
+func DefaultArtifactHosts() []string {
+	return []string{
+		"source-controller.flux-giantswarm.svc",
+		"source-controller.flux-giantswarm.svc.cluster.local",
+	}
 }
 
 type Config struct {
@@ -56,8 +58,9 @@ type Config struct {
 	// ArtifactHosts lists the host names artifact URLs may point at. An
 	// artifact URL advertised by the GitRepository, or cached from an
 	// earlier update, is only used when its host is in this list and its
-	// path is below /gitrepository/<namespace>/<name>/. The port is not
-	// checked. Defaults to DefaultArtifactHosts when empty.
+	// path is below /gitrepository/<namespace>/<name>/. Entries are host
+	// names only, without scheme or port; the port is not checked. Defaults
+	// to DefaultArtifactHosts when empty.
 	ArtifactHosts []string
 }
 
@@ -111,10 +114,13 @@ func New(config Config) (*FluxUpdater, error) {
 		if host == "" {
 			return nil, &InvalidConfigError{message: "artifactHosts must not contain empty host names"}
 		}
+		if strings.ContainsAny(host, ":/@?#[]") {
+			return nil, &InvalidConfigError{message: fmt.Sprintf("artifactHosts entry %q must be a host name without scheme, port or path", host)}
+		}
 		artifactHosts = append(artifactHosts, host)
 	}
 	if len(artifactHosts) == 0 {
-		for _, host := range DefaultArtifactHosts {
+		for _, host := range DefaultArtifactHosts() {
 			artifactHosts = append(artifactHosts, normalizeHost(host))
 		}
 	}
@@ -252,7 +258,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 		} else {
 			if response.StatusCode != http.StatusNotFound {
 				return &ExecutionFailedError{
-					message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode),
+					message: fmt.Sprintf("error calling %q: expected %d or %d, got %d", request.URL, http.StatusOK, http.StatusNotFound, response.StatusCode),
 				}
 			} else {
 				artifactURL = ""

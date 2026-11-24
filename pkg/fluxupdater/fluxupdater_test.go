@@ -16,6 +16,7 @@ const (
 	advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
 	newConfigValue      = "newvalue"
 	testGitRepository   = "flux-giantswarm/giantswarm-config"
+	testApiServerHost   = "kubernetes.default.svc"
 )
 
 func TestRunner_updateConfig(t *testing.T) {
@@ -229,7 +230,7 @@ func prePopulateCache(cache string, archive, config, timestamp, url []byte) erro
 func TestValidateArtifactURL(t *testing.T) {
 	updater, err := New(Config{
 		CacheDir:      t.TempDir(),
-		ApiServerHost: "kubernetes.default.svc",
+		ApiServerHost: testApiServerHost,
 		ApiServerPort: "443",
 		GitRepository: testGitRepository,
 	})
@@ -246,10 +247,10 @@ func TestValidateArtifactURL(t *testing.T) {
 		{"default host with cluster domain", "http://source-controller.flux-giantswarm.svc.cluster.local./gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
 		{"default host with port", "http://source-controller.flux-giantswarm.svc:80/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
 		{"https", "https://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
-		{"foreign host", "http://attacker.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
+		{"foreign host", "http://other.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
 		{"source controller in another namespace", "http://source-controller.flux-system.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
 		{"ip address", "http://10.0.0.1/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
-		{"user info", "http://source-controller.flux-giantswarm.svc@attacker.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
+		{"user info", "http://source-controller.flux-giantswarm.svc@other.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
 		{"other repository", "http://source-controller.flux-giantswarm.svc/gitrepository/org-x/repo/abc.tar.gz", false},
 		{"repository name prefix", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config-other/abc.tar.gz", false},
 		{"dot-dot in path", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/../../org-x/repo/abc.tar.gz", false},
@@ -277,7 +278,7 @@ func TestNew_InvalidGitRepository(t *testing.T) {
 	for _, gitRepository := range []string{"giantswarm-config", "a/b/c", "/name", "namespace/"} {
 		_, err := New(Config{
 			CacheDir:      t.TempDir(),
-			ApiServerHost: "kubernetes.default.svc",
+			ApiServerHost: testApiServerHost,
 			ApiServerPort: "443",
 			GitRepository: gitRepository,
 		})
@@ -441,5 +442,20 @@ func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
 				t.Fatalf("want cached URL %q, got %q", tc.advertisedURL, string(cached))
 			}
 		})
+	}
+}
+
+func TestNew_InvalidArtifactHosts(t *testing.T) {
+	for _, host := range []string{"", "source-controller:80", "http://source-controller", "source-controller/path", "[::1]"} {
+		_, err := New(Config{
+			CacheDir:      t.TempDir(),
+			ApiServerHost: testApiServerHost,
+			ApiServerPort: "443",
+			GitRepository: testGitRepository,
+			ArtifactHosts: []string{host},
+		})
+		if err == nil {
+			t.Fatalf("want error for artifact host %q, got nil", host)
+		}
 	}
 }
