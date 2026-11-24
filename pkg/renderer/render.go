@@ -3,7 +3,6 @@ package renderer
 import (
 	"bytes"
 	"os"
-	"path"
 	"strings"
 	"text/template"
 
@@ -68,8 +67,17 @@ func GenerateIncludeFunctions(dir string, includes []model.Include) template.Fun
 
 func generateIncludeFunction(dir string, include model.Include) func(templateName string, templateData interface{}) (string, error) {
 	return func(templateName string, templateData interface{}) (string, error) {
-		templateFilePath := path.Join(dir, include.Path.Directory, templateName+include.Extension)
-		contents, err := os.ReadFile(path.Clean(templateFilePath))
+		templateFilePath, err := joinInDir(dir, include.Path.Directory, templateName+include.Extension)
+		if err != nil {
+			return "", err
+		}
+
+		resolvedPath, err := resolveInDir(dir, templateFilePath)
+		if err != nil {
+			return "", err
+		}
+
+		contents, err := os.ReadFile(resolvedPath) // #nosec G304 -- resolvedPath is confined to dir
 		if err != nil {
 			return "", err
 		}

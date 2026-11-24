@@ -230,12 +230,18 @@ func LoadPatches(dir string, schema *model.Schema, variables SchemaVariables) (*
 }
 
 func loadFileFromPathSegments(dir string, segments []PathSegment) ([]byte, error) {
-	path := dir
+	elems := make([]string, 0, len(segments))
+	resolved := ""
 
 	for _, segment := range segments {
-		path = strings.Join([]string{path, segment.Value}, string(os.PathSeparator))
+		elems = append(elems, segment.Value)
 
-		_, err := os.Stat(path)
+		path, err := joinInDir(dir, elems...)
+		if err != nil {
+			return nil, err
+		}
+
+		resolved, err = resolveInDir(dir, path)
 		if err != nil {
 			if os.IsNotExist(err) {
 				if segment.Required {
@@ -243,11 +249,15 @@ func loadFileFromPathSegments(dir string, segments []PathSegment) ([]byte, error
 				}
 
 				return make([]byte, 0), nil
-			} else {
-				return nil, err
 			}
+
+			return nil, err
 		}
 	}
 
-	return os.ReadFile(filepath.Clean(path))
+	if resolved == "" {
+		return make([]byte, 0), nil
+	}
+
+	return os.ReadFile(resolved) // #nosec G304 -- resolved is confined to dir
 }
