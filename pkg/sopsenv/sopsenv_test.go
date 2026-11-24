@@ -405,6 +405,10 @@ func TestNormalizeKeysNamespaces(t *testing.T) {
 		{name: "duplicates dropped", input: []string{gsNamespace, gsNamespace, "org-x"}, expected: []string{gsNamespace, "org-x"}},
 		{name: "all namespaces", input: []string{AllKeysNamespaces}, expected: []string{""}},
 		{name: "all namespaces mixed with others", input: []string{AllKeysNamespaces, gsNamespace}, expectErr: true},
+		{name: "upper case namespace", input: []string{"Giantswarm"}, expectErr: true},
+		{name: "namespace with a slash", input: []string{"giantswarm/sops-keys"}, expectErr: true},
+		{name: "namespace with a dot", input: []string{"flux.giantswarm"}, expectErr: true},
+		{name: "trimmed namespace", input: []string{" " + gsNamespace + " "}, expected: []string{gsNamespace}},
 	}
 
 	for _, tc := range testCases {

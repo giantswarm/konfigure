@@ -17,6 +17,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -169,6 +170,12 @@ func normalizeKeysNamespaces(namespaces []string) ([]string, error) {
 		return []string{metav1.NamespaceAll}, nil
 	}
 
+	for _, namespace := range result {
+		if errs := validation.IsDNS1123Label(namespace); len(errs) != 0 {
+			return nil, &InvalidConfigError{message: fmt.Sprintf("keys namespace %q is not a valid namespace name: %s", namespace, strings.Join(errs, ", "))}
+		}
+	}
+
 	return result, nil
 }
 
@@ -236,12 +243,15 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if len(list.Items) == 0 && namespace != metav1.NamespaceAll {
+			s.logger.Info("warning: no SOPS key Secrets found in namespace, check the configured keys namespaces", "namespace", namespace, "selector", o.LabelSelector)
+		}
 		secrets = append(secrets, list.Items...)
 	}
 
 	// Let user know no Secrets have been found using selector.
 	if len(secrets) == 0 {
-		s.logger.Info(fmt.Sprintf("no Kubernetes Secrets found matching selector: %s=%s", KonfigureLabelKey, KonfigureLabelValue), "namespaces", s.keysNamespaces)
+		s.logger.Info(fmt.Sprintf("warning: no Kubernetes Secrets found matching selector: %s=%s, encrypted files cannot be decrypted", KonfigureLabelKey, KonfigureLabelValue), "namespaces", s.keysNamespaces)
 		// Clear age keys written by an earlier import.
 		return s.writeKeysTxt(ctx, nil)
 	}
