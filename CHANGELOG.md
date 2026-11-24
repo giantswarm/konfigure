@@ -7,10 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts(clusterDomain)`: `source-controller.flux-giantswarm.svc.<clusterDomain>`, with the domain from `fluxupdater.Config.ClusterDomain` (default `cluster.local`). `fluxupdater.ArtifactHost(namespace, clusterDomain)` builds the host name for another Source Controller. The hosts must be fully qualified and match what the Source Controller advertises with `--storage-adv-addr`. `fluxupdater.Config.ClusterDomain` is ignored when `ArtifactHosts` is set.
+- `sopsenv.SOPSEnvConfig.KeysNamespaces` and the `--sops-keys-namespace` flag of `konfigure render` set the namespaces SOPS key Secrets are imported from. Default to `sopsenv.DefaultKeysNamespaces()`: `giantswarm` and `flux-giantswarm`. `sopsenv.AllKeysNamespaces` (`*`) imports from all namespaces.
+
 ### Changed
 
+- **Breaking:** schema paths, file names and `includes` files are read inside the render directory only. Paths that leave the directory are rejected. Symbolic links must be relative and stay inside the directory. A leading `/` is still relative to the render directory, and `..` is resolved on the path text before lookup.
+- **Breaking:** artifact URLs must point at an allowed Source Controller host and below `/gitrepository/<namespace>/<name>/` of the configured GitRepository, both when advertised and when cached. Artifact downloads no longer follow redirects. `fluxupdater.Config.GitRepository` must be `<namespace>/<name>` with valid Kubernetes names.
+- **Breaking:** SOPS key Secrets are only imported from the configured namespaces instead of all namespaces. Pass `sopsenv.AllKeysNamespaces` to keep the old behaviour.
+- SOPS keys that fail to import are logged and skipped instead of failing the import; the import fails only when some keys failed and none could be imported. Only X25519 age identities are accepted. `keys.txt` is replaced atomically on every import, and emptied when no age key is left. PGP keys stay in the keyring until the keys directory is removed.
+- Close artifact and API server responses on every path in `fluxupdater`.
+- Keys namespaces (`--sops-keys-namespace`) must be valid namespace names. A namespace without SOPS key Secrets is logged as a warning.
 - Drop five `replace` directives from `go.mod` that no longer applied (`glog`, `goldmark`, `x/mod`, `otel`, `otel/sdk`). Every module resolves to the same version as before.
 - Release binaries now include darwin/amd64, darwin/arm64, windows/amd64, and windows/arm64 alongside the existing linux targets. Windows binaries are named `konfigure-windows-<arch>.exe`.
+
+### Fixed
+
+- Artifacts that announce more than 100 MiB are refused before download, and other downloads are cut off at 100 MiB.
+- The cached artifact is forgotten before a new one is extracted, so a failed or interrupted extraction is downloaded again on the next update instead of leaving a partial config in use.
+- A cached artifact URL that answers with anything but 200 no longer fails the update; the GitRepository is asked for the current artifact instead, as for a 404.
 
 ## [2.1.1] - 2025-12-10
 

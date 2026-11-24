@@ -41,9 +41,10 @@ func (r *runner) Run(cmd *cobra.Command, args []string) error {
 func (r *runner) run(ctx context.Context, cmd *cobra.Command, args []string) error {
 	// Setup SOPS environment
 	sopsEnv, err := sopsenv.NewSOPSEnv(sopsenv.SOPSEnvConfig{
-		KeysDir:    r.flag.SOPSKeysDir,
-		KeysSource: r.flag.SOPSKeysSource,
-		Logger:     r.logger,
+		KeysDir:        r.flag.SOPSKeysDir,
+		KeysSource:     r.flag.SOPSKeysSource,
+		KeysNamespaces: r.flag.SOPSKeysNS,
+		Logger:         r.logger,
 	})
 	if err != nil {
 		return err

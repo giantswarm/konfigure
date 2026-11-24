@@ -230,24 +230,48 @@ func LoadPatches(dir string, schema *model.Schema, variables SchemaVariables) (*
 }
 
 func loadFileFromPathSegments(dir string, segments []PathSegment) ([]byte, error) {
-	path := dir
+	if len(segments) == 0 {
+		return make([]byte, 0), nil
+	}
+
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if segments[0].Required {
+				return nil, fmt.Errorf("required path %s does not exist", dir)
+			}
+			return make([]byte, 0), nil
+		}
+		return nil, err
+	}
+	defer func() { _ = root.Close() }()
+
+	elems := make([]string, 0, len(segments))
+	rel := ""
 
 	for _, segment := range segments {
-		path = strings.Join([]string{path, segment.Value}, string(os.PathSeparator))
+		elems = append(elems, segment.Value)
 
-		_, err := os.Stat(path)
+		rel, err = relInDir(elems...)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = root.Stat(rel)
 		if err != nil {
 			if os.IsNotExist(err) {
 				if segment.Required {
-					return nil, fmt.Errorf("required path %s does not exist", path)
+					return nil, fmt.Errorf("required path %s does not exist", filepath.Join(dir, rel))
 				}
 
 				return make([]byte, 0), nil
-			} else {
-				return nil, err
 			}
+
+			return nil, wrapRootError(rel, err)
 		}
 	}
 
-	return os.ReadFile(filepath.Clean(path))
+	content, err := root.ReadFile(rel)
+
+	return content, wrapRootError(rel, err)
 }
