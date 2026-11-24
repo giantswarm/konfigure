@@ -16,6 +16,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/fluxcd/pkg/tar"
 )
@@ -104,8 +105,10 @@ func New(config Config) (*FluxUpdater, error) {
 	}
 
 	repoCoordinates := strings.Split(config.GitRepository, "/")
-	if len(repoCoordinates) != 2 || repoCoordinates[0] == "" || repoCoordinates[1] == "" {
-		return nil, &InvalidConfigError{message: fmt.Sprintf("gitRepository must be in the form <namespace>/<name>, got %q", config.GitRepository)}
+	if len(repoCoordinates) != 2 ||
+		len(validation.IsDNS1123Label(repoCoordinates[0])) != 0 ||
+		len(validation.IsDNS1123Subdomain(repoCoordinates[1])) != 0 {
+		return nil, &InvalidConfigError{message: fmt.Sprintf("gitRepository must be <namespace>/<name> with valid Kubernetes names, got %q", config.GitRepository)}
 	}
 
 	artifactHosts := make([]string, 0, len(config.ArtifactHosts))
@@ -297,7 +300,15 @@ func (u *FluxUpdater) UpdateConfig() error {
 
 		// Make a GET request to the Kubernetes API server to get the GitRepository
 		// in a JSON format.
-		var response *http.Response
+		apiTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // nolint:gosec
+		defer apiTransport.CloseIdleConnections()
+
+		apiClient := &http.Client{
+			Timeout:   client.Timeout,
+			Transport: apiTransport,
+		}
+
+		var responseBytes []byte
 		for _, p := range k8sApiPath {
 			request, err := http.NewRequest(http.MethodGet, p, nil)
 			if err != nil {
@@ -307,39 +318,37 @@ func (u *FluxUpdater) UpdateConfig() error {
 			request.Header.Set("Authorization", bearer)
 			request.Header.Add("Accept", "application/json")
 
-			apiClient := &http.Client{
-				Timeout:   client.Timeout,
-				Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}, // nolint:gosec
-			}
-
-			response, err = apiClient.Do(request)
+			response, err := apiClient.Do(request)
 			if err != nil {
 				return err
 			}
-			defer func() { _ = response.Body.Close() }()
 
-			if response.StatusCode == http.StatusOK {
+			statusCode := response.StatusCode
+			if statusCode == http.StatusOK {
+				responseBytes, err = io.ReadAll(response.Body)
+			}
+			_ = response.Body.Close()
+
+			if statusCode == http.StatusOK {
+				if err != nil {
+					return err
+				}
 				break
 			}
 
-			if response.StatusCode == http.StatusNotFound {
+			if statusCode == http.StatusNotFound {
 				continue
 			}
 
 			return &ExecutionFailedError{
-				message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode),
+				message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusOK, statusCode),
 			}
 		}
 
-		if response.StatusCode != http.StatusOK {
+		if responseBytes == nil {
 			return &ExecutionFailedError{
 				message: fmt.Sprintf("error getting '%s' GitRepository CR", u.GitRepository),
 			}
-		}
-
-		responseBytes, err := io.ReadAll(response.Body)
-		if err != nil {
-			return err
 		}
 
 		// We are not interested in an entire object, we are only interested in getting
@@ -392,12 +401,13 @@ func (u *FluxUpdater) UpdateConfig() error {
 	if err != nil {
 		return err
 	}
+	defer func() { _ = response.Body.Close() }()
+
 	if response.StatusCode != http.StatusOK {
 		return &ExecutionFailedError{
 			message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusOK, response.StatusCode),
 		}
 	}
-	defer func() { _ = response.Body.Close() }()
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, response.Body)

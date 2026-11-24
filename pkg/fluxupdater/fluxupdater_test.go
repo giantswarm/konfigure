@@ -7,9 +7,11 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 const (
@@ -17,6 +19,9 @@ const (
 	newConfigValue      = "newvalue"
 	testGitRepository   = "flux-giantswarm/giantswarm-config"
 	testApiServerHost   = "kubernetes.default.svc"
+	testTokenFile       = "testdata/token"
+
+	testGitRepositoryAPIPath = "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-giantswarm/gitrepositories/giantswarm-config"
 )
 
 func TestRunner_updateConfig(t *testing.T) {
@@ -43,7 +48,7 @@ func TestRunner_updateConfig(t *testing.T) {
 
 	k8sServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch strings.TrimSpace(r.URL.Path) {
-		case "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-giantswarm/gitrepositories/giantswarm-config":
+		case testGitRepositoryAPIPath:
 			w.WriteHeader(http.StatusOK)
 			_, err = w.Write([]byte(`{"status":{"artifact":{"url":"` + srcCtrlServer.URL + "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz" + `"}}}`))
 			if err != nil {
@@ -146,7 +151,7 @@ func TestRunner_updateConfig(t *testing.T) {
 				CacheDir:            tmpCacheDir,
 				ApiServerHost:       k8sUrl.Hostname(),
 				ApiServerPort:       k8sUrl.Port(),
-				KubernetesTokenFile: "testdata/token",
+				KubernetesTokenFile: testTokenFile,
 				GitRepository:       testGitRepository,
 				ArtifactHosts:       []string{srcCtrlUrl.Hostname()},
 			}
@@ -275,7 +280,7 @@ func TestValidateArtifactURL(t *testing.T) {
 }
 
 func TestNew_InvalidGitRepository(t *testing.T) {
-	for _, gitRepository := range []string{"giantswarm-config", "a/b/c", "/name", "namespace/"} {
+	for _, gitRepository := range []string{"giantswarm-config", "a/b/c", "/name", "namespace/", "../name", "namespace/..", "Namespace/name", "namespace/na%2Fme", "namespace/name?x"} {
 		_, err := New(Config{
 			CacheDir:      t.TempDir(),
 			ApiServerHost: testApiServerHost,
@@ -337,7 +342,7 @@ func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
 
 	var advertisedURL atomic.Value
 	k8sServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-giantswarm/gitrepositories/giantswarm-config" {
+		if r.URL.Path != testGitRepositoryAPIPath {
 			http.NotFoundHandler().ServeHTTP(w, r)
 			return
 		}
@@ -401,7 +406,7 @@ func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
 				CacheDir:            cacheDir,
 				ApiServerHost:       k8sUrl.Hostname(),
 				ApiServerPort:       k8sUrl.Port(),
-				KubernetesTokenFile: "testdata/token",
+				KubernetesTokenFile: testTokenFile,
 				GitRepository:       testGitRepository,
 				ArtifactHosts:       []string{srcCtrlUrl.Hostname()},
 			})
@@ -457,5 +462,61 @@ func TestNew_InvalidArtifactHosts(t *testing.T) {
 		if err == nil {
 			t.Fatalf("want error for artifact host %q, got nil", host)
 		}
+	}
+}
+
+func TestRunner_updateConfig_failedDownloadsDoNotLeak(t *testing.T) {
+	srcCtrlServer := httptest.NewServer(http.NotFoundHandler())
+	defer srcCtrlServer.Close()
+
+	k8sServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != testGitRepositoryAPIPath {
+			http.NotFoundHandler().ServeHTTP(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `{"status":{"artifact":{"url":%q}}}`, srcCtrlServer.URL+"/gitrepository/flux-giantswarm/giantswarm-config/missing.tar.gz")
+	}))
+	defer k8sServer.Close()
+
+	srcCtrlUrl, err := url.Parse(srcCtrlServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k8sUrl, err := url.Parse(k8sServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updater, err := New(Config{
+		CacheDir:            t.TempDir(),
+		ApiServerHost:       k8sUrl.Hostname(),
+		ApiServerPort:       k8sUrl.Port(),
+		KubernetesTokenFile: testTokenFile,
+		GitRepository:       testGitRepository,
+		ArtifactHosts:       []string{srcCtrlUrl.Hostname()},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Warm up connection pools before taking the baseline.
+	_ = updater.UpdateConfig()
+	baseline := runtime.NumGoroutine()
+
+	for range 50 {
+		if err := updater.UpdateConfig(); err == nil {
+			t.Fatal("want error for a missing artifact, got nil")
+		}
+	}
+
+	// Allow closed connections to wind down.
+	deadline := time.Now().Add(5 * time.Second)
+	for runtime.NumGoroutine() > baseline+10 && time.Now().Before(deadline) {
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	if got := runtime.NumGoroutine(); got > baseline+10 {
+		t.Fatalf("goroutines grew from %d to %d after 50 failed updates", baseline, got)
 	}
 }
