@@ -11,10 +11,12 @@ import (
 
 const (
 	errOutside        = "outside of the config directory"
-	errSymlinkOutside = "resolves to a location outside"
-	errRelative       = "must be relative"
+	errSymlinkOutside = "escapes from parent"
+	errNotExist       = "does not exist"
+	errNoSuchFile     = "no such file or directory"
 	insideContent     = "inside: true\n"
 	missingFile       = "missing.yaml"
+	missingDir        = "missing"
 	secretFile        = "secret.yaml"
 	valuesFile        = "values.yaml"
 	appsOperator      = "apps/operator"
@@ -67,6 +69,9 @@ func TestLoadFileFromPathSegments_Confinement(t *testing.T) {
 	if err := os.Symlink(filepath.Join(outsideDir, defaultDir, secretFile), filepath.Join(configDir, defaultDir, "escape-file.yaml")); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Symlink(filepath.Join(outsideDir, missingFile), filepath.Join(configDir, defaultDir, "escape-missing.yaml")); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Symlink(filepath.Join("apps", "operator", valuesFile), filepath.Join(configDir, defaultDir, "inside-link.yaml")); err != nil {
 		t.Fatal(err)
 	}
@@ -101,6 +106,15 @@ func TestLoadFileFromPathSegments_Confinement(t *testing.T) {
 				{defaultDir, true},
 				{"", false},
 				{"inside-link.yaml", true},
+			},
+			expectedContent: insideContent,
+		},
+		{
+			name: "leading slashes are relative to the config directory",
+			segments: []PathSegment{
+				{"/" + defaultDir, true},
+				{"/" + appsOperator, true},
+				{valuesFile, true},
 			},
 			expectedContent: insideContent,
 		},
@@ -150,22 +164,22 @@ func TestLoadFileFromPathSegments_Confinement(t *testing.T) {
 			expectedError: errOutside,
 		},
 		{
-			name: "absolute path in the first segment",
+			name: "absolute path in the first segment stays relative",
 			segments: []PathSegment{
 				{filepath.Join(outsideDir, defaultDir), true},
 				{"", false},
 				{secretFile, true},
 			},
-			expectedError: errRelative,
+			expectedError: errNotExist,
 		},
 		{
-			name: "absolute path in the file name",
+			name: "absolute path in the file name stays relative",
 			segments: []PathSegment{
 				{defaultDir, true},
 				{"", false},
 				{filepath.Join(outsideDir, defaultDir, secretFile), true},
 			},
-			expectedError: errRelative,
+			expectedError: errNotExist,
 		},
 		{
 			name: "symbolic link to a directory outside",
@@ -173,6 +187,15 @@ func TestLoadFileFromPathSegments_Confinement(t *testing.T) {
 				{"escape-dir", true},
 				{"", false},
 				{secretFile, true},
+			},
+			expectedError: errSymlinkOutside,
+		},
+		{
+			name: "optional symbolic link to a missing file outside",
+			segments: []PathSegment{
+				{defaultDir, true},
+				{"", false},
+				{"escape-missing.yaml", false},
 			},
 			expectedError: errSymlinkOutside,
 		},
@@ -274,16 +297,16 @@ func TestIncludeFunction_Confinement(t *testing.T) {
 			expectedError: errOutside,
 		},
 		{
-			name:          "absolute include directory",
+			name:          "absolute include directory stays relative",
 			directory:     outsideDir,
 			templateName:  snippetName,
-			expectedError: errRelative,
+			expectedError: errNoSuchFile,
 		},
 		{
-			name:          "absolute template name",
+			name:          "absolute template name stays relative",
 			directory:     includeDir,
 			templateName:  filepath.Join(outsideDir, snippetName),
-			expectedError: errRelative,
+			expectedError: errNoSuchFile,
 		},
 		{
 			name:          "symbolic link to a template outside",
@@ -321,4 +344,46 @@ func TestIncludeFunction_Confinement(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLoadFileFromPathSegments_DirForms(t *testing.T) {
+	configDir, _ := setupConfinementDirs(t)
+	segments := []PathSegment{{defaultDir, true}, {appsOperator, true}, {valuesFile, true}}
+
+	t.Run("symbolic link as config directory", func(t *testing.T) {
+		link := filepath.Join(t.TempDir(), "config")
+		if err := os.Symlink(configDir, link); err != nil {
+			t.Fatal(err)
+		}
+
+		content, err := loadFileFromPathSegments(link, segments)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if string(content) != insideContent {
+			t.Fatalf("expected content %q, got %q", insideContent, string(content))
+		}
+	})
+
+	t.Run("relative config directory", func(t *testing.T) {
+		t.Chdir(configDir)
+
+		content, err := loadFileFromPathSegments(".", segments)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if string(content) != insideContent {
+			t.Fatalf("expected content %q, got %q", insideContent, string(content))
+		}
+	})
+
+	t.Run("missing config directory with optional segments", func(t *testing.T) {
+		content, err := loadFileFromPathSegments(filepath.Join(configDir, missingDir), []PathSegment{{defaultDir, false}})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(content) != 0 {
+			t.Fatalf("expected empty content, got %q", string(content))
+		}
+	})
 }

@@ -230,34 +230,45 @@ func LoadPatches(dir string, schema *model.Schema, variables SchemaVariables) (*
 }
 
 func loadFileFromPathSegments(dir string, segments []PathSegment) ([]byte, error) {
+	if len(segments) == 0 {
+		return make([]byte, 0), nil
+	}
+
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		if os.IsNotExist(err) && !segments[0].Required {
+			return make([]byte, 0), nil
+		}
+		return nil, err
+	}
+	defer func() { _ = root.Close() }()
+
 	elems := make([]string, 0, len(segments))
-	resolved := ""
+	rel := ""
 
 	for _, segment := range segments {
 		elems = append(elems, segment.Value)
 
-		path, err := joinInDir(dir, elems...)
+		rel, err = relInDir(elems...)
 		if err != nil {
 			return nil, err
 		}
 
-		resolved, err = resolveInDir(dir, path)
+		_, err = root.Stat(rel)
 		if err != nil {
 			if os.IsNotExist(err) {
 				if segment.Required {
-					return nil, fmt.Errorf("required path %s does not exist", path)
+					return nil, fmt.Errorf("required path %s does not exist", filepath.Join(dir, rel))
 				}
 
 				return make([]byte, 0), nil
 			}
 
-			return nil, err
+			return nil, wrapRootError(rel, err)
 		}
 	}
 
-	if resolved == "" {
-		return make([]byte, 0), nil
-	}
+	content, err := root.ReadFile(rel)
 
-	return os.ReadFile(resolved) // #nosec G304 -- resolved is confined to dir
+	return content, wrapRootError(rel, err)
 }
