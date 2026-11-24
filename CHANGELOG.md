@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts()`: `source-controller.flux-giantswarm.svc` and `source-controller.flux-giantswarm.svc.cluster.local`.
+- `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts()`: `source-controller.flux-giantswarm.svc.cluster.local`. Clusters with another cluster domain must set it; `fluxupdater.ArtifactHost(namespace, clusterDomain)` builds the host name.
 - `sopsenv.SOPSEnvConfig.KeysNamespaces` and the `--sops-keys-namespace` flag of `konfigure render` set the namespaces SOPS key Secrets are imported from. Default to `sopsenv.DefaultKeysNamespaces()`: `giantswarm` and `flux-giantswarm`. `sopsenv.AllKeysNamespaces` (`*`) imports from all namespaces.
 
 ### Changed
@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** SOPS key Secrets are only imported from the configured namespaces instead of all namespaces. Pass `sopsenv.AllKeysNamespaces` to keep the old behaviour.
 - SOPS keys that fail to import are logged and skipped instead of failing the import; the import fails only when some keys failed and none could be imported. Only X25519 age identities are accepted. `keys.txt` is replaced atomically on every import, and emptied when no age key is left. PGP keys stay in the keyring until the keys directory is removed.
 - Close artifact and API server responses on every path in `fluxupdater`.
+- Artifact downloads larger than 100 MB are refused before they are extracted, and the previous config stays in place.
+- A cached artifact URL that answers with anything but 200 or 404 no longer fails the update; the GitRepository is asked for the current artifact instead, as for a 404.
+- Keys namespaces must be valid namespace names. A namespace without SOPS key Secrets is logged as a warning.
 - Drop five `replace` directives from `go.mod` that no longer applied (`glog`, `goldmark`, `x/mod`, `otel`, `otel/sdk`). Every module resolves to the same version as before.
 - Release binaries now include darwin/amd64, darwin/arm64, windows/amd64, and windows/arm64 alongside the existing linux targets. Windows binaries are named `konfigure-windows-<arch>.exe`.
 
