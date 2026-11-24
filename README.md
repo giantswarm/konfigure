@@ -62,6 +62,7 @@ wrapped into a resulting kubernetes `ConfigMap` or `Secret` manifests.
 For encryption, currently only [SOPS](https://github.com/getsops/sops) is supported with AGE and PGP keys.
 With `--sops-keys-source kubernetes`, keys are imported from Secrets labelled `konfigure.giantswarm.io/data: sops-keys`
 in the namespaces given with `--sops-keys-namespace` (default `giantswarm,flux-giantswarm`, `*` for all namespaces).
+Each entry must be a valid namespace name, and a namespace without key Secrets is logged as a warning.
 Keys that fail to import are logged and skipped; the import fails only when some keys failed and none could be
 imported. Age keys must be X25519 identities (`AGE-SECRET-KEY-1...`).
 
