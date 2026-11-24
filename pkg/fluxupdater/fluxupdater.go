@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -33,6 +35,14 @@ const (
 	defaultKubernetesTokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101
 )
 
+// DefaultArtifactHosts lists the hosts artifacts are downloaded from when
+// Config.ArtifactHosts is empty: the Source Controller service in the
+// flux-giantswarm namespace, with and without the cluster domain.
+var DefaultArtifactHosts = []string{
+	"source-controller.flux-giantswarm.svc",
+	"source-controller.flux-giantswarm.svc.cluster.local",
+}
+
 type Config struct {
 	CacheDir string
 
@@ -40,7 +50,15 @@ type Config struct {
 	ApiServerPort       string
 	KubernetesTokenFile string
 
+	// GitRepository is the GitRepository to fetch, as "<namespace>/<name>".
 	GitRepository string
+
+	// ArtifactHosts lists the host names artifact URLs may point at. An
+	// artifact URL advertised by the GitRepository, or cached from an
+	// earlier update, is only used when its host is in this list and its
+	// path is below /gitrepository/<namespace>/<name>/. The port is not
+	// checked. Defaults to DefaultArtifactHosts when empty.
+	ArtifactHosts []string
 }
 
 type FluxUpdater struct {
@@ -51,6 +69,11 @@ type FluxUpdater struct {
 	KubernetesTokenFile string
 
 	GitRepository string
+
+	ArtifactHosts []string
+
+	gitRepositoryNamespace string
+	gitRepositoryName      string
 }
 
 func New(config Config) (*FluxUpdater, error) {
@@ -77,6 +100,25 @@ func New(config Config) (*FluxUpdater, error) {
 		return nil, &InvalidConfigError{message: "gitRepository must not be empty"}
 	}
 
+	repoCoordinates := strings.Split(config.GitRepository, "/")
+	if len(repoCoordinates) != 2 || repoCoordinates[0] == "" || repoCoordinates[1] == "" {
+		return nil, &InvalidConfigError{message: fmt.Sprintf("gitRepository must be in the form <namespace>/<name>, got %q", config.GitRepository)}
+	}
+
+	artifactHosts := make([]string, 0, len(config.ArtifactHosts))
+	for _, host := range config.ArtifactHosts {
+		host = normalizeHost(host)
+		if host == "" {
+			return nil, &InvalidConfigError{message: "artifactHosts must not contain empty host names"}
+		}
+		artifactHosts = append(artifactHosts, host)
+	}
+	if len(artifactHosts) == 0 {
+		for _, host := range DefaultArtifactHosts {
+			artifactHosts = append(artifactHosts, normalizeHost(host))
+		}
+	}
+
 	if kubernetesTokenFile == "" {
 		kubernetesTokenFile = defaultKubernetesTokenFile
 	}
@@ -87,7 +129,47 @@ func New(config Config) (*FluxUpdater, error) {
 		ApiServerPort:       config.ApiServerPort,
 		KubernetesTokenFile: kubernetesTokenFile,
 		GitRepository:       config.GitRepository,
+
+		ArtifactHosts: artifactHosts,
+
+		gitRepositoryNamespace: repoCoordinates[0],
+		gitRepositoryName:      repoCoordinates[1],
 	}, nil
+}
+
+// normalizeHost lower-cases a host name and drops a trailing dot, so
+// "source-controller.flux-giantswarm.svc.cluster.local." and
+// "source-controller.flux-giantswarm.svc.cluster.local" compare equal.
+func normalizeHost(host string) string {
+	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(host)), ".")
+}
+
+// validateArtifactURL checks that rawURL points at an allowed Source
+// Controller host and at an artifact of the configured GitRepository.
+func (u *FluxUpdater) validateArtifactURL(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return &ExecutionFailedError{message: fmt.Sprintf("invalid artifact URL: %s", err)}
+	}
+
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return &ExecutionFailedError{message: fmt.Sprintf("artifact URL scheme %q is not allowed", parsed.Scheme)}
+	}
+
+	if parsed.Opaque != "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return &ExecutionFailedError{message: "artifact URL must not contain user info, query or fragment"}
+	}
+
+	if !slices.Contains(u.ArtifactHosts, normalizeHost(parsed.Hostname())) {
+		return &ExecutionFailedError{message: fmt.Sprintf("artifact URL host %q is not an allowed Source Controller host", parsed.Hostname())}
+	}
+
+	expectedPrefix := fmt.Sprintf("/gitrepository/%s/%s/", u.gitRepositoryNamespace, u.gitRepositoryName)
+	if parsed.RawPath != "" || path.Clean(parsed.Path) != parsed.Path || !strings.HasPrefix(parsed.Path, expectedPrefix) || len(parsed.Path) == len(expectedPrefix) {
+		return &ExecutionFailedError{message: fmt.Sprintf("artifact URL path %q is not below %q", parsed.Path, expectedPrefix)}
+	}
+
+	return nil
 }
 
 // UpdateConfig makes sure that the assembled CCR version we keep stashed
@@ -122,14 +204,28 @@ func (u *FluxUpdater) UpdateConfig() error {
 		return err
 	}
 
-	url := string(cacheLastArtifactUrlByte)
+	artifactURL := string(cacheLastArtifactUrlByte)
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	// A cached URL is only trusted while it still passes the same checks as a
+	// freshly advertised one. Otherwise it is dropped and the GitRepository is
+	// asked for the current artifact.
+	if artifactURL != "" && u.validateArtifactURL(artifactURL) != nil {
+		artifactURL = ""
+	}
 
-	if url != "" {
+	// Artifacts are downloaded without following redirects, so a validated URL
+	// cannot hand the request over to another host.
+	client := &http.Client{
+		Timeout: 60 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	if artifactURL != "" {
 		// Make a HEAD request to the Source Controller. This allows us to check if the artifact
 		// we have cached is still offered.
-		request, err := http.NewRequest(http.MethodHead, url, nil)
+		request, err := http.NewRequest(http.MethodHead, artifactURL, nil)
 		if err != nil {
 			return err
 		}
@@ -159,32 +255,30 @@ func (u *FluxUpdater) UpdateConfig() error {
 					message: fmt.Sprintf("error calling %q: expected %d, got %d", request.URL, http.StatusNotFound, response.StatusCode),
 				}
 			} else {
-				url = ""
+				artifactURL = ""
 			}
 		}
 	}
 
 	// When latest known revision is still available, there is no need to query the API Server
 	// for the GitRepository, it saves us one call.
-	if url == "" {
-		repoCoordinates := strings.Split(u.GitRepository, "/")
-
+	if artifactURL == "" {
 		k8sApiPath := []string{
 			fmt.Sprintf(
 				"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
 				u.ApiServerHost,
 				u.ApiServerPort,
 				v1SourceAPIGroup,
-				repoCoordinates[0],
-				repoCoordinates[1],
+				u.gitRepositoryNamespace,
+				u.gitRepositoryName,
 			),
 			fmt.Sprintf(
 				"https://%s:%s/apis/%s/namespaces/%s/gitrepositories/%s",
 				u.ApiServerHost,
 				u.ApiServerPort,
 				v1beta2SourceAPIGroup,
-				repoCoordinates[0],
-				repoCoordinates[1],
+				u.gitRepositoryNamespace,
+				u.gitRepositoryName,
 			),
 		}
 
@@ -207,10 +301,12 @@ func (u *FluxUpdater) UpdateConfig() error {
 			request.Header.Set("Authorization", bearer)
 			request.Header.Add("Accept", "application/json")
 
-			tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // nolint:gosec
-			client.Transport = tr
+			apiClient := &http.Client{
+				Timeout:   client.Timeout,
+				Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}, // nolint:gosec
+			}
 
-			response, err = client.Do(request)
+			response, err = apiClient.Do(request)
 			if err != nil {
 				return err
 			}
@@ -274,10 +370,14 @@ func (u *FluxUpdater) UpdateConfig() error {
 			}
 		}
 
-		url = gr.Status.Artifact.Url
+		if err := u.validateArtifactURL(gr.Status.Artifact.Url); err != nil {
+			return err
+		}
+
+		artifactURL = gr.Status.Artifact.Url
 	}
 
-	request, err := http.NewRequest(http.MethodGet, url, nil)
+	request, err := http.NewRequest(http.MethodGet, artifactURL, nil)
 	if err != nil {
 		return err
 	}
@@ -312,7 +412,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 	}
 
 	// Update the last archive name, timestamp and url
-	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchive), []byte(filepath.Base(url)), 0750) // nolint:gosec
+	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArchive), []byte(filepath.Base(artifactURL)), 0750) // nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -322,7 +422,7 @@ func (u *FluxUpdater) UpdateConfig() error {
 		return err
 	}
 
-	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArtifactUrl), []byte(url), 0750) // nolint:gosec
+	err = os.WriteFile(path.Join(u.CacheDir, cacheLastArtifactUrl), []byte(artifactURL), 0750) // nolint:gosec
 	if err != nil {
 		return err
 	}

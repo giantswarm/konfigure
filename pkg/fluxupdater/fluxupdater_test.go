@@ -8,12 +8,14 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
 const (
 	advertisedTimestamp = "Thu, 02 Mar 2024 00:00:00 GMT"
 	newConfigValue      = "newvalue"
+	testGitRepository   = "flux-giantswarm/giantswarm-config"
 )
 
 func TestRunner_updateConfig(t *testing.T) {
@@ -144,7 +146,8 @@ func TestRunner_updateConfig(t *testing.T) {
 				ApiServerHost:       k8sUrl.Hostname(),
 				ApiServerPort:       k8sUrl.Port(),
 				KubernetesTokenFile: "testdata/token",
-				GitRepository:       "flux-giantswarm/giantswarm-config",
+				GitRepository:       testGitRepository,
+				ArtifactHosts:       []string{srcCtrlUrl.Hostname()},
 			}
 
 			fluxUpdater, err := New(fluxUpdaterConfig)
@@ -221,4 +224,222 @@ func prePopulateCache(cache string, archive, config, timestamp, url []byte) erro
 	}
 
 	return nil
+}
+
+func TestValidateArtifactURL(t *testing.T) {
+	updater, err := New(Config{
+		CacheDir:      t.TempDir(),
+		ApiServerHost: "kubernetes.default.svc",
+		ApiServerPort: "443",
+		GitRepository: testGitRepository,
+	})
+	if err != nil {
+		t.Fatalf("want nil, got error: %s", err.Error())
+	}
+
+	testCases := []struct {
+		name  string
+		url   string
+		valid bool
+	}{
+		{"default host", "http://source-controller.flux-giantswarm.svc./gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"default host with cluster domain", "http://source-controller.flux-giantswarm.svc.cluster.local./gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"default host with port", "http://source-controller.flux-giantswarm.svc:80/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"https", "https://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"foreign host", "http://attacker.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
+		{"source controller in another namespace", "http://source-controller.flux-system.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
+		{"ip address", "http://10.0.0.1/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
+		{"user info", "http://source-controller.flux-giantswarm.svc@attacker.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
+		{"other repository", "http://source-controller.flux-giantswarm.svc/gitrepository/org-x/repo/abc.tar.gz", false},
+		{"repository name prefix", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config-other/abc.tar.gz", false},
+		{"dot-dot in path", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/../../org-x/repo/abc.tar.gz", false},
+		{"encoded slash in path", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/..%2F..%2Forg-x%2Frepo%2Fabc.tar.gz", false},
+		{"directory only", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/", false},
+		{"query", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz?x=1", false},
+		{"file scheme", "file:///gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
+		{"not a url", "://", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := updater.validateArtifactURL(tc.url)
+			if tc.valid && err != nil {
+				t.Fatalf("want nil, got error: %s", err.Error())
+			}
+			if !tc.valid && err == nil {
+				t.Fatalf("want error for %q, got nil", tc.url)
+			}
+		})
+	}
+}
+
+func TestNew_InvalidGitRepository(t *testing.T) {
+	for _, gitRepository := range []string{"giantswarm-config", "a/b/c", "/name", "namespace/"} {
+		_, err := New(Config{
+			CacheDir:      t.TempDir(),
+			ApiServerHost: "kubernetes.default.svc",
+			ApiServerPort: "443",
+			GitRepository: gitRepository,
+		})
+		if err == nil {
+			t.Fatalf("want error for gitRepository %q, got nil", gitRepository)
+		}
+	}
+}
+
+func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
+	archive, err := os.ReadFile("testdata/latestrevision.tar.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const (
+		artifactPath = "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz"
+		redirectPath = "/gitrepository/flux-giantswarm/giantswarm-config/redirect.tar.gz"
+	)
+
+	var foreignRequests atomic.Int32
+	foreignServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		foreignRequests.Add(1)
+		w.Header().Add("Last-Modified", advertisedTimestamp)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(archive)
+	}))
+	defer foreignServer.Close()
+
+	foreignUrl, err := url.Parse(foreignServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Same listener, different host name: 127.0.0.1 is allowed below,
+	// localhost is not.
+	foreignBase := fmt.Sprintf("http://localhost:%s", foreignUrl.Port())
+
+	srcCtrlServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case artifactPath:
+			w.Header().Add("Last-Modified", advertisedTimestamp)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(archive)
+		case redirectPath:
+			http.Redirect(w, r, foreignBase+artifactPath, http.StatusFound)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer srcCtrlServer.Close()
+
+	srcCtrlUrl, err := url.Parse(srcCtrlServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var advertisedURL atomic.Value
+	k8sServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-giantswarm/gitrepositories/giantswarm-config" {
+			http.NotFoundHandler().ServeHTTP(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `{"status":{"artifact":{"url":%q}}}`, advertisedURL.Load().(string))
+	}))
+	defer k8sServer.Close()
+
+	k8sUrl, err := url.Parse(k8sServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCases := []struct {
+		name          string
+		advertisedURL string
+		cachedURL     string
+		expectedError string
+	}{
+		{
+			name:          "advertised URL on a foreign host",
+			advertisedURL: foreignBase + artifactPath,
+			expectedError: "not an allowed Source Controller host",
+		},
+		{
+			name:          "advertised URL for another GitRepository",
+			advertisedURL: srcCtrlServer.URL + "/gitrepository/org-x/repo/latestrevision.tar.gz",
+			expectedError: "is not below",
+		},
+		{
+			name:          "advertised URL redirecting to a foreign host",
+			advertisedURL: srcCtrlServer.URL + redirectPath,
+			expectedError: "expected 200, got 302",
+		},
+		{
+			name:          "advertised URL with path traversal",
+			advertisedURL: srcCtrlServer.URL + "/gitrepository/flux-giantswarm/giantswarm-config/../../org-x/repo/latestrevision.tar.gz",
+			expectedError: "is not below",
+		},
+		{
+			name:          "cached URL on a foreign host is dropped",
+			advertisedURL: srcCtrlServer.URL + artifactPath,
+			cachedURL:     foreignBase + artifactPath,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			foreignRequests.Store(0)
+			advertisedURL.Store(tc.advertisedURL)
+
+			cacheDir := t.TempDir()
+			if tc.cachedURL != "" {
+				err := prePopulateCache(cacheDir, []byte("latestrevision.tar.gz"), []byte("oldvalue"), []byte(advertisedTimestamp), []byte(tc.cachedURL))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			updater, err := New(Config{
+				CacheDir:            cacheDir,
+				ApiServerHost:       k8sUrl.Hostname(),
+				ApiServerPort:       k8sUrl.Port(),
+				KubernetesTokenFile: "testdata/token",
+				GitRepository:       testGitRepository,
+				ArtifactHosts:       []string{srcCtrlUrl.Hostname()},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = updater.UpdateConfig()
+
+			if foreignRequests.Load() != 0 {
+				t.Fatalf("foreign host was contacted %d times", foreignRequests.Load())
+			}
+
+			if tc.expectedError != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.expectedError) {
+					t.Fatalf("want error containing %q, got %v", tc.expectedError, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("want nil, got error: %s", err.Error())
+			}
+
+			config, err := os.ReadFile(path.Join(cacheDir, "latest", "config.yaml")) //nolint:gosec
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.TrimSpace(string(config)) != newConfigValue {
+				t.Fatalf("want %q, got %q", newConfigValue, string(config))
+			}
+
+			cached, err := os.ReadFile(path.Join(cacheDir, cacheLastArtifactUrl)) //nolint:gosec
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(cached) != tc.advertisedURL {
+				t.Fatalf("want cached URL %q, got %q", tc.advertisedURL, string(cached))
+			}
+		})
+	}
 }
