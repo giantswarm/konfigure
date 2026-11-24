@@ -14,10 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking:** schema paths, file names and `includes` files are read inside the render directory only. Paths that leave the directory and symbolic links that point outside of it are rejected. A leading `/` is still relative to the render directory.
-- **Breaking:** artifact URLs must point at an allowed Source Controller host and below `/gitrepository/<namespace>/<name>/` of the configured GitRepository, both when advertised and when cached. Artifact downloads no longer follow redirects. `fluxupdater.Config.GitRepository` must be `<namespace>/<name>`.
+- **Breaking:** schema paths, file names and `includes` files are read inside the render directory only. Paths that leave the directory are rejected. Symbolic links must be relative and stay inside the directory. A leading `/` is still relative to the render directory, and `..` is resolved on the path text before lookup.
+- **Breaking:** artifact URLs must point at an allowed Source Controller host and below `/gitrepository/<namespace>/<name>/` of the configured GitRepository, both when advertised and when cached. Artifact downloads no longer follow redirects. `fluxupdater.Config.GitRepository` must be `<namespace>/<name>` with valid Kubernetes names.
 - **Breaking:** SOPS key Secrets are only imported from the configured namespaces instead of all namespaces. Pass `sopsenv.AllKeysNamespaces` to keep the old behaviour.
-- SOPS keys that fail to import are logged and skipped instead of failing the import; it fails only when no key could be imported. Only X25519 age identities are accepted. `keys.txt` is rewritten on every import, and emptied when no key is left.
+- SOPS keys that fail to import are logged and skipped instead of failing the import; the import fails only when some keys failed and none could be imported. Only X25519 age identities are accepted. `keys.txt` is replaced atomically on every import, and emptied when no age key is left. PGP keys stay in the keyring until the keys directory is removed.
+- Close artifact and API server responses on every path in `fluxupdater`.
 - Drop five `replace` directives from `go.mod` that no longer applied (`glog`, `goldmark`, `x/mod`, `otel`, `otel/sdk`). Every module resolves to the same version as before.
 - Release binaries now include darwin/amd64, darwin/arm64, windows/amd64, and windows/arm64 alongside the existing linux targets. Windows binaries are named `konfigure-windows-<arch>.exe`.
 
