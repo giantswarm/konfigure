@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-11-24
+
 ### Added
 
 - `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts(clusterDomain)`: `source-controller.flux-giantswarm.svc.<clusterDomain>`, with the domain from `fluxupdater.Config.ClusterDomain` (default `cluster.local`). `fluxupdater.ArtifactHost(namespace, clusterDomain)` builds the host name for another Source Controller. The hosts must be fully qualified and match what the Source Controller advertises with `--storage-adv-addr`. `fluxupdater.Config.ClusterDomain` is ignored when `ArtifactHosts` is set.
@@ -354,7 +356,8 @@ blocked by app-admission-controller.
 - Start of a new history. Previous commits have been imported from https://github.com/giantswarm/config-controller.
 - Use local filesystem instead of GitHub as configuration source.
 
-[Unreleased]: https://github.com/giantswarm/konfigure/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/giantswarm/konfigure/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/giantswarm/konfigure/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/giantswarm/konfigure/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/giantswarm/konfigure/compare/v1.2.0...v2.1.0
 [1.2.0]: https://github.com/giantswarm/konfigure/compare/v1.1.0...v1.2.0
