@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Accept artifact URLs whose host ends in `.svc`, as advertised by a Source Controller running with `--storage-adv-addr=source-controller.<namespace>.svc`. Such a host is completed with `fluxupdater.Config.ClusterDomain` (default `cluster.local`), and the completed host is checked against the allowed hosts and used for the download. `fluxupdater.Config.ClusterDomain` is now also used when `ArtifactHosts` is set.
+- Refuse artifact URLs with an empty query (a trailing `?`), like other queries.
+
 ## [2.2.0] - 2026-11-24
 
 ### Added

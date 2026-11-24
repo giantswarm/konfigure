@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -54,7 +55,9 @@ var maxArtifactSize int64 = tar.DefaultMaxUntarSize
 // namespace on a cluster with clusterDomain, for example
 // "source-controller.flux-giantswarm.svc.cluster.local". An empty
 // clusterDomain means DefaultClusterDomain. The allowed hosts must match the
-// host the Source Controller advertises with its --storage-adv-addr flag.
+// host the Source Controller advertises with its --storage-adv-addr flag; an
+// advertised "source-controller.<namespace>.svc" is completed with the
+// cluster domain before it is matched.
 func ArtifactHost(namespace, clusterDomain string) string {
 	clusterDomain = strings.Trim(strings.TrimSpace(clusterDomain), ".")
 	if clusterDomain == "" {
@@ -85,14 +88,20 @@ type Config struct {
 	// artifact URL advertised by the GitRepository, or cached from an
 	// earlier update, is only used when its host is in this list and its
 	// path is below /gitrepository/<namespace>/<name>/. Entries are host
-	// names only, without scheme or port; the port is not checked. Defaults
-	// to DefaultArtifactHosts(ClusterDomain) when empty. Use ArtifactHost
+	// names only, without scheme or port; the port is not checked. A host
+	// ending in ".svc" is completed with ClusterDomain before it is matched,
+	// so list the fully qualified name. Defaults to
+	// DefaultArtifactHosts(ClusterDomain) when empty. Use ArtifactHost
 	// to build the entry for another namespace or cluster domain.
 	ArtifactHosts []string
 
 	// ClusterDomain is the cluster domain used for the default artifact
-	// host when ArtifactHosts is empty, and ignored otherwise. Defaults to
-	// DefaultClusterDomain.
+	// host when ArtifactHosts is empty. It also completes artifact URLs
+	// whose host ends in ".svc", as advertised by a Source Controller with
+	// --storage-adv-addr=source-controller.<namespace>.svc: such a URL is
+	// checked and downloaded with the host "<host>.<ClusterDomain>", so the
+	// download does not depend on the "<namespace>.svc" entry of the resolver
+	// search list. Defaults to DefaultClusterDomain.
 	ClusterDomain string
 }
 
@@ -107,8 +116,12 @@ type FluxUpdater struct {
 
 	ArtifactHosts []string
 
+	clusterDomain          string
 	gitRepositoryNamespace string
 	gitRepositoryName      string
+
+	// artifactTransport replaces the transport of artifact downloads in tests.
+	artifactTransport http.RoundTripper
 }
 
 func New(config Config) (*FluxUpdater, error) {
@@ -149,6 +162,10 @@ func New(config Config) (*FluxUpdater, error) {
 		}
 	}
 
+	if clusterDomain == "" {
+		clusterDomain = DefaultClusterDomain
+	}
+
 	configuredHosts := config.ArtifactHosts
 	if len(configuredHosts) == 0 {
 		configuredHosts = DefaultArtifactHosts(clusterDomain)
@@ -187,6 +204,7 @@ func New(config Config) (*FluxUpdater, error) {
 
 		ArtifactHosts: artifactHosts,
 
+		clusterDomain:          clusterDomain,
 		gitRepositoryNamespace: repoCoordinates[0],
 		gitRepositoryName:      repoCoordinates[1],
 	}, nil
@@ -200,31 +218,44 @@ func normalizeHost(host string) string {
 }
 
 // validateArtifactURL checks that rawURL points at an allowed Source
-// Controller host and at an artifact of the configured GitRepository.
-func (u *FluxUpdater) validateArtifactURL(rawURL string) error {
+// Controller host and at an artifact of the configured GitRepository. It
+// returns the URL to download from: a host ending in ".svc" is completed with
+// the cluster domain first, and the completed host is the one checked.
+func (u *FluxUpdater) validateArtifactURL(rawURL string) (string, error) {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
-		return &ExecutionFailedError{message: fmt.Sprintf("invalid artifact URL: %s", err)}
+		return "", &ExecutionFailedError{message: fmt.Sprintf("invalid artifact URL: %s", err)}
 	}
 
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return &ExecutionFailedError{message: fmt.Sprintf("artifact URL scheme %q is not allowed", parsed.Scheme)}
+		return "", &ExecutionFailedError{message: fmt.Sprintf("artifact URL scheme %q is not allowed", parsed.Scheme)}
 	}
 
-	if parsed.Opaque != "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return &ExecutionFailedError{message: "artifact URL must not contain user info, query or fragment"}
+	if parsed.Opaque != "" || parsed.User != nil || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" {
+		return "", &ExecutionFailedError{message: "artifact URL must not contain user info, query or fragment"}
 	}
 
-	if !slices.Contains(u.ArtifactHosts, normalizeHost(parsed.Hostname())) {
-		return &ExecutionFailedError{message: fmt.Sprintf("artifact URL host %q is not an allowed Source Controller host", parsed.Hostname())}
+	advertisedHost := parsed.Hostname()
+	host := normalizeHost(advertisedHost)
+	if strings.HasSuffix(host, ".svc") {
+		host = host + "." + u.clusterDomain
+		if port := parsed.Port(); port != "" {
+			parsed.Host = net.JoinHostPort(host, port)
+		} else {
+			parsed.Host = host
+		}
+	}
+
+	if !slices.Contains(u.ArtifactHosts, host) {
+		return "", &ExecutionFailedError{message: fmt.Sprintf("artifact URL host %q is not an allowed Source Controller host", advertisedHost)}
 	}
 
 	expectedPrefix := fmt.Sprintf("/gitrepository/%s/%s/", u.gitRepositoryNamespace, u.gitRepositoryName)
 	if parsed.RawPath != "" || path.Clean(parsed.Path) != parsed.Path || !strings.HasPrefix(parsed.Path, expectedPrefix) || len(parsed.Path) == len(expectedPrefix) {
-		return &ExecutionFailedError{message: fmt.Sprintf("artifact URL path %q is not below %q", parsed.Path, expectedPrefix)}
+		return "", &ExecutionFailedError{message: fmt.Sprintf("artifact URL path %q is not below %q", parsed.Path, expectedPrefix)}
 	}
 
-	return nil
+	return parsed.String(), nil
 }
 
 // UpdateConfig makes sure that the assembled CCR version we keep stashed
@@ -264,14 +295,19 @@ func (u *FluxUpdater) UpdateConfig() error {
 	// A cached URL is only trusted while it still passes the same checks as a
 	// freshly advertised one. Otherwise it is dropped and the GitRepository is
 	// asked for the current artifact.
-	if artifactURL != "" && u.validateArtifactURL(artifactURL) != nil {
-		artifactURL = ""
+	if artifactURL != "" {
+		if validated, err := u.validateArtifactURL(artifactURL); err != nil {
+			artifactURL = ""
+		} else {
+			artifactURL = validated
+		}
 	}
 
 	// Artifacts are downloaded without following redirects, so a validated URL
 	// cannot hand the request over to another host.
 	client := &http.Client{
-		Timeout: 60 * time.Second,
+		Transport: u.artifactTransport,
+		Timeout:   60 * time.Second,
 		CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -427,11 +463,12 @@ func (u *FluxUpdater) UpdateConfig() error {
 			}
 		}
 
-		if err := u.validateArtifactURL(gr.Status.Artifact.Url); err != nil {
+		validated, err := u.validateArtifactURL(gr.Status.Artifact.Url)
+		if err != nil {
 			return err
 		}
 
-		artifactURL = gr.Status.Artifact.Url
+		artifactURL = validated
 	}
 
 	request, err := http.NewRequest(http.MethodGet, artifactURL, nil)

@@ -249,35 +249,48 @@ func TestValidateArtifactURL(t *testing.T) {
 		name  string
 		url   string
 		valid bool
+		want  string
 	}{
-		{"default host", "http://source-controller.flux-giantswarm.svc.cluster.local/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
-		{"default host with trailing dot", "http://source-controller.flux-giantswarm.svc.cluster.local./gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
-		{"default host with port", "http://source-controller.flux-giantswarm.svc.cluster.local:80/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
-		{"https", "https://source-controller.flux-giantswarm.svc.cluster.local/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
-		{"short service name", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
-		{"other cluster domain", "http://source-controller.flux-giantswarm.svc.example.internal/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
-		{"foreign host", "http://other.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
-		{"source controller in another namespace", "http://source-controller.flux-system.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
-		{"ip address", "http://10.0.0.1/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
-		{"user info", "http://source-controller.flux-giantswarm.svc@other.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
-		{"other repository", "http://source-controller.flux-giantswarm.svc/gitrepository/org-x/repo/abc.tar.gz", false},
-		{"repository name prefix", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config-other/abc.tar.gz", false},
-		{"dot-dot in path", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/../../org-x/repo/abc.tar.gz", false},
-		{"encoded slash in path", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/..%2F..%2Forg-x%2Frepo%2Fabc.tar.gz", false},
-		{"directory only", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/", false},
-		{"query", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz?x=1", false},
-		{"file scheme", "file:///gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
-		{"not a url", "://", false},
+		{"default host", "http://source-controller.flux-giantswarm.svc.cluster.local/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true, ""},
+		{"default host with trailing dot", "http://source-controller.flux-giantswarm.svc.cluster.local./gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true, ""},
+		{"default host with port", "http://source-controller.flux-giantswarm.svc.cluster.local:80/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true, ""},
+		{"https", "https://source-controller.flux-giantswarm.svc.cluster.local/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true, ""},
+		{"short service name is completed", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true,
+			"http://source-controller.flux-giantswarm.svc.cluster.local/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz"},
+		{"short service name with trailing dot and port is completed", "http://Source-Controller.flux-giantswarm.svc.:9090/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true,
+			"http://source-controller.flux-giantswarm.svc.cluster.local:9090/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz"},
+		{"short service name of another service", "http://other.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false, ""},
+		{"other cluster domain", "http://source-controller.flux-giantswarm.svc.example.internal/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false, ""},
+		{"foreign host", "http://other.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false, ""},
+		{"source controller in another namespace", "http://source-controller.flux-system.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false, ""},
+		{"ip address", "http://10.0.0.1/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false, ""},
+		{"user info", "http://source-controller.flux-giantswarm.svc@other.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false, ""},
+		{"other repository", "http://source-controller.flux-giantswarm.svc/gitrepository/org-x/repo/abc.tar.gz", false, ""},
+		{"repository name prefix", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config-other/abc.tar.gz", false, ""},
+		{"dot-dot in path", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/../../org-x/repo/abc.tar.gz", false, ""},
+		{"encoded slash in path", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/..%2F..%2Forg-x%2Frepo%2Fabc.tar.gz", false, ""},
+		{"directory only", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/", false, ""},
+		{"query", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz?x=1", false, ""},
+		{"empty query", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz?", false, ""},
+		{"file scheme", "file:///gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false, ""},
+		{"not a url", "://", false, ""},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := updater.validateArtifactURL(tc.url)
+			got, err := updater.validateArtifactURL(tc.url)
 			if tc.valid && err != nil {
 				t.Fatalf("want nil, got error: %s", err.Error())
 			}
 			if !tc.valid && err == nil {
 				t.Fatalf("want error for %q, got nil", tc.url)
+			}
+			want := tc.want
+			if tc.valid && want == "" {
+				want = tc.url
+			}
+			if got != want {
+				t.Fatalf("want URL %q, got %q", want, got)
 			}
 		})
 	}
@@ -766,5 +779,173 @@ func TestRunner_updateConfig_failedDownloadsDoNotLeak(t *testing.T) {
 
 	if got := runtime.NumGoroutine(); got > baseline+10 {
 		t.Fatalf("goroutines grew from %d to %d after 50 failed updates", baseline, got)
+	}
+}
+
+func TestValidateArtifactURL_shortHostUsesClusterDomain(t *testing.T) {
+	const (
+		customDomain = "example.internal"
+		want         = "http://" + customDomainHost + "/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz"
+	)
+
+	for _, tc := range []struct {
+		name          string
+		clusterDomain string
+		artifactHosts []string
+		want          string
+	}{
+		{"custom cluster domain", customDomain, nil, want},
+		{"explicit hosts", customDomain, []string{customDomainHost}, want},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			updater, err := New(Config{
+				CacheDir:      t.TempDir(),
+				ApiServerHost: testApiServerHost,
+				ApiServerPort: "443",
+				GitRepository: testGitRepository,
+				ArtifactHosts: tc.artifactHosts,
+				ClusterDomain: tc.clusterDomain,
+			})
+			if err != nil {
+				t.Fatalf("want nil, got error: %s", err)
+			}
+
+			got, err := updater.validateArtifactURL("http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz")
+			if err != nil {
+				t.Fatalf("want nil, got error: %s", err)
+			}
+			if got != tc.want {
+				t.Fatalf("want URL %q, got %q", tc.want, got)
+			}
+
+			if _, err := updater.validateArtifactURL("http://source-controller.flux-giantswarm.svc.cluster.local/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz"); err == nil {
+				t.Fatal("want error for a host with the default cluster domain, got nil")
+			}
+		})
+	}
+}
+
+// A short advertised host is completed before anything is requested: the HEAD
+// for a cached URL, the download and the cached URL all use the completed host.
+func TestRunner_updateConfig_shortHostIsCompleted(t *testing.T) {
+	archive, err := os.ReadFile("testdata/latestrevision.tar.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const (
+		artifactPath  = "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz"
+		shortURL      = "http://source-controller.flux-giantswarm.svc" + artifactPath
+		completedHost = "source-controller.flux-giantswarm.svc.cluster.local"
+		completedURL  = "http://" + completedHost + artifactPath
+	)
+
+	srcCtrlServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != artifactPath {
+			http.NotFoundHandler().ServeHTTP(w, r)
+			return
+		}
+		w.Header().Add("Last-Modified", advertisedTimestamp)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(archive)
+	}))
+	defer srcCtrlServer.Close()
+
+	srcCtrlUrl, err := url.Parse(srcCtrlServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k8sServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != testGitRepositoryAPIPath {
+			http.NotFoundHandler().ServeHTTP(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `{"status":{"artifact":{"url":%q}}}`, shortURL)
+	}))
+	defer k8sServer.Close()
+
+	k8sUrl, err := url.Parse(k8sServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name      string
+		cachedURL string
+		want      []string
+	}{
+		{name: "advertised short URL", want: []string{"GET " + completedHost}},
+		// A short URL cached by konfigure before v2.2.0. Its timestamp is older
+		// than the artifact, so the HEAD is followed by a download.
+		{name: "cached short URL", cachedURL: shortURL, want: []string{"HEAD " + completedHost, "GET " + completedHost}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cacheDir := t.TempDir()
+			if tc.cachedURL != "" {
+				err := prePopulateCache(cacheDir, []byte("latestrevision.tar.gz"), []byte("oldvalue"), []byte(time.Time{}.Format(http.TimeFormat)), []byte(tc.cachedURL))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			updater, err := New(Config{
+				CacheDir:            cacheDir,
+				ApiServerHost:       k8sUrl.Hostname(),
+				ApiServerPort:       k8sUrl.Port(),
+				KubernetesTokenFile: testTokenFile,
+				GitRepository:       testGitRepository,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var requests []string
+			updater.artifactTransport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				requests = append(requests, r.Method+" "+r.URL.Host)
+				forwarded := r.Clone(r.Context())
+				forwarded.URL.Host = srcCtrlUrl.Host
+				forwarded.Host = ""
+				return http.DefaultTransport.RoundTrip(forwarded)
+			})
+
+			if err := updater.UpdateConfig(); err != nil {
+				t.Fatalf("want nil, got error: %s", err)
+			}
+
+			if !reflect.DeepEqual(requests, tc.want) {
+				t.Fatalf("want requests %v, got %v", tc.want, requests)
+			}
+
+			cached, err := os.ReadFile(path.Join(cacheDir, cacheLastArtifactUrl)) //nolint:gosec
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(cached) != completedURL {
+				t.Fatalf("want cached URL %q, got %q", completedURL, string(cached))
+			}
+		})
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestValidateArtifactURL_errorNamesAdvertisedHost(t *testing.T) {
+	updater, err := New(Config{
+		CacheDir:      t.TempDir(),
+		ApiServerHost: testApiServerHost,
+		ApiServerPort: "443",
+		GitRepository: testGitRepository,
+	})
+	if err != nil {
+		t.Fatalf("want nil, got error: %s", err)
+	}
+
+	_, err = updater.validateArtifactURL("http://source-controller.flux-system.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz")
+	if err == nil || !strings.Contains(err.Error(), `"source-controller.flux-system.svc"`) {
+		t.Fatalf("want error naming the advertised host, got %v", err)
 	}
 }
