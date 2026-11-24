@@ -59,10 +59,13 @@ func ArtifactHost(namespace, clusterDomain string) string {
 
 // DefaultArtifactHosts returns the hosts artifacts are downloaded from when
 // Config.ArtifactHosts is empty: the Source Controller service in the
-// flux-giantswarm namespace on a cluster with the cluster.local domain.
-// Clusters with another cluster domain must set Config.ArtifactHosts.
-func DefaultArtifactHosts() []string {
-	return []string{ArtifactHost(DefaultSourceControllerNamespace, DefaultClusterDomain)}
+// flux-giantswarm namespace on a cluster with clusterDomain, or with
+// DefaultClusterDomain when clusterDomain is empty.
+func DefaultArtifactHosts(clusterDomain string) []string {
+	if strings.Trim(clusterDomain, ". ") == "" {
+		clusterDomain = DefaultClusterDomain
+	}
+	return []string{ArtifactHost(DefaultSourceControllerNamespace, strings.TrimSpace(clusterDomain))}
 }
 
 type Config struct {
@@ -80,9 +83,13 @@ type Config struct {
 	// earlier update, is only used when its host is in this list and its
 	// path is below /gitrepository/<namespace>/<name>/. Entries are host
 	// names only, without scheme or port; the port is not checked. Defaults
-	// to DefaultArtifactHosts when empty. Use ArtifactHost to build the
-	// entry for another namespace or cluster domain.
+	// to DefaultArtifactHosts(ClusterDomain) when empty. Use ArtifactHost
+	// to build the entry for another namespace or cluster domain.
 	ArtifactHosts []string
+
+	// ClusterDomain is the cluster domain used for the default artifact
+	// host when ArtifactHosts is empty. Defaults to DefaultClusterDomain.
+	ClusterDomain string
 }
 
 type FluxUpdater struct {
@@ -131,8 +138,13 @@ func New(config Config) (*FluxUpdater, error) {
 		return nil, &InvalidConfigError{message: fmt.Sprintf("gitRepository must be <namespace>/<name> with valid Kubernetes names, got %q", config.GitRepository)}
 	}
 
-	artifactHosts := make([]string, 0, len(config.ArtifactHosts))
-	for _, host := range config.ArtifactHosts {
+	configuredHosts := config.ArtifactHosts
+	if len(configuredHosts) == 0 {
+		configuredHosts = DefaultArtifactHosts(config.ClusterDomain)
+	}
+
+	artifactHosts := make([]string, 0, len(configuredHosts))
+	for _, host := range configuredHosts {
 		host = normalizeHost(host)
 		if host == "" {
 			return nil, &InvalidConfigError{message: "artifactHosts must not contain empty host names"}
@@ -141,11 +153,6 @@ func New(config Config) (*FluxUpdater, error) {
 			return nil, &InvalidConfigError{message: fmt.Sprintf("artifactHosts entry %q must be a host name without scheme, port or path", host)}
 		}
 		artifactHosts = append(artifactHosts, host)
-	}
-	if len(artifactHosts) == 0 {
-		for _, host := range DefaultArtifactHosts() {
-			artifactHosts = append(artifactHosts, normalizeHost(host))
-		}
 	}
 
 	if kubernetesTokenFile == "" {

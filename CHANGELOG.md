@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts()`: `source-controller.flux-giantswarm.svc.cluster.local`. Clusters with another cluster domain must set it; `fluxupdater.ArtifactHost(namespace, clusterDomain)` builds the host name.
+- `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts(clusterDomain)`: `source-controller.flux-giantswarm.svc.<clusterDomain>`, with the domain from `fluxupdater.Config.ClusterDomain` (default `cluster.local`). `fluxupdater.ArtifactHost(namespace, clusterDomain)` builds the host name for another Source Controller.
 - `sopsenv.SOPSEnvConfig.KeysNamespaces` and the `--sops-keys-namespace` flag of `konfigure render` set the namespaces SOPS key Secrets are imported from. Default to `sopsenv.DefaultKeysNamespaces()`: `giantswarm` and `flux-giantswarm`. `sopsenv.AllKeysNamespaces` (`*`) imports from all namespaces.
 
 ### Changed

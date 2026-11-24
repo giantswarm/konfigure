@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync/atomic"
@@ -465,11 +466,17 @@ func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
 	}
 }
 
+const (
+	defaultHost      = "source-controller.flux-giantswarm.svc.cluster.local"
+	customDomainHost = "source-controller.flux-giantswarm.svc.example.internal"
+	fluxSystemHost   = "source-controller.flux-system.svc.cluster.local"
+)
+
 func TestArtifactHost(t *testing.T) {
 	testCases := map[string][2]string{
-		"source-controller.flux-giantswarm.svc.cluster.local":    {"flux-giantswarm", "cluster.local"},
-		"source-controller.flux-giantswarm.svc.example.internal": {"flux-giantswarm", "example.internal."},
-		"source-controller.flux-system.svc.cluster.local":        {"flux-system", "cluster.local"},
+		defaultHost:      {"flux-giantswarm", "cluster.local"},
+		customDomainHost: {"flux-giantswarm", "example.internal."},
+		fluxSystemHost:   {"flux-system", "cluster.local"},
 	}
 
 	for want, args := range testCases {
@@ -478,8 +485,50 @@ func TestArtifactHost(t *testing.T) {
 		}
 	}
 
-	if got := DefaultArtifactHosts(); len(got) != 1 || got[0] != "source-controller.flux-giantswarm.svc.cluster.local" {
-		t.Fatalf("unexpected default artifact hosts %v", got)
+	for domain, want := range map[string]string{
+		"":                  defaultHost,
+		".":                 defaultHost,
+		"example.internal.": customDomainHost,
+	} {
+		if got := DefaultArtifactHosts(domain); len(got) != 1 || got[0] != want {
+			t.Fatalf("DefaultArtifactHosts(%q): want [%s], got %v", domain, want, got)
+		}
+	}
+}
+
+func TestNew_ClusterDomain(t *testing.T) {
+	newUpdater := func(clusterDomain string, hosts []string) (*FluxUpdater, error) {
+		return New(Config{
+			CacheDir:      t.TempDir(),
+			ApiServerHost: testApiServerHost,
+			ApiServerPort: "443",
+			GitRepository: testGitRepository,
+			ArtifactHosts: hosts,
+			ClusterDomain: clusterDomain,
+		})
+	}
+
+	updater, err := newUpdater("example.internal", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(updater.ArtifactHosts, []string{customDomainHost}) {
+		t.Fatalf("unexpected artifact hosts %v", updater.ArtifactHosts)
+	}
+
+	// ArtifactHosts wins over ClusterDomain.
+	updater, err = newUpdater("example.internal", []string{fluxSystemHost})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(updater.ArtifactHosts, []string{fluxSystemHost}) {
+		t.Fatalf("unexpected artifact hosts %v", updater.ArtifactHosts)
+	}
+
+	for _, domain := range []string{"cluster.local:443", "cluster.local/x", "user@cluster.local"} {
+		if _, err := newUpdater(domain, nil); err == nil {
+			t.Fatalf("want error for cluster domain %q, got nil", domain)
+		}
 	}
 }
 
