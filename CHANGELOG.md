@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts(clusterDomain)`: `source-controller.flux-giantswarm.svc.<clusterDomain>`, with the domain from `fluxupdater.Config.ClusterDomain` (default `cluster.local`). `fluxupdater.ArtifactHost(namespace, clusterDomain)` builds the host name for another Source Controller. The hosts must match what the Source Controller advertises with `--storage-adv-addr`.
+- `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts(clusterDomain)`: `source-controller.flux-giantswarm.svc.<clusterDomain>`, with the domain from `fluxupdater.Config.ClusterDomain` (default `cluster.local`). `fluxupdater.ArtifactHost(namespace, clusterDomain)` builds the host name for another Source Controller. The hosts must be fully qualified and match what the Source Controller advertises with `--storage-adv-addr`. `fluxupdater.Config.ClusterDomain` is ignored when `ArtifactHosts` is set.
 - `sopsenv.SOPSEnvConfig.KeysNamespaces` and the `--sops-keys-namespace` flag of `konfigure render` set the namespaces SOPS key Secrets are imported from. Default to `sopsenv.DefaultKeysNamespaces()`: `giantswarm` and `flux-giantswarm`. `sopsenv.AllKeysNamespaces` (`*`) imports from all namespaces.
 
 ### Changed
@@ -25,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Artifacts larger than 100 MiB are refused before they are read into memory.
-- A new artifact is extracted into a temporary directory and only replaces the previous config when extraction succeeds.
+- Artifacts that announce more than 100 MiB are refused before download, and other downloads are cut off at 100 MiB.
+- The cached artifact is forgotten before a new one is extracted, so a failed or interrupted extraction is downloaded again on the next update instead of leaving a partial config in use.
 - A cached artifact URL that answers with anything but 200 no longer fails the update; the GitRepository is asked for the current artifact instead, as for a 404.
 
 ## [2.1.1] - 2025-12-10

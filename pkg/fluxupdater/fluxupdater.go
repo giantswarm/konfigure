@@ -91,7 +91,8 @@ type Config struct {
 	ArtifactHosts []string
 
 	// ClusterDomain is the cluster domain used for the default artifact
-	// host when ArtifactHosts is empty. Defaults to DefaultClusterDomain.
+	// host when ArtifactHosts is empty, and ignored otherwise. Defaults to
+	// DefaultClusterDomain.
 	ClusterDomain string
 }
 
@@ -141,9 +142,16 @@ func New(config Config) (*FluxUpdater, error) {
 		return nil, &InvalidConfigError{message: fmt.Sprintf("gitRepository must be <namespace>/<name> with valid Kubernetes names, got %q", config.GitRepository)}
 	}
 
+	clusterDomain := strings.Trim(strings.TrimSpace(config.ClusterDomain), ".")
+	if clusterDomain != "" {
+		if errs := validation.IsDNS1123Subdomain(clusterDomain); len(errs) != 0 {
+			return nil, &InvalidConfigError{message: fmt.Sprintf("clusterDomain %q is not a valid domain: %s", config.ClusterDomain, strings.Join(errs, ", "))}
+		}
+	}
+
 	configuredHosts := config.ArtifactHosts
 	if len(configuredHosts) == 0 {
-		configuredHosts = DefaultArtifactHosts(config.ClusterDomain)
+		configuredHosts = DefaultArtifactHosts(clusterDomain)
 	}
 
 	artifactHosts := make([]string, 0, len(configuredHosts))
@@ -157,6 +165,11 @@ func New(config Config) (*FluxUpdater, error) {
 		}
 		if errs := validation.IsDNS1123Subdomain(host); len(errs) != 0 {
 			return nil, &InvalidConfigError{message: fmt.Sprintf("artifactHosts entry %q is not a valid host name: %s", host, strings.Join(errs, ", "))}
+		}
+		// A host without the cluster domain is completed through the
+		// resolver search list, which can resolve it to another record.
+		if !strings.Contains(host, ".") || strings.HasSuffix(host, ".svc") {
+			return nil, &InvalidConfigError{message: fmt.Sprintf("artifactHosts entry %q must be a fully qualified host name, for example %q", host, ArtifactHost(DefaultSourceControllerNamespace, DefaultClusterDomain))}
 		}
 		artifactHosts = append(artifactHosts, host)
 	}
@@ -455,25 +468,26 @@ func (u *FluxUpdater) UpdateConfig() error {
 		}
 	}
 
-	// Untar into a fresh directory first and swap it in only when that
-	// worked, so a broken or oversized archive leaves the old config in place.
-	dir := path.Join(u.CacheDir, "latest")
-	tmpDir, err := os.MkdirTemp(u.CacheDir, "latest.tmp-")
-	if err != nil {
-		return err
+	// Forget the cached artifact before touching the config directory. If
+	// extraction fails or the process stops half-way, the next update then
+	// downloads the artifact again instead of keeping a partial config. The
+	// config is extracted in place, so the cache never needs room for two
+	// copies of it.
+	for _, name := range []string{cacheLastArtifactUrl, cacheLastArchiveTimestamp, cacheLastArchive} {
+		if err := os.Remove(path.Join(u.CacheDir, name)); err != nil && !os.IsNotExist(err) {
+			return err
+		}
 	}
-	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	if err := os.Chmod(tmpDir, 0750); err != nil { //nolint:gosec // same mode the directory always had
-		return err
-	}
-	if err = tar.Untar(&buf, tmpDir); err != nil {
-		return err
-	}
+	// Clear the old artifact's directory and untar a fresh one.
+	dir := path.Join(u.CacheDir, "latest")
 	if err := os.RemoveAll(dir); err != nil {
 		return err
 	}
-	if err := os.Rename(tmpDir, dir); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return err
+	}
+	if err = tar.Untar(&buf, dir); err != nil {
 		return err
 	}
 

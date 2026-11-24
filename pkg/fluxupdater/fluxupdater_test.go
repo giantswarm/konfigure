@@ -9,6 +9,7 @@ import (
 	"path"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -470,69 +471,78 @@ const (
 	defaultHost      = "source-controller.flux-giantswarm.svc.cluster.local"
 	customDomainHost = "source-controller.flux-giantswarm.svc.example.internal"
 	fluxSystemHost   = "source-controller.flux-system.svc.cluster.local"
+	errClusterDomain = "clusterDomain"
 )
 
 func TestArtifactHost(t *testing.T) {
-	testCases := map[string][2]string{
-		defaultHost:      {"flux-giantswarm", "cluster.local"},
-		customDomainHost: {"flux-giantswarm", "example.internal."},
-		fluxSystemHost:   {"flux-system", "cluster.local"},
+	testCases := []struct {
+		name          string
+		namespace     string
+		clusterDomain string
+		want          string
+	}{
+		{name: "default", namespace: DefaultSourceControllerNamespace, clusterDomain: "cluster.local", want: defaultHost},
+		{name: "custom domain with trailing dot", namespace: DefaultSourceControllerNamespace, clusterDomain: "example.internal.", want: customDomainHost},
+		{name: "other namespace", namespace: "flux-system", clusterDomain: "cluster.local", want: fluxSystemHost},
+		{name: "empty domain", namespace: DefaultSourceControllerNamespace, clusterDomain: "", want: defaultHost},
+		{name: "dot as domain", namespace: DefaultSourceControllerNamespace, clusterDomain: ".", want: defaultHost},
 	}
 
-	for want, args := range testCases {
-		if got := ArtifactHost(args[0], args[1]); got != want {
-			t.Fatalf("ArtifactHost(%q, %q): want %q, got %q", args[0], args[1], want, got)
-		}
-	}
-
-	if got := ArtifactHost(DefaultSourceControllerNamespace, ""); got != defaultHost {
-		t.Fatalf("ArtifactHost with empty domain: want %q, got %q", defaultHost, got)
-	}
-
-	for domain, want := range map[string]string{
-		"":                  defaultHost,
-		".":                 defaultHost,
-		"example.internal.": customDomainHost,
-	} {
-		if got := DefaultArtifactHosts(domain); len(got) != 1 || got[0] != want {
-			t.Fatalf("DefaultArtifactHosts(%q): want [%s], got %v", domain, want, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ArtifactHost(tc.namespace, tc.clusterDomain); got != tc.want {
+				t.Fatalf("ArtifactHost(%q, %q): want %q, got %q", tc.namespace, tc.clusterDomain, tc.want, got)
+			}
+			if tc.namespace == DefaultSourceControllerNamespace {
+				if got := DefaultArtifactHosts(tc.clusterDomain); !reflect.DeepEqual(got, []string{tc.want}) {
+					t.Fatalf("DefaultArtifactHosts(%q): want [%s], got %v", tc.clusterDomain, tc.want, got)
+				}
+			}
+		})
 	}
 }
 
 func TestNew_ClusterDomain(t *testing.T) {
-	newUpdater := func(clusterDomain string, hosts []string) (*FluxUpdater, error) {
-		return New(Config{
-			CacheDir:      t.TempDir(),
-			ApiServerHost: testApiServerHost,
-			ApiServerPort: "443",
-			GitRepository: testGitRepository,
-			ArtifactHosts: hosts,
-			ClusterDomain: clusterDomain,
+	testCases := []struct {
+		name          string
+		clusterDomain string
+		artifactHosts []string
+		want          []string
+		wantError     string
+	}{
+		{name: "empty domain", want: []string{defaultHost}},
+		{name: "custom domain", clusterDomain: "example.internal", want: []string{customDomainHost}},
+		{name: "artifact hosts win over the domain", clusterDomain: "example.internal", artifactHosts: []string{fluxSystemHost}, want: []string{fluxSystemHost}},
+		{name: "domain with port", clusterDomain: "cluster.local:443", wantError: errClusterDomain},
+		{name: "domain with path", clusterDomain: "cluster.local/x", wantError: errClusterDomain},
+		{name: "domain with user info", clusterDomain: "user@cluster.local", wantError: errClusterDomain},
+		{name: "domain with empty label", clusterDomain: "cluster..local", wantError: errClusterDomain},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			updater, err := New(Config{
+				CacheDir:      t.TempDir(),
+				ApiServerHost: testApiServerHost,
+				ApiServerPort: "443",
+				GitRepository: testGitRepository,
+				ArtifactHosts: tc.artifactHosts,
+				ClusterDomain: tc.clusterDomain,
+			})
+
+			if tc.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantError) {
+					t.Fatalf("want error containing %q, got %v", tc.wantError, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(updater.ArtifactHosts, tc.want) {
+				t.Fatalf("want artifact hosts %v, got %v", tc.want, updater.ArtifactHosts)
+			}
 		})
-	}
-
-	updater, err := newUpdater("example.internal", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(updater.ArtifactHosts, []string{customDomainHost}) {
-		t.Fatalf("unexpected artifact hosts %v", updater.ArtifactHosts)
-	}
-
-	// ArtifactHosts wins over ClusterDomain.
-	updater, err = newUpdater("example.internal", []string{fluxSystemHost})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(updater.ArtifactHosts, []string{fluxSystemHost}) {
-		t.Fatalf("unexpected artifact hosts %v", updater.ArtifactHosts)
-	}
-
-	for _, domain := range []string{"cluster.local:443", "cluster.local/x", "user@cluster.local"} {
-		if _, err := newUpdater(domain, nil); err == nil {
-			t.Fatalf("want error for cluster domain %q, got nil", domain)
-		}
 	}
 }
 
@@ -546,8 +556,16 @@ func TestRunner_updateConfig_artifactTooLarge(t *testing.T) {
 
 	const artifactPath = "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz"
 
+	var announceOnly atomic.Bool
 	srcCtrlServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Last-Modified", advertisedTimestamp)
+		if announceOnly.Load() {
+			// Announce a large body and send none of it: only the
+			// Content-Length check can refuse this without reading.
+			w.Header().Set("Content-Length", strconv.FormatInt(maxArtifactSize+1, 10))
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(archive)
 	}))
@@ -570,15 +588,18 @@ func TestRunner_updateConfig_artifactTooLarge(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		name      string
-		limit     int64
-		wantError bool
+		name         string
+		limit        int64
+		announceOnly bool
+		wantError    bool
 	}{
 		{name: "one byte over the limit", limit: int64(len(archive)) - 1, wantError: true},
 		{name: "exactly at the limit", limit: int64(len(archive))},
+		{name: "announced size over the limit", limit: int64(len(archive)), announceOnly: true, wantError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			maxArtifactSize = tc.limit
+			announceOnly.Store(tc.announceOnly)
 
 			cacheDir := t.TempDir()
 			if err := prePopulateCache(cacheDir, []byte("oldrevision.tar.gz"), []byte("oldvalue"), []byte(advertisedTimestamp), []byte("")); err != nil {
@@ -621,7 +642,7 @@ func TestRunner_updateConfig_artifactTooLarge(t *testing.T) {
 	}
 }
 
-func TestRunner_updateConfig_brokenArchiveKeepsConfig(t *testing.T) {
+func TestRunner_updateConfig_brokenArchiveIsRetried(t *testing.T) {
 	const artifactPath = "/gitrepository/flux-giantswarm/giantswarm-config/broken.tar.gz"
 
 	srcCtrlServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -668,27 +689,17 @@ func TestRunner_updateConfig_brokenArchiveKeepsConfig(t *testing.T) {
 		t.Fatal("want error for a broken archive, got nil")
 	}
 
-	config, err := os.ReadFile(path.Join(cacheDir, "latest", "config.yaml")) //nolint:gosec
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(config) != "oldvalue" {
-		t.Fatalf("want the old config to stay, got %q", string(config))
-	}
-
-	entries, err := os.ReadDir(cacheDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), "latest.tmp-") {
-			t.Fatalf("temporary directory %q left behind", entry.Name())
+	// The cached artifact is forgotten, so the next update downloads it
+	// again instead of keeping a partial config.
+	for _, name := range []string{cacheLastArtifactUrl, cacheLastArchiveTimestamp, cacheLastArchive} {
+		if _, err := os.Stat(path.Join(cacheDir, name)); !os.IsNotExist(err) {
+			t.Fatalf("want %s to be removed, got %v", name, err)
 		}
 	}
 }
 
 func TestNew_InvalidArtifactHosts(t *testing.T) {
-	for _, host := range []string{"", "source-controller:80", "http://source-controller", "source-controller/path", "[::1]", ArtifactHost("", "cluster.local"), "Source_Controller.svc"} {
+	for _, host := range []string{"", "source-controller:80", "http://source-controller", "source-controller/path", "[::1]", ArtifactHost("", "cluster.local"), "Source_Controller.svc", "source-controller", "source-controller.flux-giantswarm.svc"} {
 		_, err := New(Config{
 			CacheDir:      t.TempDir(),
 			ApiServerHost: testApiServerHost,
