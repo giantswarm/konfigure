@@ -251,7 +251,11 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 
 	// Let user know no Secrets have been found using selector.
 	if len(secrets) == 0 {
-		s.logger.Info(fmt.Sprintf("warning: no Kubernetes Secrets found matching selector: %s=%s, encrypted files cannot be decrypted", KonfigureLabelKey, KonfigureLabelValue), "namespaces", s.keysNamespaces)
+		namespaces := s.keysNamespaces
+		if slices.Equal(namespaces, []string{metav1.NamespaceAll}) {
+			namespaces = []string{AllKeysNamespaces}
+		}
+		s.logger.Info("warning: no SOPS key Secrets found, encrypted files cannot be decrypted", "namespaces", namespaces, "selector", o.LabelSelector)
 		// Clear age keys written by an earlier import.
 		return s.writeKeysTxt(ctx, nil)
 	}

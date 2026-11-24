@@ -7,9 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/go-logr/logr"
+	"github.com/go-logr/logr/funcr"
 	"github.com/pkg/errors"
 
 	"github.com/google/go-cmp/cmp"
@@ -498,5 +500,60 @@ func TestNewSOPSEnv_KeysNamespacesCheckedForKubernetesOnly(t *testing.T) {
 	if err == nil {
 		se.Cleanup()
 		t.Fatal("want error for kubernetes keys source, got nil")
+	}
+}
+
+func TestImportKeys_WarnsAboutEmptyNamespaces(t *testing.T) {
+	testCases := []struct {
+		name       string
+		namespaces []string
+		want       []string
+	}{
+		{
+			name:       "configured namespaces without key Secrets",
+			namespaces: []string{gsNamespace, "org-typo"},
+			want: []string{
+				`"namespace"="giantswarm"`,
+				`"namespace"="org-typo"`,
+				`"namespaces"=["giantswarm" "org-typo"]`,
+			},
+		},
+		{
+			name:       "all namespaces without key Secrets",
+			namespaces: []string{AllKeysNamespaces},
+			want:       []string{`"namespaces"=["*"]`},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs []string
+			logger := funcr.New(func(prefix, args string) { logs = append(logs, args) }, funcr.Options{})
+
+			se, err := NewSOPSEnv(SOPSEnvConfig{
+				K8sClient:      clientgofake.NewClientset(),
+				KeysDir:        t.TempDir(),
+				KeysSource:     key.KeysSourceKubernetes,
+				KeysNamespaces: tc.namespaces,
+				Logger:         logger,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := se.Setup(context.TODO()); err != nil {
+				t.Fatal(err)
+			}
+
+			joined := strings.Join(logs, "\n")
+			if !strings.Contains(joined, "warning: no SOPS key Secrets found") {
+				t.Fatalf("want a warning, got logs:\n%s", joined)
+			}
+			for _, want := range tc.want {
+				if !strings.Contains(joined, want) {
+					t.Fatalf("want logs to contain %s, got:\n%s", want, joined)
+				}
+			}
+		})
 	}
 }
