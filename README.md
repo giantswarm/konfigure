@@ -61,15 +61,16 @@ wrapped into a resulting kubernetes `ConfigMap` or `Secret` manifests.
 
 For encryption, currently only [SOPS](https://github.com/getsops/sops) is supported with AGE and PGP keys.
 With `--sops-keys-source kubernetes`, keys are imported from Secrets labelled `konfigure.giantswarm.io/data: sops-keys`
-in the namespaces given with `--sops-keys-namespace` (default `giantswarm,flux-giantswarm`). Keys that fail to import
-are logged and skipped.
+in the namespaces given with `--sops-keys-namespace` (default `giantswarm,flux-giantswarm`, `*` for all namespaces).
+Keys that fail to import are logged and skipped; the import fails only when no key could be imported. Age keys must be
+X25519 identities (`AGE-SECRET-KEY-1...`).
 
 Variables can be used under any `path` object for both folder and file names to make dynamic structures to organize
 the configurations. They will be substituted under the following patter `<< VARIABLE_NAME >>` (spaces matter!).
 
-All paths, after variable substitution, are relative to the configuration directory (`--dir`) and must stay inside it.
-Absolute paths, paths that leave the directory and symbolic links that point outside of it are rejected. The same
-applies to the files loaded by `includes` functions.
+All paths, after variable substitution, are relative to the configuration directory (`--dir`), even with a leading `/`,
+and must stay inside it. Paths that leave the directory and symbolic links that point outside of it are rejected. The
+same applies to the files loaded by `includes` functions.
 
 For example:
 

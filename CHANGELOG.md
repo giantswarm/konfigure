@@ -9,16 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `fluxupdater.Config.ArtifactHosts` sets the Source Controller hosts artifacts are downloaded from. Defaults to `source-controller.flux-giantswarm.svc` and `source-controller.flux-giantswarm.svc.cluster.local`.
-- `sopsenv.SOPSEnvConfig.KeysNamespaces` and the `--sops-keys-namespace` flag of `konfigure render` set the namespaces SOPS key Secrets are imported from. Default to `giantswarm` and `flux-giantswarm`.
+- `fluxupdater.Config.ArtifactHosts` sets the Source Controller host names artifacts are downloaded from. Defaults to `fluxupdater.DefaultArtifactHosts()`: `source-controller.flux-giantswarm.svc` and `source-controller.flux-giantswarm.svc.cluster.local`.
+- `sopsenv.SOPSEnvConfig.KeysNamespaces` and the `--sops-keys-namespace` flag of `konfigure render` set the namespaces SOPS key Secrets are imported from. Default to `sopsenv.DefaultKeysNamespaces()`: `giantswarm` and `flux-giantswarm`. `sopsenv.AllKeysNamespaces` (`*`) imports from all namespaces.
 
 ### Changed
 
-- **Breaking:** schema paths, file names and `includes` files must resolve inside the render directory. Absolute paths, paths that leave the directory and symbolic links that point outside of it are rejected.
+- **Breaking:** schema paths, file names and `includes` files are read inside the render directory only. Paths that leave the directory and symbolic links that point outside of it are rejected. A leading `/` is still relative to the render directory.
 - **Breaking:** artifact URLs must point at an allowed Source Controller host and below `/gitrepository/<namespace>/<name>/` of the configured GitRepository, both when advertised and when cached. Artifact downloads no longer follow redirects. `fluxupdater.Config.GitRepository` must be `<namespace>/<name>`.
-- **Breaking:** SOPS key Secrets are only imported from the configured namespaces instead of all namespaces. Pass `metav1.NamespaceAll` to keep the old behaviour.
-- SOPS keys that fail to import are logged and skipped instead of failing the import; it fails only when no key could be imported. `keys.txt` is truncated before it is written.
-
+- **Breaking:** SOPS key Secrets are only imported from the configured namespaces instead of all namespaces. Pass `sopsenv.AllKeysNamespaces` to keep the old behaviour.
+- SOPS keys that fail to import are logged and skipped instead of failing the import; it fails only when no key could be imported. Only X25519 age identities are accepted. `keys.txt` is rewritten on every import, and emptied when no key is left.
 - Drop five `replace` directives from `go.mod` that no longer applied (`glog`, `goldmark`, `x/mod`, `otel`, `otel/sdk`). Every module resolves to the same version as before.
 - Release binaries now include darwin/amd64, darwin/arm64, windows/amd64, and windows/arm64 alongside the existing linux targets. Windows binaries are named `konfigure-windows-<arch>.exe`.
 
