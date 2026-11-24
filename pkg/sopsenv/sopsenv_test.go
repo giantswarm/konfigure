@@ -482,3 +482,17 @@ func TestImportKeys_ClearsStaleKeysTxt(t *testing.T) {
 		})
 	}
 }
+
+func TestNewSOPSEnv_KeysNamespacesCheckedForKubernetesOnly(t *testing.T) {
+	invalid := []string{AllKeysNamespaces, gsNamespace}
+
+	if _, err := NewSOPSEnv(SOPSEnvConfig{KeysSource: key.KeysSourceLocal, KeysNamespaces: invalid, Logger: logr.Discard()}); err != nil {
+		t.Fatalf("want nil for local keys source, got %v", err)
+	}
+
+	se, err := NewSOPSEnv(SOPSEnvConfig{K8sClient: clientgofake.NewClientset(), KeysSource: key.KeysSourceKubernetes, KeysNamespaces: invalid, Logger: logr.Discard()})
+	if err == nil {
+		se.Cleanup()
+		t.Fatal("want error for kubernetes keys source, got nil")
+	}
+}

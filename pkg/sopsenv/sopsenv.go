@@ -102,21 +102,21 @@ type SOPSEnv struct {
 //     keysDir="path"
 //     keysSource="kubernetes"
 func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
-	keysNamespaces, err := normalizeKeysNamespaces(config.KeysNamespaces)
-	if err != nil {
-		return nil, err
-	}
-
 	s := &SOPSEnv{
-		keysDir:        config.KeysDir,
-		keysNamespaces: keysNamespaces,
-		keysSource:     config.KeysSource,
-		logger:         config.Logger,
+		keysDir:    config.KeysDir,
+		keysSource: config.KeysSource,
+		logger:     config.Logger,
 	}
 
 	if config.KeysSource == key.KeysSourceLocal {
 		return s, nil
 	}
+
+	keysNamespaces, err := normalizeKeysNamespaces(config.KeysNamespaces)
+	if err != nil {
+		return nil, err
+	}
+	s.keysNamespaces = keysNamespaces
 
 	if config.KeysDir == "" {
 		keysDir, err := os.MkdirTemp("", konfigureTmpDirName)
@@ -379,20 +379,29 @@ func (s *SOPSEnv) writeKeysTxt(ctx context.Context, keys map[string][]byte) erro
 		}
 	}
 
-	keysPath := filepath.Join(s.keysDir, "keys.txt")
-	keysPath = filepath.Clean(keysPath)
-	keysTxt, err := os.OpenFile(keysPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	// Write to a temporary file and rename it over keys.txt, so readers
+	// never see a partially written file.
+	keysPath := filepath.Clean(filepath.Join(s.keysDir, "keys.txt"))
+	tmp, err := os.CreateTemp(s.keysDir, "keys.txt.tmp-")
 	if err != nil {
 		return err
 	}
+	tmpPath := tmp.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
 
-	if _, err := keysTxt.Write(bytes.Join(ageKeys, []byte("\n"))); err != nil {
+	if err := tmp.Chmod(0600); err != nil {
+		_ = tmp.Close()
 		return err
 	}
 
-	if err := keysTxt.Close(); err != nil {
+	if _, err := tmp.Write(bytes.Join(ageKeys, []byte("\n"))); err != nil {
+		_ = tmp.Close()
 		return err
 	}
 
-	return nil
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	return os.Rename(tmpPath, keysPath)
 }
