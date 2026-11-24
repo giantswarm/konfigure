@@ -1,6 +1,8 @@
 package renderer
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +15,6 @@ const (
 	errOutside        = "outside of the config directory"
 	errSymlinkOutside = "escapes from parent"
 	errNotExist       = "does not exist"
-	errNoSuchFile     = "no such file or directory"
 	insideContent     = "inside: true\n"
 	missingFile       = "missing.yaml"
 	missingDir        = "missing"
@@ -272,11 +273,12 @@ func TestIncludeFunction_Confinement(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name          string
-		directory     string
-		templateName  string
-		expected      string
-		expectedError string
+		name           string
+		directory      string
+		templateName   string
+		expected       string
+		expectedError  string
+		expectNotExist bool
 	}{
 		{
 			name:         "template inside the include directory",
@@ -297,16 +299,16 @@ func TestIncludeFunction_Confinement(t *testing.T) {
 			expectedError: errOutside,
 		},
 		{
-			name:          "absolute include directory stays relative",
-			directory:     outsideDir,
-			templateName:  snippetName,
-			expectedError: errNoSuchFile,
+			name:           "absolute include directory stays relative",
+			directory:      outsideDir,
+			templateName:   snippetName,
+			expectNotExist: true,
 		},
 		{
-			name:          "absolute template name stays relative",
-			directory:     includeDir,
-			templateName:  filepath.Join(outsideDir, snippetName),
-			expectedError: errNoSuchFile,
+			name:           "absolute template name stays relative",
+			directory:      includeDir,
+			templateName:   filepath.Join(outsideDir, snippetName),
+			expectNotExist: true,
 		},
 		{
 			name:          "symbolic link to a template outside",
@@ -325,6 +327,13 @@ func TestIncludeFunction_Confinement(t *testing.T) {
 			}
 
 			out, err := generateIncludeFunction(configDir, include)(tc.templateName, map[string]string{"name": "world"})
+
+			if tc.expectNotExist {
+				if !errors.Is(err, fs.ErrNotExist) {
+					t.Fatalf("want a not-exist error, got %v (output %q)", err, out)
+				}
+				return
+			}
 
 			if tc.expectedError != "" {
 				if err == nil {
@@ -374,6 +383,13 @@ func TestLoadFileFromPathSegments_DirForms(t *testing.T) {
 		}
 		if string(content) != insideContent {
 			t.Fatalf("expected content %q, got %q", insideContent, string(content))
+		}
+	})
+
+	t.Run("missing config directory with a required segment", func(t *testing.T) {
+		_, err := loadFileFromPathSegments(filepath.Join(configDir, missingDir), []PathSegment{{defaultDir, true}})
+		if err == nil || !strings.Contains(err.Error(), errNotExist) {
+			t.Fatalf("want error containing %q, got %v", errNotExist, err)
 		}
 	})
 

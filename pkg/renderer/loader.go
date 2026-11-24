@@ -236,7 +236,10 @@ func loadFileFromPathSegments(dir string, segments []PathSegment) ([]byte, error
 
 	root, err := os.OpenRoot(dir)
 	if err != nil {
-		if os.IsNotExist(err) && !segments[0].Required {
+		if os.IsNotExist(err) {
+			if segments[0].Required {
+				return nil, fmt.Errorf("required path %s does not exist", dir)
+			}
 			return make([]byte, 0), nil
 		}
 		return nil, err
