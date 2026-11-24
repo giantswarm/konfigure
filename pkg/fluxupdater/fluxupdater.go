@@ -36,14 +36,33 @@ const (
 	defaultKubernetesTokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101
 )
 
+const (
+	// DefaultSourceControllerNamespace is the namespace of the Source
+	// Controller that DefaultArtifactHosts trusts.
+	DefaultSourceControllerNamespace = "flux-giantswarm"
+	// DefaultClusterDomain is the cluster domain that DefaultArtifactHosts
+	// uses.
+	DefaultClusterDomain = "cluster.local"
+)
+
+// maxArtifactSize caps the downloaded artifact before it is extracted. It
+// matches the untar limit for the extracted files. A variable so tests can
+// lower it.
+var maxArtifactSize int64 = tar.DefaultMaxUntarSize
+
+// ArtifactHost returns the host name Flux advertises artifact URLs with for
+// a Source Controller service in namespace on a cluster with clusterDomain,
+// for example "source-controller.flux-giantswarm.svc.cluster.local".
+func ArtifactHost(namespace, clusterDomain string) string {
+	return fmt.Sprintf("source-controller.%s.svc.%s", namespace, strings.Trim(clusterDomain, "."))
+}
+
 // DefaultArtifactHosts returns the hosts artifacts are downloaded from when
 // Config.ArtifactHosts is empty: the Source Controller service in the
-// flux-giantswarm namespace, with and without the cluster domain.
+// flux-giantswarm namespace on a cluster with the cluster.local domain.
+// Clusters with another cluster domain must set Config.ArtifactHosts.
 func DefaultArtifactHosts() []string {
-	return []string{
-		"source-controller.flux-giantswarm.svc",
-		"source-controller.flux-giantswarm.svc.cluster.local",
-	}
+	return []string{ArtifactHost(DefaultSourceControllerNamespace, DefaultClusterDomain)}
 }
 
 type Config struct {
@@ -61,7 +80,8 @@ type Config struct {
 	// earlier update, is only used when its host is in this list and its
 	// path is below /gitrepository/<namespace>/<name>/. Entries are host
 	// names only, without scheme or port; the port is not checked. Defaults
-	// to DefaultArtifactHosts when empty.
+	// to DefaultArtifactHosts when empty. Use ArtifactHost to build the
+	// entry for another namespace or cluster domain.
 	ArtifactHosts []string
 }
 
@@ -259,13 +279,9 @@ func (u *FluxUpdater) UpdateConfig() error {
 				return nil
 			}
 		} else {
-			if response.StatusCode != http.StatusNotFound {
-				return &ExecutionFailedError{
-					message: fmt.Sprintf("error calling %q: expected %d or %d, got %d", request.URL, http.StatusOK, http.StatusNotFound, response.StatusCode),
-				}
-			} else {
-				artifactURL = ""
-			}
+			// The cached artifact is gone or cannot be checked, so ask the
+			// GitRepository for the current one.
+			artifactURL = ""
 		}
 	}
 
@@ -410,9 +426,14 @@ func (u *FluxUpdater) UpdateConfig() error {
 	}
 
 	var buf bytes.Buffer
-	_, err = io.Copy(&buf, response.Body)
+	n, err := io.Copy(&buf, io.LimitReader(response.Body, maxArtifactSize+1))
 	if err != nil {
 		return err
+	}
+	if n > maxArtifactSize {
+		return &ExecutionFailedError{
+			message: fmt.Sprintf("error downloading %q: artifact is larger than %d bytes", request.URL, maxArtifactSize),
+		}
 	}
 
 	// Clear the old artifact's directory and untar a fresh one.

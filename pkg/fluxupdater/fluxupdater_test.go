@@ -248,10 +248,12 @@ func TestValidateArtifactURL(t *testing.T) {
 		url   string
 		valid bool
 	}{
-		{"default host", "http://source-controller.flux-giantswarm.svc./gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
-		{"default host with cluster domain", "http://source-controller.flux-giantswarm.svc.cluster.local./gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
-		{"default host with port", "http://source-controller.flux-giantswarm.svc:80/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
-		{"https", "https://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"default host", "http://source-controller.flux-giantswarm.svc.cluster.local/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"default host with trailing dot", "http://source-controller.flux-giantswarm.svc.cluster.local./gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"default host with port", "http://source-controller.flux-giantswarm.svc.cluster.local:80/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"https", "https://source-controller.flux-giantswarm.svc.cluster.local/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", true},
+		{"short service name", "http://source-controller.flux-giantswarm.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
+		{"other cluster domain", "http://source-controller.flux-giantswarm.svc.example.internal/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
 		{"foreign host", "http://other.example.com/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
 		{"source controller in another namespace", "http://source-controller.flux-system.svc/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
 		{"ip address", "http://10.0.0.1/gitrepository/flux-giantswarm/giantswarm-config/abc.tar.gz", false},
@@ -302,6 +304,7 @@ func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
 	const (
 		artifactPath = "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz"
 		redirectPath = "/gitrepository/flux-giantswarm/giantswarm-config/redirect.tar.gz"
+		brokenPath   = "/gitrepository/flux-giantswarm/giantswarm-config/broken.tar.gz"
 	)
 
 	var foreignRequests atomic.Int32
@@ -329,6 +332,8 @@ func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
 			_, _ = w.Write(archive)
 		case redirectPath:
 			http.Redirect(w, r, foreignBase+artifactPath, http.StatusFound)
+		case brokenPath:
+			w.WriteHeader(http.StatusInternalServerError)
 		default:
 			http.NotFoundHandler().ServeHTTP(w, r)
 		}
@@ -386,6 +391,16 @@ func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
 			name:          "cached URL on a foreign host is dropped",
 			advertisedURL: srcCtrlServer.URL + artifactPath,
 			cachedURL:     foreignBase + artifactPath,
+		},
+		{
+			name:          "cached URL redirecting to a foreign host is dropped",
+			advertisedURL: srcCtrlServer.URL + artifactPath,
+			cachedURL:     srcCtrlServer.URL + redirectPath,
+		},
+		{
+			name:          "cached URL failing with a server error is dropped",
+			advertisedURL: srcCtrlServer.URL + artifactPath,
+			cachedURL:     srcCtrlServer.URL + brokenPath,
 		},
 	}
 
@@ -447,6 +462,90 @@ func TestRunner_updateConfig_untrustedArtifactURL(t *testing.T) {
 				t.Fatalf("want cached URL %q, got %q", tc.advertisedURL, string(cached))
 			}
 		})
+	}
+}
+
+func TestArtifactHost(t *testing.T) {
+	testCases := map[string][2]string{
+		"source-controller.flux-giantswarm.svc.cluster.local":    {"flux-giantswarm", "cluster.local"},
+		"source-controller.flux-giantswarm.svc.example.internal": {"flux-giantswarm", "example.internal."},
+		"source-controller.flux-system.svc.cluster.local":        {"flux-system", "cluster.local"},
+	}
+
+	for want, args := range testCases {
+		if got := ArtifactHost(args[0], args[1]); got != want {
+			t.Fatalf("ArtifactHost(%q, %q): want %q, got %q", args[0], args[1], want, got)
+		}
+	}
+
+	if got := DefaultArtifactHosts(); len(got) != 1 || got[0] != "source-controller.flux-giantswarm.svc.cluster.local" {
+		t.Fatalf("unexpected default artifact hosts %v", got)
+	}
+}
+
+func TestRunner_updateConfig_artifactTooLarge(t *testing.T) {
+	archive, err := os.ReadFile("testdata/latestrevision.tar.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func(limit int64) { maxArtifactSize = limit }(maxArtifactSize)
+	maxArtifactSize = int64(len(archive)) - 1
+
+	const artifactPath = "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz"
+
+	srcCtrlServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Last-Modified", advertisedTimestamp)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(archive)
+	}))
+	defer srcCtrlServer.Close()
+
+	srcCtrlUrl, err := url.Parse(srcCtrlServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k8sServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `{"status":{"artifact":{"url":%q}}}`, srcCtrlServer.URL+artifactPath)
+	}))
+	defer k8sServer.Close()
+
+	k8sUrl, err := url.Parse(k8sServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cacheDir := t.TempDir()
+	if err := prePopulateCache(cacheDir, []byte("oldrevision.tar.gz"), []byte("oldvalue"), []byte(advertisedTimestamp), []byte("")); err != nil {
+		t.Fatal(err)
+	}
+
+	updater, err := New(Config{
+		CacheDir:            cacheDir,
+		ApiServerHost:       k8sUrl.Hostname(),
+		ApiServerPort:       k8sUrl.Port(),
+		KubernetesTokenFile: testTokenFile,
+		GitRepository:       testGitRepository,
+		ArtifactHosts:       []string{srcCtrlUrl.Hostname()},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = updater.UpdateConfig()
+	if err == nil || !strings.Contains(err.Error(), "artifact is larger than") {
+		t.Fatalf("want size limit error, got %v", err)
+	}
+
+	// The previous config stays in place when the download is refused.
+	config, err := os.ReadFile(path.Join(cacheDir, "latest", "config.yaml")) //nolint:gosec
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(config) != "oldvalue" {
+		t.Fatalf("want the old config to stay, got %q", string(config))
 	}
 }
 
