@@ -46,7 +46,7 @@ func (f *flag) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.Dir, flagDir, ".", `Directory containing configuration source (e.g cloned "giantswarm/config" repo).`)
 	cmd.Flags().StringVar(&f.SOPSKeysDir, flagSOPSKeysDir, "", `Directory containing SOPS private keys (optional).`)
 	cmd.Flags().StringVar(&f.SOPSKeysSource, flagSOPSKeysSource, "local", `Source of SOPS private keys, supports "local" and "kubernetes", (optional).`)
-	cmd.Flags().StringSliceVar(&f.SOPSKeysNS, flagSOPSKeysNS, sopsenv.DefaultKeysNamespaces, `Namespaces to import SOPS key Secrets from when --sops-keys-source is "kubernetes", (optional).`)
+	cmd.Flags().StringSliceVar(&f.SOPSKeysNS, flagSOPSKeysNS, sopsenv.DefaultKeysNamespaces(), `Namespaces to import SOPS key Secrets from when --sops-keys-source is "kubernetes", "*" for all namespaces (optional).`)
 	cmd.Flags().BoolVar(&f.Verbose, flagVerbose, false, `Enables generator to output consecutive generation stages.`)
 	cmd.Flags().StringArrayVar(&f.Variables, flagVariable, []string{}, `Variables for rendering the schema.`)
 	cmd.Flags().BoolVar(&f.Raw, flagRaw, false, `Forces generator to output YAML instead of ConfigMap & Secret.`)

@@ -49,9 +49,15 @@ const (
 	secretAgeExt = ".agekey"
 )
 
-// DefaultKeysNamespaces lists the namespaces SOPS key Secrets are imported
+// AllKeysNamespaces, given as the only entry of SOPSEnvConfig.KeysNamespaces,
+// imports SOPS key Secrets from all namespaces.
+const AllKeysNamespaces = "*"
+
+// DefaultKeysNamespaces returns the namespaces SOPS key Secrets are imported
 // from when SOPSEnvConfig.KeysNamespaces is empty.
-var DefaultKeysNamespaces = []string{"giantswarm", "flux-giantswarm"}
+func DefaultKeysNamespaces() []string {
+	return []string{"giantswarm", "flux-giantswarm"}
+}
 
 type SOPSEnvConfig struct {
 	K8sClient  kubernetes.Interface
@@ -60,10 +66,11 @@ type SOPSEnvConfig struct {
 	Logger     logr.Logger
 
 	// KeysNamespaces lists the namespaces to import labelled SOPS key
-	// Secrets from when KeysSource is "kubernetes". Defaults to
-	// DefaultKeysNamespaces when empty. Listing metav1.NamespaceAll ("")
-	// imports from all namespaces; only do that when every namespace in the
-	// cluster is trusted to provide decryption keys.
+	// Secrets from when KeysSource is "kubernetes". Empty entries are
+	// ignored, and DefaultKeysNamespaces is used when no entry is left.
+	// AllKeysNamespaces as the only entry imports from all namespaces; only
+	// use it when every namespace in the cluster is trusted to provide
+	// decryption keys.
 	KeysNamespaces []string
 }
 
@@ -95,12 +102,9 @@ type SOPSEnv struct {
 //     keysDir="path"
 //     keysSource="kubernetes"
 func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
-	keysNamespaces := slices.Clone(config.KeysNamespaces)
-	if len(keysNamespaces) == 0 {
-		keysNamespaces = slices.Clone(DefaultKeysNamespaces)
-	}
-	if slices.Contains(keysNamespaces, metav1.NamespaceAll) {
-		keysNamespaces = []string{metav1.NamespaceAll}
+	keysNamespaces, err := normalizeKeysNamespaces(config.KeysNamespaces)
+	if err != nil {
+		return nil, err
 	}
 
 	s := &SOPSEnv{
@@ -141,6 +145,31 @@ func NewSOPSEnv(config SOPSEnvConfig) (*SOPSEnv, error) {
 
 	s.k8sClient = k8sClient
 	return s, nil
+}
+
+// normalizeKeysNamespaces drops empty and duplicate entries, applies the
+// default and turns AllKeysNamespaces into metav1.NamespaceAll.
+func normalizeKeysNamespaces(namespaces []string) ([]string, error) {
+	result := make([]string, 0, len(namespaces))
+	for _, namespace := range namespaces {
+		namespace = strings.TrimSpace(namespace)
+		if namespace != "" && !slices.Contains(result, namespace) {
+			result = append(result, namespace)
+		}
+	}
+
+	if len(result) == 0 {
+		return DefaultKeysNamespaces(), nil
+	}
+
+	if slices.Contains(result, AllKeysNamespaces) {
+		if len(result) != 1 {
+			return nil, &InvalidConfigError{message: fmt.Sprintf("%q must be the only keys namespace when given", AllKeysNamespaces)}
+		}
+		return []string{metav1.NamespaceAll}, nil
+	}
+
+	return result, nil
 }
 
 func (s *SOPSEnv) Cleanup() {
@@ -213,7 +242,8 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 	// Let user know no Secrets have been found using selector.
 	if len(secrets) == 0 {
 		s.logger.Info(fmt.Sprintf("no Kubernetes Secrets found matching selector: %s=%s", KonfigureLabelKey, KonfigureLabelValue), "namespaces", s.keysNamespaces)
-		return nil
+		// Clear age keys written by an earlier import.
+		return s.writeKeysTxt(ctx, nil)
 	}
 
 	imported := 0
@@ -254,6 +284,10 @@ func (s *SOPSEnv) importKeys(ctx context.Context) error {
 	}
 
 	if imported == 0 && len(failures) > 0 {
+		// Clear age keys written by an earlier import.
+		if err := s.writeKeysTxt(ctx, nil); err != nil {
+			return err
+		}
 		return &KeyImportError{message: fmt.Sprintf("failed to import any SOPS key, invalid keys in: %s", strings.Join(failures, ", "))}
 	}
 
@@ -275,14 +309,15 @@ func validateAgeIdentities(data []byte) error {
 		}
 
 		switch {
-		case strings.HasPrefix(line, "AGE-PLUGIN-"):
-			// Plugin identities are resolved by SOPS at decryption time.
 		case strings.HasPrefix(line, "AGE-SECRET-KEY-1"):
 			if _, err := age.ParseX25519Identity(line); err != nil {
 				return &InvalidAgeKeyError{message: err.Error()}
 			}
 		default:
-			return &InvalidAgeKeyError{message: "unknown identity type"}
+			// Only X25519 identities are supported. Plugin identities need
+			// an age plugin binary, and SOPS stops at the first one it
+			// cannot use, so they are refused as well.
+			return &InvalidAgeKeyError{message: "unsupported identity type"}
 		}
 
 		found = true
