@@ -485,6 +485,10 @@ func TestArtifactHost(t *testing.T) {
 		}
 	}
 
+	if got := ArtifactHost(DefaultSourceControllerNamespace, ""); got != defaultHost {
+		t.Fatalf("ArtifactHost with empty domain: want %q, got %q", defaultHost, got)
+	}
+
 	for domain, want := range map[string]string{
 		"":                  defaultHost,
 		".":                 defaultHost,
@@ -539,7 +543,6 @@ func TestRunner_updateConfig_artifactTooLarge(t *testing.T) {
 	}
 
 	defer func(limit int64) { maxArtifactSize = limit }(maxArtifactSize)
-	maxArtifactSize = int64(len(archive)) - 1
 
 	const artifactPath = "/gitrepository/flux-giantswarm/giantswarm-config/latestrevision.tar.gz"
 
@@ -547,6 +550,84 @@ func TestRunner_updateConfig_artifactTooLarge(t *testing.T) {
 		w.Header().Add("Last-Modified", advertisedTimestamp)
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(archive)
+	}))
+	defer srcCtrlServer.Close()
+
+	srcCtrlUrl, err := url.Parse(srcCtrlServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k8sServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `{"status":{"artifact":{"url":%q}}}`, srcCtrlServer.URL+artifactPath)
+	}))
+	defer k8sServer.Close()
+
+	k8sUrl, err := url.Parse(k8sServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name      string
+		limit     int64
+		wantError bool
+	}{
+		{name: "one byte over the limit", limit: int64(len(archive)) - 1, wantError: true},
+		{name: "exactly at the limit", limit: int64(len(archive))},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			maxArtifactSize = tc.limit
+
+			cacheDir := t.TempDir()
+			if err := prePopulateCache(cacheDir, []byte("oldrevision.tar.gz"), []byte("oldvalue"), []byte(advertisedTimestamp), []byte("")); err != nil {
+				t.Fatal(err)
+			}
+
+			updater, err := New(Config{
+				CacheDir:            cacheDir,
+				ApiServerHost:       k8sUrl.Hostname(),
+				ApiServerPort:       k8sUrl.Port(),
+				KubernetesTokenFile: testTokenFile,
+				GitRepository:       testGitRepository,
+				ArtifactHosts:       []string{srcCtrlUrl.Hostname()},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = updater.UpdateConfig()
+
+			want := newConfigValue
+			if tc.wantError {
+				if err == nil || !strings.Contains(err.Error(), "artifact is larger than") {
+					t.Fatalf("want size limit error, got %v", err)
+				}
+				// The previous config stays in place when the download is refused.
+				want = "oldvalue"
+			} else if err != nil {
+				t.Fatalf("want nil, got error: %s", err.Error())
+			}
+
+			config, err := os.ReadFile(path.Join(cacheDir, "latest", "config.yaml")) //nolint:gosec
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.TrimSpace(string(config)) != want {
+				t.Fatalf("want config %q, got %q", want, string(config))
+			}
+		})
+	}
+}
+
+func TestRunner_updateConfig_brokenArchiveKeepsConfig(t *testing.T) {
+	const artifactPath = "/gitrepository/flux-giantswarm/giantswarm-config/broken.tar.gz"
+
+	srcCtrlServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Last-Modified", advertisedTimestamp)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("not a tar archive"))
 	}))
 	defer srcCtrlServer.Close()
 
@@ -583,12 +664,10 @@ func TestRunner_updateConfig_artifactTooLarge(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = updater.UpdateConfig()
-	if err == nil || !strings.Contains(err.Error(), "artifact is larger than") {
-		t.Fatalf("want size limit error, got %v", err)
+	if err := updater.UpdateConfig(); err == nil {
+		t.Fatal("want error for a broken archive, got nil")
 	}
 
-	// The previous config stays in place when the download is refused.
 	config, err := os.ReadFile(path.Join(cacheDir, "latest", "config.yaml")) //nolint:gosec
 	if err != nil {
 		t.Fatal(err)
@@ -596,10 +675,20 @@ func TestRunner_updateConfig_artifactTooLarge(t *testing.T) {
 	if string(config) != "oldvalue" {
 		t.Fatalf("want the old config to stay, got %q", string(config))
 	}
+
+	entries, err := os.ReadDir(cacheDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), "latest.tmp-") {
+			t.Fatalf("temporary directory %q left behind", entry.Name())
+		}
+	}
 }
 
 func TestNew_InvalidArtifactHosts(t *testing.T) {
-	for _, host := range []string{"", "source-controller:80", "http://source-controller", "source-controller/path", "[::1]"} {
+	for _, host := range []string{"", "source-controller:80", "http://source-controller", "source-controller/path", "[::1]", ArtifactHost("", "cluster.local"), "Source_Controller.svc"} {
 		_, err := New(Config{
 			CacheDir:      t.TempDir(),
 			ApiServerHost: testApiServerHost,

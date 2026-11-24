@@ -50,11 +50,17 @@ const (
 // lower it.
 var maxArtifactSize int64 = tar.DefaultMaxUntarSize
 
-// ArtifactHost returns the host name Flux advertises artifact URLs with for
-// a Source Controller service in namespace on a cluster with clusterDomain,
-// for example "source-controller.flux-giantswarm.svc.cluster.local".
+// ArtifactHost returns the service host name of a Source Controller in
+// namespace on a cluster with clusterDomain, for example
+// "source-controller.flux-giantswarm.svc.cluster.local". An empty
+// clusterDomain means DefaultClusterDomain. The allowed hosts must match the
+// host the Source Controller advertises with its --storage-adv-addr flag.
 func ArtifactHost(namespace, clusterDomain string) string {
-	return fmt.Sprintf("source-controller.%s.svc.%s", namespace, strings.Trim(clusterDomain, "."))
+	clusterDomain = strings.Trim(strings.TrimSpace(clusterDomain), ".")
+	if clusterDomain == "" {
+		clusterDomain = DefaultClusterDomain
+	}
+	return fmt.Sprintf("source-controller.%s.svc.%s", strings.TrimSpace(namespace), clusterDomain)
 }
 
 // DefaultArtifactHosts returns the hosts artifacts are downloaded from when
@@ -62,10 +68,7 @@ func ArtifactHost(namespace, clusterDomain string) string {
 // flux-giantswarm namespace on a cluster with clusterDomain, or with
 // DefaultClusterDomain when clusterDomain is empty.
 func DefaultArtifactHosts(clusterDomain string) []string {
-	if strings.Trim(clusterDomain, ". ") == "" {
-		clusterDomain = DefaultClusterDomain
-	}
-	return []string{ArtifactHost(DefaultSourceControllerNamespace, strings.TrimSpace(clusterDomain))}
+	return []string{ArtifactHost(DefaultSourceControllerNamespace, clusterDomain)}
 }
 
 type Config struct {
@@ -151,6 +154,9 @@ func New(config Config) (*FluxUpdater, error) {
 		}
 		if strings.ContainsAny(host, ":/@?#[]") {
 			return nil, &InvalidConfigError{message: fmt.Sprintf("artifactHosts entry %q must be a host name without scheme, port or path", host)}
+		}
+		if errs := validation.IsDNS1123Subdomain(host); len(errs) != 0 {
+			return nil, &InvalidConfigError{message: fmt.Sprintf("artifactHosts entry %q is not a valid host name: %s", host, strings.Join(errs, ", "))}
 		}
 		artifactHosts = append(artifactHosts, host)
 	}
@@ -432,6 +438,12 @@ func (u *FluxUpdater) UpdateConfig() error {
 		}
 	}
 
+	if response.ContentLength > maxArtifactSize {
+		return &ExecutionFailedError{
+			message: fmt.Sprintf("error downloading %q: artifact is larger than %d bytes", request.URL, maxArtifactSize),
+		}
+	}
+
 	var buf bytes.Buffer
 	n, err := io.Copy(&buf, io.LimitReader(response.Body, maxArtifactSize+1))
 	if err != nil {
@@ -443,15 +455,25 @@ func (u *FluxUpdater) UpdateConfig() error {
 		}
 	}
 
-	// Clear the old artifact's directory and untar a fresh one.
+	// Untar into a fresh directory first and swap it in only when that
+	// worked, so a broken or oversized archive leaves the old config in place.
 	dir := path.Join(u.CacheDir, "latest")
+	tmpDir, err := os.MkdirTemp(u.CacheDir, "latest.tmp-")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	if err := os.Chmod(tmpDir, 0750); err != nil { //nolint:gosec // same mode the directory always had
+		return err
+	}
+	if err = tar.Untar(&buf, tmpDir); err != nil {
+		return err
+	}
 	if err := os.RemoveAll(dir); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0750); err != nil {
-		return err
-	}
-	if err = tar.Untar(&buf, dir); err != nil {
+	if err := os.Rename(tmpDir, dir); err != nil {
 		return err
 	}
 
